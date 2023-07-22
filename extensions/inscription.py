@@ -37,7 +37,7 @@ class Inscription(commands.Cog):
             return
         try:
             print("Création du fil...")
-            thread = await message.start_thread(name=f"Inscription de {message.author.name}")
+            thread = await message.channel.create_thread(message=message, name=f"Inscription de {message.author.name}")
             self.threads[thread.id] = message.author.id
             self.threads_created.add(message.id)
         except Exception as e:
@@ -140,5 +140,5 @@ class Inscription(commands.Cog):
                     del self.validated_registrations[user_id]
                 del self.threads[message.channel.id]
 
-def setup(bot):
-    bot.add_cog(Inscription(bot))
+async def setup(bot):
+    await bot.add_cog(Inscription(bot))

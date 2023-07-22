@@ -14,10 +14,9 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
-
-bot.load_extension("extensions.inscription")
-bot.load_extension("extensions.mudae_help")
-bot.load_extension("extensions.presentation")
-bot.load_extension("extensions.question")
+    await bot.load_extension("extensions.inscription")
+    await bot.load_extension("extensions.mudae_help")
+    await bot.load_extension("extensions.presentation")
+    await bot.load_extension("extensions.question")
 
 bot.run(TOKEN)

@@ -19,11 +19,11 @@ class MudaeHelp(commands.Cog):
             else:
                 self.user_message_times[message.author.id] = now
                 try:
-                    print("Création du fil...")  # Log thread creation
-                    thread = await message.channel.create_thread(name=f"Question de {message.author.name}")
+                    print("Création du fil...")
+                    thread = await message.channel.create_thread(message=message, name=f"Question de {message.author.name}")
                     await thread.send("La question a été prise en compte. Nous vous fournirons une réponse complète et précise dans les plus brefs délais. Merci de votre patience !")
                 except Exception as e:
                     print(f"Erreur lors de la création du fil : {e}")
 
-def setup(bot):
-    bot.add_cog(MudaeHelp(bot))
+async def setup(bot):
+    await bot.add_cog(MudaeHelp(bot))

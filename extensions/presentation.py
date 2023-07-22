@@ -33,6 +33,10 @@ class Presentation(commands.Cog):
                 await message.delete()
             else:
                 self.user_message_times[message.author.id] = now
+                thread = await message.channel.create_thread(name=f"Thread for {message.author.name}")
+                self.threads[thread.id] = thread.owner.id
+                await thread.send("This is a message from the bot.")
+
 
     async def ask_question(self, channel, question, check):
         await channel.send(question)
@@ -79,7 +83,8 @@ class Presentation(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_join(self, thread):
-        if thread.id != PRESENTATION_BOT_CHANNEL_ID:
+        if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
+            return
             return
 
         print(f"Le bot a rejoint le fil {thread.id}")
@@ -102,5 +107,5 @@ class Presentation(commands.Cog):
 
         await self.ask_choice(thread, check)
 
-def setup(bot):
-    bot.add_cog(Presentation(bot))
+async def setup(bot):
+    await bot.add_cog(Presentation(bot))
