@@ -82,11 +82,20 @@ class Presentation(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_join(self, thread):
-        print("Event on_thread_join triggered")  # Added print statement
+        print("Event on_thread_join triggered")
         if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
             return
 
         print(f"Le bot a rejoint le fil {thread.id}")
+        self.threads[thread.id] = thread.owner.id
+
+    @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        print("Event on_thread_create triggered")
+        if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
+            return
+
+        print(f"Un fil a été créé {thread.id}")
         self.threads[thread.id] = thread.owner.id
 
         def check(m):

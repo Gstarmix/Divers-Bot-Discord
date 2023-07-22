@@ -5,6 +5,7 @@ from constants import QUESTION_BOT_CHANNEL_ID, ADMIN_ROLE_ID
 class Question(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.threads = {}
 
     async def ask_question(self, thread, message, check, max_tries=5):
         await thread.send(f"{thread.owner.mention} {message}")
@@ -18,7 +19,19 @@ class Question(commands.Cog):
         return None
 
     @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author == self.bot.user:
+            return
+
+        print(f"Message reçu de {message.author.name} dans le canal {message.channel.id}")
+        if message.channel.id == QUESTION_BOT_CHANNEL_ID and not message.author.bot:
+            thread = await message.channel.create_thread(name=f"Thread for {message.author.name}")
+            self.threads[thread.id] = thread.owner.id
+            await thread.send("This is a message from the bot.")
+
+    @commands.Cog.listener()
     async def on_thread_join(self, thread):
+        print("Event on_thread_join triggered")
         if thread.parent.id != QUESTION_BOT_CHANNEL_ID:
             return
 
@@ -35,7 +48,6 @@ class Question(commands.Cog):
         elif response == 'non':
             await thread.send(f"{thread.owner.mention} Merci de reformuler votre titre en une question compréhensible et détaillée. Par exemple, au lieu de 'Conseil stuff', vous pourriez dire 'Quelles améliorations puis-je apporter à mon stuff ?'")
 
-        # Only allow the thread owner or an admin to post in the thread.
         while True:
             try:
                 message = await self.bot.wait_for('message', check=check_all)
@@ -48,6 +60,14 @@ class Question(commands.Cog):
             except Exception as e:
                 pass
 
+    @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        print("Event on_thread_create triggered")
+        if thread.parent.id != QUESTION_BOT_CHANNEL_ID:
+            return
+
+        print(f"Un fil a été créé {thread.id}")
+        self.threads[thread.id] = thread.owner.id
+
 async def setup(bot):
     await bot.add_cog(Question(bot))
-    
