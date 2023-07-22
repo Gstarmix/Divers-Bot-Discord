@@ -37,7 +37,6 @@ class Presentation(commands.Cog):
                 self.threads[thread.id] = thread.owner.id
                 await thread.send("This is a message from the bot.")
 
-
     async def ask_question(self, channel, question, check):
         await channel.send(question)
         while True:
@@ -83,8 +82,8 @@ class Presentation(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_join(self, thread):
+        print("Event on_thread_join triggered")  # Added print statement
         if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
-            return
             return
 
         print(f"Le bot a rejoint le fil {thread.id}")
