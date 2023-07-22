@@ -19,24 +19,14 @@ class Question(commands.Cog):
         return None
 
     @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author == self.bot.user:
-            return
-
-        print(f"Message reçu de {message.author.name} dans le canal {message.channel.id}")
-        if message.channel.id == QUESTION_BOT_CHANNEL_ID and not message.author.bot:
-            thread = await message.channel.create_thread(name=f"Thread for {message.author.name}")
-            self.threads[thread.id] = thread.owner.id
-            await thread.send("This is a message from the bot.")
-
-    @commands.Cog.listener()
     async def on_thread_join(self, thread):
         print("Event on_thread_join triggered")
         if thread.parent.id != QUESTION_BOT_CHANNEL_ID:
             return
 
         print(f"Un fil a été créé {thread.id}")
-        self.threads[thread.id] = thread.owner.id
+        if thread.id not in self.threads:
+            self.threads[thread.id] = thread.owner.id
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):

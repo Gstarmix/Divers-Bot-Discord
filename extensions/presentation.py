@@ -25,18 +25,6 @@ class Presentation(commands.Cog):
         if message.author == self.bot.user:
             return
 
-        print(f"Message reçu de {message.author.name} dans le canal {message.channel.id}")
-        if message.channel.id == PRESENTATION_BOT_CHANNEL_ID and not message.author.bot:
-            now = datetime.datetime.now()
-            if message.author.id in self.user_message_times and (now - self.user_message_times[message.author.id]).total_seconds() < 300:
-                await message.author.send("Vous ne pouvez poser une nouvelle question que 5 minutes après votre précédente question. Veuillez modifier votre dernier message si nécessaire.")
-                await message.delete()
-            else:
-                self.user_message_times[message.author.id] = now
-                thread = await message.channel.create_thread(name=f"Thread for {message.author.name}")
-                self.threads[thread.id] = thread.owner.id
-                await thread.send("This is a message from the bot.")
-
     async def ask_question(self, channel, question, check):
         await channel.send(question)
         while True:
@@ -87,7 +75,7 @@ class Presentation(commands.Cog):
             return
 
         print(f"Le bot a rejoint le fil {thread.id}")
-        self.threads[thread.id] = thread.owner.id
+        self.threads[thread.id] = thread.owner.mention
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -96,7 +84,7 @@ class Presentation(commands.Cog):
             return
 
         print(f"Un fil a été créé {thread.id}")
-        self.threads[thread.id] = thread.owner.id
+        self.threads[thread.id] = thread.owner.mention
 
         def check(m):
             return m.channel.id == thread.id and m.author == thread.owner
