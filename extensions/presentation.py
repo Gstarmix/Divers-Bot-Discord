@@ -29,10 +29,10 @@ class Presentation(commands.Cog):
         await channel.send(question)
         while True:
             try:
-                response = await self.bot.wait_for('message', timeout=60)
-                if check(response) and response.content.lower() == 'oui':
+                response = await self.bot.wait_for('message', timeout=60, check=check)
+                if response.content.lower() == 'oui':
                     return True
-                elif check(response) and response.content.lower() == 'non':
+                elif response.content.lower() == 'non':
                     await channel.send("Veuillez corriger votre présentation en fonction des instructions et poster à nouveau à la suite de ce message.")
                 else:
                     await channel.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'oui' ou 'non'.")
@@ -40,8 +40,8 @@ class Presentation(commands.Cog):
                 await channel.send("Je n'ai pas reçu de réponse. Souhaitez-vous continuer le questionnaire ? Répondez par 'Oui' ou 'Non'.")
                 await asyncio.sleep(1)
                 try:
-                    response = await self.bot.wait_for('message', timeout=60)
-                    if check(response) and response.content.lower() == 'non':
+                    response = await self.bot.wait_for('message', timeout=60, check=check)
+                    if response.content.lower() == 'non':
                         return False
                 except asyncio.TimeoutError:
                     await channel.send("Je n'ai pas reçu de réponse. Le questionnaire va être arrêté.")
@@ -51,8 +51,8 @@ class Presentation(commands.Cog):
         await channel.send("Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.")
         while True:
             try:
-                response = await self.bot.wait_for('message', timeout=60)
-                if check(response) and response.content.lower() in ['yertirand', '-gang-']:
+                response = await self.bot.wait_for('message', timeout=60, check=check)
+                if response.content.lower() in ['yertirand', '-gang-']:
                     await channel.send(generate_message(response.content.lower()))
                     return True
                 else:
@@ -61,8 +61,8 @@ class Presentation(commands.Cog):
                 await channel.send("Je n'ai pas reçu de réponse. Souhaitez-vous continuer le questionnaire ? Répondez par 'Oui' ou 'Non'.")
                 await asyncio.sleep(1)
                 try:
-                    response = await self.bot.wait_for('message', timeout=60)
-                    if check(response) and response.content.lower() == 'non':
+                    response = await self.bot.wait_for('message', timeout=60, check=check)
+                    if response.content.lower() == 'non':
                         return False
                 except asyncio.TimeoutError:
                     await channel.send("Je n'ai pas reçu de réponse. Le questionnaire va être arrêté.")
