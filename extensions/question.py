@@ -35,6 +35,15 @@ class Question(commands.Cog):
         if thread.parent.id != QUESTION_BOT_CHANNEL_ID:
             return
 
+        print(f"Un fil a été créé {thread.id}")
+        self.threads[thread.id] = thread.owner.id
+
+    @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        print("Event on_thread_create triggered")
+        if thread.parent.id != QUESTION_BOT_CHANNEL_ID:
+            return
+
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
@@ -59,15 +68,6 @@ class Question(commands.Cog):
                         pass
             except Exception as e:
                 pass
-
-    @commands.Cog.listener()
-    async def on_thread_create(self, thread):
-        print("Event on_thread_create triggered")
-        if thread.parent.id != QUESTION_BOT_CHANNEL_ID:
-            return
-
-        print(f"Un fil a été créé {thread.id}")
-        self.threads[thread.id] = thread.owner.id
 
 async def setup(bot):
     await bot.add_cog(Question(bot))
