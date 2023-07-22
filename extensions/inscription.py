@@ -7,7 +7,7 @@ from constants import (
     INSCRIPTION_BOT_INVALIDATION_CHANNEL_ID,
 )
 
-class OnMessage(commands.Cog):
+class Inscription(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.pending_registrations = {}
@@ -139,4 +139,4 @@ class OnMessage(commands.Cog):
                 del self.threads[payload.channel_id]
 
 def setup(bot):
-    bot.add_cog(OnMessage(bot))
+    bot.add_cog(Inscription(bot))

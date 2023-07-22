@@ -3,7 +3,7 @@ from nextcord.ext import commands
 import nextcord
 from constants import MUDAE_HELP_BOT_CHANNEL_ID
 
-class OnMessage(commands.Cog):
+class MudaeHelp(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.user_message_times = {}
@@ -26,4 +26,4 @@ class OnMessage(commands.Cog):
                     print(f"Erreur lors de la création du fil : {e}")
 
 def setup(bot):
-    bot.add_cog(OnMessage(bot))
+    bot.add_cog(MudaeHelp(bot))

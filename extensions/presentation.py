@@ -6,14 +6,14 @@ from constants import PRESENTATION_BOT_CHANNEL_ID
 def generate_message(choice):
     role_id = "<@&1036402538620129351>" if choice == "yertirand" else "<@&923190695190233138>"
     return (
-        f":white_small_square: — Je t'ai attribué le rôle <@&923002565602467840> pour te donner accès à tous les salons, "
-        f"notamment le salon <#1031609454527000616> où tu dois lire les règles et le salon <#1056343806196318248> où tu dois sélectionner tes rôles afin de pouvoir réserver un créneau de LoL et participer aux discussions dans les salons dédiés au LoL.\n"
-        f":white_small_square: — J'ai modifié ton pseudo Discord pour qu'il corresponde à celui indiqué dans ta présentation. Si ce n'est pas encore fait, modifie-le toi-même, car nous devons pouvoir te reconnaître.\n"
-        f":white_small_square: — Lorsque tu seras prêt à être recruté, mentionne le rôle {role_id} ici.\n"
-        f":white_small_square: — Tout doit se dérouler dans ta présentation. Alors ne nous envoie pas de MP ou ne nous mentionne pas ailleurs que <a:tention:1093967837992849468> **DANS TA PRÉSENTATION** <a:tention:1093967837992849468> pour te faire recruter."
+        f":white_small_square: - Félicitations ! Tu as désormais le rôle {role_id}, ce qui te donne accès à tous les salons du serveur. "
+        f"N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <#1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n"
+        f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela n'a pas encore été fait, modifie-le toi-même afin que nous puissions te reconnaître facilement.\n"
+        f":white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle {role_id} ici.\n"
+        f":white_small_square: - Nous souhaitons que tout se déroule dans ta présentation. N'envoie donc pas de messages privés et ne nous mentionne nulle part ailleurs que <a:tention:1093967837992849468> **DANS TA PRÉSENTATION** <a:tention:1093967837992849468> si tu souhaites être recruté."
     )
 
-class OnMessage(commands.Cog):
+class Presentation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.user_message_times = {}
@@ -35,7 +35,7 @@ class OnMessage(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_join(self, thread):
-        if thread.parent.id != PRESENTATION_BOT_THREAD_PARENT_ID:
+        if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
             return
 
         print(f"Le bot a rejoint le fil {thread.name}")
@@ -45,9 +45,9 @@ class OnMessage(commands.Cog):
             return m.channel == thread and m.author == thread.owner
 
         questions = [
-            "Votre pseudo en jeu est-il correctement indiqué dans le titre ? (Répondez par oui ou non)",
-            "Avez-vous inclus une capture d'écran de votre fiche personnage ? (Répondez par oui ou non et postez la capture d'écran si vous n'avez pas encore)",
-            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? (Répondez par oui ou non et postez les captures d'écran si vous n'avez pas encore)"
+            "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? (Répondez par oui ou non)",
+            "Avez-vous inclus une capture d'écran de votre fiche personnage ? (Répondez par oui ou non et si ce n'est pas encore le cas, veuillez la poster)",
+            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? (Répondez par oui ou non et si ce n'est pas encore fait, veuillez les poster)"
         ]
 
         for question in questions:
@@ -71,4 +71,4 @@ class OnMessage(commands.Cog):
                 await thread.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
 
 def setup(bot):
-    bot.add_cog(OnMessage(bot))
+    bot.add_cog(Presentation(bot))

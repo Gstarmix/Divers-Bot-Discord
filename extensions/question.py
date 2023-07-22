@@ -2,7 +2,7 @@ import asyncio
 from nextcord.ext import commands
 from constants import QUESTION_BOT_CHANNEL_ID
 
-class OnMessage(commands.Cog):
+class Question(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -35,4 +35,4 @@ class OnMessage(commands.Cog):
                 await thread.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'Oui' ou 'Non'.")
 
 def setup(bot):
-    bot.add_cog(OnMessage(bot))
+    bot.add_cog(Question(bot))
