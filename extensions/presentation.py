@@ -1,6 +1,7 @@
+import asyncio
 import datetime
-from nextcord.ext import commands
-import nextcord
+import discord
+from discord.ext import commands
 from constants import PRESENTATION_BOT_CHANNEL_ID
 
 def generate_message(choice):
@@ -33,16 +34,61 @@ class Presentation(commands.Cog):
             else:
                 self.user_message_times[message.author.id] = now
 
+    async def ask_question(self, channel, question, check):
+        await channel.send(question)
+        while True:
+            try:
+                response = await self.bot.wait_for('message', timeout=60)
+                if check(response) and response.content.lower() == 'oui':
+                    return True
+                elif check(response) and response.content.lower() == 'non':
+                    await channel.send("Veuillez corriger votre présentation en fonction des instructions et poster à nouveau à la suite de ce message.")
+                else:
+                    await channel.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'oui' ou 'non'.")
+            except asyncio.TimeoutError:
+                await channel.send("Je n'ai pas reçu de réponse. Souhaitez-vous continuer le questionnaire ? Répondez par 'Oui' ou 'Non'.")
+                await asyncio.sleep(1)
+                try:
+                    response = await self.bot.wait_for('message', timeout=60)
+                    if check(response) and response.content.lower() == 'non':
+                        return False
+                except asyncio.TimeoutError:
+                    await channel.send("Je n'ai pas reçu de réponse. Le questionnaire va être arrêté.")
+                    return False
+
+    async def ask_choice(self, channel, check):
+        await channel.send("Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.")
+        while True:
+            try:
+                response = await self.bot.wait_for('message', timeout=60)
+                if check(response) and response.content.lower() in ['yertirand', '-gang-']:
+                    await channel.send(generate_message(response.content.lower()))
+                    return True
+                else:
+                    await channel.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
+            except asyncio.TimeoutError:
+                await channel.send("Je n'ai pas reçu de réponse. Souhaitez-vous continuer le questionnaire ? Répondez par 'Oui' ou 'Non'.")
+                await asyncio.sleep(1)
+                try:
+                    response = await self.bot.wait_for('message', timeout=60)
+                    if check(response) and response.content.lower() == 'non':
+                        return False
+                except asyncio.TimeoutError:
+                    await channel.send("Je n'ai pas reçu de réponse. Le questionnaire va être arrêté.")
+                    return False
+
     @commands.Cog.listener()
     async def on_thread_join(self, thread):
-        if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
+        if thread.id != PRESENTATION_BOT_CHANNEL_ID:
             return
 
-        print(f"Le bot a rejoint le fil {thread.name}")
+        print(f"Le bot a rejoint le fil {thread.id}")
         self.threads[thread.id] = thread.owner.id
 
         def check(m):
-            return m.channel == thread and m.author == thread.owner
+            return m.channel.id == thread.id and m.author == thread.owner
+
+        await self.bot.wait_for('message', check=check)
 
         questions = [
             "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? (Répondez par oui ou non)",
@@ -51,24 +97,10 @@ class Presentation(commands.Cog):
         ]
 
         for question in questions:
-            while True:
-                await thread.send(question)
-                response = await self.bot.wait_for('message', check=check)
-                if response.content.lower() == 'oui':
-                    break
-                elif response.content.lower() == 'non':
-                    await thread.send("Veuillez corriger votre présentation en fonction des instructions et poster à nouveau.")
-                else:
-                    await thread.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'oui' ou 'non'.")
+            if not await self.ask_question(thread, question, check):
+                return
 
-        while True:
-            await thread.send("Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.")
-            response = await self.bot.wait_for('message', check=check)
-            if response.content.lower() in ['yertirand', '-gang-']:
-                await thread.send(generate_message(response.content.lower()))
-                break
-            else:
-                await thread.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
+        await self.ask_choice(thread, check)
 
 def setup(bot):
     bot.add_cog(Presentation(bot))

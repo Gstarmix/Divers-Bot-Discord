@@ -1,6 +1,6 @@
 import datetime
-from nextcord.ext import commands
-import nextcord
+import discord
+from discord.ext import commands
 from constants import MUDAE_HELP_BOT_CHANNEL_ID
 
 class MudaeHelp(commands.Cog):
@@ -20,7 +20,7 @@ class MudaeHelp(commands.Cog):
                 self.user_message_times[message.author.id] = now
                 try:
                     print("Création du fil...")  # Log thread creation
-                    thread = await message.create_thread(name=f"Question de {message.author.name}")
+                    thread = await message.channel.create_thread(name=f"Question de {message.author.name}")
                     await thread.send("La question a été prise en compte. Nous vous fournirons une réponse complète et précise dans les plus brefs délais. Merci de votre patience !")
                 except Exception as e:
                     print(f"Erreur lors de la création du fil : {e}")
