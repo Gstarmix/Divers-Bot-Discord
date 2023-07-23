@@ -46,6 +46,11 @@ class Question(commands.Cog):
         self.threads[thread.id] = thread.owner.id
         self.delete_messages[thread.id] = True
 
+        # Pin the first message of the thread
+        async for message in thread.history(limit=1):
+            await message.pin()
+            break
+
         def check(m):
             return m.channel == thread and m.author == thread.owner
 

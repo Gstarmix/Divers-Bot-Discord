@@ -29,6 +29,32 @@ class Presentation(commands.Cog):
             return None
 
     @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        thread = message.channel
+        if thread.id in self.threads:
+            user_id = self.threads[thread.id]
+            user = thread.guild.get_member(user_id) 
+
+            admin_role = thread.guild.get_role(ADMIN_ROLE_ID_FAFA)
+            if admin_role in user.roles:
+                await user.remove_roles(admin_role)
+
+            role_ids = [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]
+            for role in user.roles:
+                if role.id not in role_ids and role != thread.guild.default_role and role != thread.guild.me.top_role:
+                    await user.remove_roles(role)
+
+            for role_id in role_ids:
+                role = thread.guild.get_role(role_id)
+                if role not in user.roles:
+                    await user.add_roles(role)
+
+            await user.send("Votre fil de discussion a été supprimé et vos rôles ont été réinitialisés.")
+            await thread.delete()
+
+            del self.threads[thread.id]
+
+    @commands.Cog.listener()
     async def on_message(self, message):
         thread = message.channel
         if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [ADMIN_ROLE_ID_FAFA, ADMIN_ROLE_ID_2_FAFA] for role in message.author.roles) and message.author != self.bot.user:
@@ -47,6 +73,11 @@ class Presentation(commands.Cog):
         # Initialize deletion status
         self.threads[thread.id] = thread.owner.id
         self.delete_messages[thread.id] = True
+
+        # Pin the first message of the thread
+        async for message in thread.history(limit=1):
+            await message.pin()
+            break
 
         def check(m):
             return m.channel == thread and m.author == thread.owner
@@ -113,22 +144,6 @@ class Presentation(commands.Cog):
                 if response.content.lower() in ['yertirand', '-gang-']:
                     await thread.send(generate_message(response.content.lower()))
                     self.delete_messages[thread.id] = False
-
-                    # Get the roles
-                    role1 = thread.guild.get_role(ROLE1_ID_FAFA)
-                    role2 = thread.guild.get_role(ROLE2_ID_FAFA)
-                    role3 = thread.guild.get_role(ROLE3_ID_FAFA)
-                    role4 = thread.guild.get_role(ROLE4_ID_FAFA)
-                    role5 = thread.guild.get_role(ROLE5_ID_FAFA)
-
-                    # Remove all roles from the user
-                    for role in thread.owner.roles:
-                        if role != thread.guild.default_role and role != thread.guild.me.top_role:
-                            await thread.owner.remove_roles(role)
-
-                    # Add the roles to the user
-                    await thread.owner.add_roles(role1, role2, role3, role4, role5)
-
                     return
                 else:
                     await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
