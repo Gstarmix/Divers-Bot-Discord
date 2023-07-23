@@ -8,13 +8,31 @@ class ThreadCreator(commands.Cog):
         self.bot = bot
         self.user_message_times = {}  # This will now store a dictionary for each user
         self.channel_messages = {
-            MUDAE_HELP_CHANNEL_ID: "Votre demande d'aide concernant le bot Mudae a été prise en compte. Nous l'examinerons attentivement et vous fournirons une réponse dans les plus brefs délais. Merci de votre patience !",
-            SUGGESTION_GSTAR_CHANNEL_ID: "Votre suggestion a été prise en compte. Nous l'examinerons et vous fournirons une réponse dans les plus brefs délais. Merci de votre patience !",
-            SUGGESTION_FAFA_CHANNEL_ID: "Votre suggestion a été prise en compte. Nous l'examinerons et vous fournirons une réponse dans les plus brefs délais. Merci de votre patience !",
-            VIDEO_CHANNEL_ID: "Votre vidéo a été soumise. Ce sera un plaisir de la regarder ! Les commentaires seront faits dans ce fil. Merci de votre créativité !",
-            MEMES_CHANNEL_ID: "Votre meme a été soumis. C'est un plaisir de rigoler avec vous ! Les commentaires seront faits dans ce fil. Merci de votre créativité !",
-            VDO_VDM_CHANNEL_ID: "Votre anecdote a été soumise. Nous l'avons bien reçue ! Les commentaires seront faits dans ce fil. Merci du partage de votre histoire !",
-            RECHERCHE_KELKIN_CHANNEL_ID: "Votre demande de recherche a été soumise. Nous l'examinerons et vous fournirons une réponse dans les plus brefs délais. Merci de votre patience !",
+            MUDAE_HELP_CHANNEL_ID: "Demande d'aide pour Mudae reçue. Nous l'examinerons bientôt.",
+            SUGGESTION_GSTAR_CHANNEL_ID: "Suggestion reçue. Nous l'examinerons bientôt.",
+            SUGGESTION_FAFA_CHANNEL_ID: "Suggestion reçue. Nous l'examinerons bientôt.",
+            VIDEO_CHANNEL_ID: "Vidéo soumise. Hâte de la regarder ! Les commentaires suivront.",
+            MEMES_CHANNEL_ID: "Meme soumis. Hâte de rire ! Les commentaires suivront.",
+            VDO_VDM_CHANNEL_ID: "Anecdote soumise. Hâte de la lire ! Les commentaires suivront.",
+            RECHERCHE_KELKIN_CHANNEL_ID: "Demande de recherche reçue. Nous l'examinerons bientôt.",
+        }
+        self.thread_names = {
+            MUDAE_HELP_CHANNEL_ID: "Aide Mudae",
+            SUGGESTION_GSTAR_CHANNEL_ID: "Suggestion",
+            SUGGESTION_FAFA_CHANNEL_ID: "Suggestion",
+            VIDEO_CHANNEL_ID: "Vidéo",
+            MEMES_CHANNEL_ID: "Meme",
+            VDO_VDM_CHANNEL_ID: "Anecdote",
+            RECHERCHE_KELKIN_CHANNEL_ID: "Recherche",
+        }
+        self.channel_delays = {
+            MUDAE_HELP_CHANNEL_ID: 600,
+            SUGGESTION_GSTAR_CHANNEL_ID: 600,
+            SUGGESTION_FAFA_CHANNEL_ID: 600,
+            VIDEO_CHANNEL_ID: 600,
+            MEMES_CHANNEL_ID: 600,
+            VDO_VDM_CHANNEL_ID: 600,
+            RECHERCHE_KELKIN_CHANNEL_ID: 600,
         }
 
     @commands.Cog.listener()
@@ -24,14 +42,15 @@ class ThreadCreator(commands.Cog):
             now = datetime.datetime.now()
             if message.author.id not in self.user_message_times:
                 self.user_message_times[message.author.id] = {}
-            if message.channel.id in self.user_message_times[message.author.id] and (now - self.user_message_times[message.author.id][message.channel.id]).total_seconds() < 300:
-                await message.author.send("Vous devez attendre 5 minutes avant de pouvoir envoyer un nouveau message. Si besoin, veuillez modifier votre dernier message.")
+            if message.channel.id in self.user_message_times[message.author.id] and (now - self.user_message_times[message.author.id][message.channel.id]).total_seconds() < self.channel_delays[message.channel.id]:
+                await message.author.send(f"Vous devez attendre {self.channel_delays[message.channel.id] // 60} minutes avant de pouvoir envoyer un nouveau message. Si besoin, veuillez modifier votre dernier message.")
                 await message.delete()
             else:
                 self.user_message_times[message.author.id][message.channel.id] = now
                 try:
                     print("Création du fil...")
-                    thread = await message.channel.create_thread(message=message, name=f"Question de {message.author.name}")
+                    thread_name = f"{self.thread_names[message.channel.id]} de {message.author.name}"
+                    thread = await message.channel.create_thread(message=message, name=thread_name)
                     await thread.send(self.channel_messages[message.channel.id])
                 except Exception as e:
                     print(f"Erreur lors de la création du fil : {e}")
