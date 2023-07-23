@@ -71,7 +71,7 @@ class Inscription(commands.Cog):
                 message_content = "Désolé, je n'ai pas compris votre message. Je m'attends à une capture d'écran."
                 return
             tutorial_screenshot = tutorial_response.attachments[0].url
-            await thread.send(f"<@{message.author.id}> Votre inscription au concours a été confirmée. Merci ! Un modérateur va maintenant valider votre inscription.")
+            await thread.send(f"<@{message.author.id}> Votre inscription au concours a été confirmée. Merci ! <@200750717437345792> va maintenant valider votre inscription.")
             self.pending_registrations[message.author.id] = (personnage_screenshot, tutorial_screenshot)
             self.original_messages[message.id] = message.author.id
         except Exception as e:
