@@ -2,7 +2,7 @@ import asyncio
 from discord.ext import commands
 import discord
 from datetime import datetime
-from constants import INSCRIPTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, INSCRIPTION_VALIDATION_CHANNEL_ID, INSCRIPTION_INVALIDATION_CHANNEL_ID
+from constants import INSCRIPTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, INSCRIPTION_VALIDATION_CHANNEL_ID, INSCRIPTION_INVALIDATION_CHANNEL_ID, INSCRIPTION_ROLE_ID
 
 class Inscription(commands.Cog):
     def __init__(self, bot):
@@ -81,10 +81,10 @@ class Inscription(commands.Cog):
     async def oui(self, ctx, user: discord.Member):
         if user.id in self.pending_registrations:
             validation_channel = self.bot.get_channel(INSCRIPTION_VALIDATION_CHANNEL_ID)
-            await validation_channel.send(f":white_check_mark: L'inscription de <@{user.id}> a été validée.")
+            await validation_channel.send(f":white_check_mark: L'inscription de {user.mention} a été validée.")
             self.validated_registrations[user.id] = self.pending_registrations[user.id]
             del self.pending_registrations[user.id]
-            role = discord.utils.get(ctx.guild.roles, id=CHEF_SINGE_ROLE_ID)
+            role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
             await user.add_roles(role)
 
     @commands.command()
@@ -92,10 +92,10 @@ class Inscription(commands.Cog):
         if user.id in self.pending_registrations or user.id in self.validated_registrations:
             invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
             if reason:
-                await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de <@{user.id}> a été invalidée pour la raison suivante : {reason}")
+                await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de {user.mention} a été invalidée pour la raison suivante : {reason}")
             else:
-                await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de <@{user.id}> a été invalidée.")
-            role = discord.utils.get(ctx.guild.roles, id=CHEF_SINGE_ROLE_ID)
+                await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de {user.mention} a été invalidée.")
+            role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
             if role in user.roles:
                 await user.remove_roles(role)
             if user.id in self.pending_registrations:
@@ -109,9 +109,9 @@ class Inscription(commands.Cog):
             user_id = self.original_messages[payload.message_id]
             if user_id in self.pending_registrations or user_id in self.validated_registrations:
                 invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
-                await invalidation_channel.send(f"<:tag_non:1034266050872737923> <@{user_id}> a supprimé son message donc son inscription est annulé.")
+                await invalidation_channel.send(f"<:tag_non:1034266050872737923> {self.bot.get_user(user_id).mention} a supprimé son message donc son inscription est annulé.")
                 member = discord.utils.get(self.bot.get_all_members(), id=user_id)
-                role = discord.utils.get(member.guild.roles, id=CHEF_SINGE_ROLE_ID)
+                role = discord.utils.get(member.guild.roles, id=INSCRIPTION_ROLE_ID)
                 if role in member.roles:
                     await member.remove_roles(role)
                 if user_id in self.pending_registrations:
@@ -123,9 +123,9 @@ class Inscription(commands.Cog):
             user_id = self.threads[payload.channel_id]
             if user_id in self.pending_registrations or user_id in self.validated_registrations:
                 invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
-                await invalidation_channel.send(f"<:tag_non:1034266050872737923> <@{user_id}> a supprimé son fil donc son inscription est annulé.")
+                await invalidation_channel.send(f"<:tag_non:1034266050872737923> {self.bot.get_user(user_id).mention} a supprimé son fil donc son inscription est annulé.")
                 member = discord.utils.get(self.bot.get_all_members(), id=user_id)
-                role = discord.utils.get(member.guild.roles, id=CHEF_SINGE_ROLE_ID)
+                role = discord.utils.get(member.guild.roles, id=INSCRIPTION_ROLE_ID)
                 if role in member.roles:
                     await member.remove_roles(role)
                 if user_id in self.pending_registrations:
@@ -133,6 +133,7 @@ class Inscription(commands.Cog):
                 if user_id in self.validated_registrations:
                     del self.validated_registrations[user_id]
                 del self.threads[payload.channel_id]
+
 
 async def setup(bot):
     await bot.add_cog(Inscription(bot))
