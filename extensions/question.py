@@ -1,6 +1,6 @@
 import asyncio
 from discord.ext import commands
-from constants import QUESTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, AUTHOR_ROLE_ID_GSTAR
+from constants import QUESTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, CHEF_SINGE_ROLE_ID
 
 class Question(commands.Cog):
     def __init__(self, bot):
@@ -38,7 +38,7 @@ class Question(commands.Cog):
         if thread.parent.id != QUESTION_CHANNEL_ID:
             return
 
-        author_role = thread.guild.get_role(AUTHOR_ROLE_ID_GSTAR)
+        author_role = thread.guild.get_role(CHEF_SINGE_ROLE_ID)
         await thread.owner.add_roles(author_role)
 
         self.threads[thread.id] = thread.owner.id
