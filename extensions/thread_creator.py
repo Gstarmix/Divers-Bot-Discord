@@ -6,7 +6,7 @@ from constants import MUDAE_HELP_CHANNEL_ID, SUGGESTION_GSTAR_CHANNEL_ID, SUGGES
 class ThreadCreator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.user_message_times = {}
+        self.user_message_times = {}  # This will now store a dictionary for each user
         self.channel_messages = {
             MUDAE_HELP_CHANNEL_ID: "Votre demande d'aide concernant le bot Mudae a été prise en compte. Nous l'examinerons attentivement et vous fournirons une réponse dans les plus brefs délais. Merci de votre patience !",
             SUGGESTION_GSTAR_CHANNEL_ID: "Votre suggestion a été prise en compte. Nous l'examinerons et vous fournirons une réponse dans les plus brefs délais. Merci de votre patience !",
@@ -22,11 +22,13 @@ class ThreadCreator(commands.Cog):
         print(f"Message reçu de {message.author.name} dans le canal {message.channel.id}")
         if message.channel.id in self.channel_messages.keys() and not message.author.bot:
             now = datetime.datetime.now()
-            if message.author.id in self.user_message_times and (now - self.user_message_times[message.author.id]).total_seconds() < 300:
-                await message.author.send("Vous ne pouvez poser une nouvelle question que 5 minutes après votre précédente question. Veuillez modifier votre dernier message si nécessaire.")
+            if message.author.id not in self.user_message_times:
+                self.user_message_times[message.author.id] = {}
+            if message.channel.id in self.user_message_times[message.author.id] and (now - self.user_message_times[message.author.id][message.channel.id]).total_seconds() < 300:
+                await message.author.send("Vous devez attendre 5 minutes avant de pouvoir envoyer un nouveau message. Si besoin, veuillez modifier votre dernier message.")
                 await message.delete()
             else:
-                self.user_message_times[message.author.id] = now
+                self.user_message_times[message.author.id][message.channel.id] = now
                 try:
                     print("Création du fil...")
                     thread = await message.channel.create_thread(message=message, name=f"Question de {message.author.name}")
