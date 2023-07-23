@@ -1,8 +1,6 @@
 import asyncio
-import datetime
-import discord
 from discord.ext import commands
-from constants import PRESENTATION_BOT_CHANNEL_ID
+from constants import PRESENTATION_BOT_CHANNEL_ID, ADMIN_ROLE_ID_FAFA, ADMIN_ROLE_ID_2_FAFA, AUTHOR_ROLE_ID_FAFA, ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA
 
 def generate_message(choice):
     role_id = "<@&1036402538620129351>" if choice == "yertirand" else "<@&923190695190233138>"
@@ -17,91 +15,126 @@ def generate_message(choice):
 class Presentation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.user_message_times = {}
         self.threads = {}
+        self.delete_messages = {}
+
+    async def ask_question(self, thread, message, check):
+        await thread.send(f"{thread.owner.mention} {message}")
+        try:
+            response = await self.bot.wait_for('message', check=check, timeout=600)
+            return response
+        except asyncio.TimeoutError:
+            await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+            await thread.delete()
+            return None
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author == self.bot.user:
-            return
-
-    async def ask_question(self, channel, question, check):
-        await channel.send(question)
-        while True:
-            try:
-                response = await self.bot.wait_for('message', timeout=60, check=check)
-                if response.content.lower() == 'oui':
-                    return True
-                elif response.content.lower() == 'non':
-                    await channel.send("Veuillez corriger votre présentation en fonction des instructions et poster à nouveau à la suite de ce message.")
-                else:
-                    await channel.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'oui' ou 'non'.")
-            except asyncio.TimeoutError:
-                await channel.send("Je n'ai pas reçu de réponse. Souhaitez-vous continuer le questionnaire ? Répondez par 'Oui' ou 'Non'.")
-                await asyncio.sleep(1)
-                try:
-                    response = await self.bot.wait_for('message', timeout=60, check=check)
-                    if response.content.lower() == 'non':
-                        return False
-                except asyncio.TimeoutError:
-                    await channel.send("Je n'ai pas reçu de réponse. Le questionnaire va être arrêté.")
-                    return False
-
-    async def ask_choice(self, channel, check):
-        await channel.send("Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.")
-        while True:
-            try:
-                response = await self.bot.wait_for('message', timeout=60, check=check)
-                if response.content.lower() in ['yertirand', '-gang-']:
-                    await channel.send(generate_message(response.content.lower()))
-                    return True
-                else:
-                    await channel.send("Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
-            except asyncio.TimeoutError:
-                await channel.send("Je n'ai pas reçu de réponse. Souhaitez-vous continuer le questionnaire ? Répondez par 'Oui' ou 'Non'.")
-                await asyncio.sleep(1)
-                try:
-                    response = await self.bot.wait_for('message', timeout=60, check=check)
-                    if response.content.lower() == 'non':
-                        return False
-                except asyncio.TimeoutError:
-                    await channel.send("Je n'ai pas reçu de réponse. Le questionnaire va être arrêté.")
-                    return False
-
-    @commands.Cog.listener()
-    async def on_thread_join(self, thread):
-        print("Event on_thread_join triggered")
-        if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
-            return
-
-        print(f"Le bot a rejoint le fil {thread.id}")
-        self.threads[thread.id] = thread.owner.mention
+        thread = message.channel
+        if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [ADMIN_ROLE_ID_FAFA, ADMIN_ROLE_ID_2_FAFA] for role in message.author.roles) and message.author != self.bot.user:
+            await message.delete()
+            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
-        print("Event on_thread_create triggered")
         if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
             return
 
-        print(f"Un fil a été créé {thread.id}")
-        self.threads[thread.id] = thread.owner.mention
+        # Ajouter le rôle AUTHOR_ROLE_ID_FAFA à l'auteur du fil
+        author_role = thread.guild.get_role(AUTHOR_ROLE_ID_FAFA)
+        await thread.owner.add_roles(author_role)
+
+        # Initialize deletion status
+        self.threads[thread.id] = thread.owner.id
+        self.delete_messages[thread.id] = True
 
         def check(m):
-            return m.channel.id == thread.id and m.author == thread.owner
+            return m.channel == thread and m.author == thread.owner
 
-        await self.bot.wait_for('message', check=check)
+        # Asking the first question about the username
+        response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par 'Oui' ou 'Non'.", check)
+        if response is None:
+            return
+        if response.content.lower() == 'oui':
+            try:
+                await thread.owner.edit(nick=thread.name)
+            except Exception as e:
+                print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
+        elif response.content.lower() == 'non':
+            while True:
+                response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
+                if response is None:
+                    return
+                if len(response.content) > 32:
+                    await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
+                    continue
+                confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo '{response.content}'. Est-ce correct ? Répondez par 'Oui' ou 'Non'.", check)
+                if confirmation is None:
+                    return
+                if confirmation.content.lower() == 'oui':
+                    try:
+                        await thread.owner.edit(nick=response.content)
+                        await thread.edit(name=response.content)
+                    except Exception as e:
+                        print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
+                    break
+        else:
+            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Oui' ou 'Non'.")
+            return
 
         questions = [
-            "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? (Répondez par oui ou non)",
-            "Avez-vous inclus une capture d'écran de votre fiche personnage ? (Répondez par oui ou non et si ce n'est pas encore le cas, veuillez la poster)",
-            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? (Répondez par oui ou non et si ce n'est pas encore fait, veuillez les poster)"
+            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par 'Oui' ou si ce n'est pas le cas, envoyez des captures d'écran.",
+            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par 'Oui' ou si ce n'est pas le cas, envoyez des captures d'écran."
         ]
 
         for question in questions:
-            if not await self.ask_question(thread, question, check):
+            response = await self.ask_question(thread, question, check)
+            if response is None:
                 return
+            while response.content.lower() != 'oui':
+                if response.attachments:
+                    response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par 'Non' ou envoyez votre capture d'écran.", check)
+                    if response is None:
+                        return
+                    elif response.content.lower() == 'non':
+                        break
+                else:
+                    response = await self.ask_question(thread, "Veuillez écrire 'Oui' ou envoyer une capture d'écran pour répondre à la question.", check)
+                    if response is None:
+                        return
 
         await self.ask_choice(thread, check)
+
+    async def ask_choice(self, thread, check):
+        await thread.send(f"{thread.owner.mention} Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.")
+        while True:
+            try:
+                response = await self.bot.wait_for('message', timeout=600, check=check)
+                if response.content.lower() in ['yertirand', '-gang-']:
+                    await thread.send(generate_message(response.content.lower()))
+                    self.delete_messages[thread.id] = False
+
+                    # Get the roles
+                    role1 = thread.guild.get_role(ROLE1_ID_FAFA)
+                    role2 = thread.guild.get_role(ROLE2_ID_FAFA)
+                    role3 = thread.guild.get_role(ROLE3_ID_FAFA)
+                    role4 = thread.guild.get_role(ROLE4_ID_FAFA)
+                    role5 = thread.guild.get_role(ROLE5_ID_FAFA)
+
+                    # Remove all roles from the user
+                    for role in thread.owner.roles:
+                        if role != thread.guild.default_role and role != thread.guild.me.top_role:
+                            await thread.owner.remove_roles(role)
+
+                    # Add the roles to the user
+                    await thread.owner.add_roles(role1, role2, role3, role4, role5)
+
+                    return
+                else:
+                    await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
+            except asyncio.TimeoutError:
+                await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+                await thread.delete()
 
 async def setup(bot):
     await bot.add_cog(Presentation(bot))
