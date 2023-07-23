@@ -1,6 +1,6 @@
 import asyncio
 from discord.ext import commands
-from constants import PRESENTATION_BOT_CHANNEL_ID, ADMIN_ROLE_ID_FAFA, ADMIN_ROLE_ID_2_FAFA, AUTHOR_ROLE_ID_FAFA, ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA
+from constants import PRESENTATION_CHANNEL_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID, PRESENTATION_ROLE_ID, ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA
 
 def generate_message(choice):
     role_id = "<@&1036402538620129351>" if choice == "yertirand" else "<@&923190695190233138>"
@@ -35,7 +35,7 @@ class Presentation(commands.Cog):
             user_id = self.threads[thread.id]
             user = thread.guild.get_member(user_id) 
 
-            admin_role = thread.guild.get_role(ADMIN_ROLE_ID_FAFA)
+            admin_role = thread.guild.get_role(GARDIEN_YERTI_ROLE_ID)
             if admin_role in user.roles:
                 await user.remove_roles(admin_role)
 
@@ -57,24 +57,21 @@ class Presentation(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         thread = message.channel
-        if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [ADMIN_ROLE_ID_FAFA, ADMIN_ROLE_ID_2_FAFA] for role in message.author.roles) and message.author != self.bot.user:
+        if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID] for role in message.author.roles) and message.author != self.bot.user:
             await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
-        if thread.parent.id != PRESENTATION_BOT_CHANNEL_ID:
+        if thread.parent.id != PRESENTATION_CHANNEL_ID:
             return
 
-        # Ajouter le rôle AUTHOR_ROLE_ID_FAFA à l'auteur du fil
-        author_role = thread.guild.get_role(AUTHOR_ROLE_ID_FAFA)
+        author_role = thread.guild.get_role(PRESENTATION_ROLE_ID)
         await thread.owner.add_roles(author_role)
 
-        # Initialize deletion status
         self.threads[thread.id] = thread.owner.id
         self.delete_messages[thread.id] = True
 
-        # Pin the first message of the thread
         async for message in thread.history(limit=1):
             await message.pin()
             break
@@ -82,7 +79,6 @@ class Presentation(commands.Cog):
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
-        # Asking the first question about the username
         response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par 'Oui' ou 'Non'.", check)
         if response is None:
             return

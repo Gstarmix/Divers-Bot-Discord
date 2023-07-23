@@ -2,7 +2,7 @@ import asyncio
 from discord.ext import commands
 import discord
 from datetime import datetime
-from constants import INSCRIPTION_BOT_CHANNEL_ID, ADMIN_ROLE_ID_GSTAR, INSCRIPTION_BOT_VALIDATION_CHANNEL_ID, INSCRIPTION_BOT_INVALIDATION_CHANNEL_ID
+from constants import INSCRIPTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, INSCRIPTION_VALIDATION_CHANNEL_ID, INSCRIPTION_INVALIDATION_CHANNEL_ID
 
 class Inscription(commands.Cog):
     def __init__(self, bot):
@@ -37,11 +37,11 @@ class Inscription(commands.Cog):
     async def on_message(self, message):
         thread = message.channel
         now = datetime.now()
-        if isinstance(thread, discord.Thread) and thread.id in self.threads and self.threads[thread.id] and message.author.id != self.threads[thread.id] and not any(role.id == ADMIN_ROLE_ID_GSTAR for role in message.author.roles) and not message.author.bot:
+        if isinstance(thread, discord.Thread) and thread.id in self.threads and self.threads[thread.id] and message.author.id != self.threads[thread.id] and not any(role.id == CHEF_SINGE_ROLE_ID for role in message.author.roles) and not message.author.bot:
             await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
             return
-        if message.channel.id != INSCRIPTION_BOT_CHANNEL_ID or message.author.bot:
+        if message.channel.id != INSCRIPTION_CHANNEL_ID or message.author.bot:
             return
         if message.id in self.threads_created:
             return
@@ -49,7 +49,7 @@ class Inscription(commands.Cog):
             await message.author.send("Vous ne pouvez poser une nouvelle question que 5 minutes après votre précédente question. Veuillez modifier votre dernier message si nécessaire.")
             await message.delete()
             return
-        self.user_message_times[message.author.id] = now  # Update the timestamp of the last message from this user
+        self.user_message_times[message.author.id] = now
         try:
             thread = await message.create_thread(name=f"Inscription de {message.author.name}")
             self.threads[thread.id] = message.author.id
@@ -80,22 +80,22 @@ class Inscription(commands.Cog):
     @commands.command()
     async def oui(self, ctx, user: discord.Member):
         if user.id in self.pending_registrations:
-            validation_channel = self.bot.get_channel(INSCRIPTION_BOT_VALIDATION_CHANNEL_ID)
+            validation_channel = self.bot.get_channel(INSCRIPTION_VALIDATION_CHANNEL_ID)
             await validation_channel.send(f":white_check_mark: L'inscription de <@{user.id}> a été validée.")
             self.validated_registrations[user.id] = self.pending_registrations[user.id]
             del self.pending_registrations[user.id]
-            role = discord.utils.get(ctx.guild.roles, id=ADMIN_ROLE_ID_GSTAR)
+            role = discord.utils.get(ctx.guild.roles, id=CHEF_SINGE_ROLE_ID)
             await user.add_roles(role)
 
     @commands.command()
     async def non(self, ctx, user: discord.Member, *, reason=None):
         if user.id in self.pending_registrations or user.id in self.validated_registrations:
-            invalidation_channel = self.bot.get_channel(INSCRIPTION_BOT_INVALIDATION_CHANNEL_ID)
+            invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
             if reason:
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de <@{user.id}> a été invalidée pour la raison suivante : {reason}")
             else:
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de <@{user.id}> a été invalidée.")
-            role = discord.utils.get(ctx.guild.roles, id=ADMIN_ROLE_ID_GSTAR)
+            role = discord.utils.get(ctx.guild.roles, id=CHEF_SINGE_ROLE_ID)
             if role in user.roles:
                 await user.remove_roles(role)
             if user.id in self.pending_registrations:
@@ -108,10 +108,10 @@ class Inscription(commands.Cog):
         if payload.message_id in self.original_messages:
             user_id = self.original_messages[payload.message_id]
             if user_id in self.pending_registrations or user_id in self.validated_registrations:
-                invalidation_channel = self.bot.get_channel(INSCRIPTION_BOT_INVALIDATION_CHANNEL_ID)
+                invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> <@{user_id}> a supprimé son message donc son inscription est annulé.")
                 member = discord.utils.get(self.bot.get_all_members(), id=user_id)
-                role = discord.utils.get(member.guild.roles, id=ADMIN_ROLE_ID_GSTAR)
+                role = discord.utils.get(member.guild.roles, id=CHEF_SINGE_ROLE_ID)
                 if role in member.roles:
                     await member.remove_roles(role)
                 if user_id in self.pending_registrations:
@@ -122,10 +122,10 @@ class Inscription(commands.Cog):
         elif payload.channel_id in self.threads:
             user_id = self.threads[payload.channel_id]
             if user_id in self.pending_registrations or user_id in self.validated_registrations:
-                invalidation_channel = self.bot.get_channel(INSCRIPTION_BOT_INVALIDATION_CHANNEL_ID)
+                invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> <@{user_id}> a supprimé son fil donc son inscription est annulé.")
                 member = discord.utils.get(self.bot.get_all_members(), id=user_id)
-                role = discord.utils.get(member.guild.roles, id=ADMIN_ROLE_ID_GSTAR)
+                role = discord.utils.get(member.guild.roles, id=CHEF_SINGE_ROLE_ID)
                 if role in member.roles:
                     await member.remove_roles(role)
                 if user_id in self.pending_registrations:
