@@ -29,6 +29,8 @@ class Inscription(commands.Cog):
                 user = thread.guild.get_member(user_id)
                 if user:
                     await user.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+                invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
+                await invalidation_channel.send(f"<:tag_non:1034266050872737923> {self.bot.get_user(user_id).mention} a mis plus de 10 minutes à répondre donc son inscription est annulé.")
                 await thread.delete()
                 await original_message.delete()
                 return None
