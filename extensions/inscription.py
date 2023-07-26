@@ -2,8 +2,6 @@ import asyncio
 from discord.ext import commands
 import discord
 from datetime import datetime
-import mysql.connector
-from mysql.connector import Error
 from constants import INSCRIPTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, INSCRIPTION_VALIDATION_CHANNEL_ID, INSCRIPTION_INVALIDATION_CHANNEL_ID, INSCRIPTION_ROLE_ID
 
 class Inscription(commands.Cog):
@@ -16,34 +14,6 @@ class Inscription(commands.Cog):
         self.threads_created = set()
         self.users_warned = set()
         self.user_message_times = {}
-        self.connection = mysql.connector.connect(host='localhost',
-                                                 database='bot_gaylord',
-                                                 user='root',
-                                                 password='')
-        if self.connection.is_connected():
-            db_Info = self.connection.get_server_info()
-            print("Connected to MySQL Server version ", db_Info)
-            cursor = self.connection.cursor()
-            cursor.execute("select database();")
-            record = cursor.fetchone()
-            print("You're connected to database: ", record)
-
-        self.init_db()
-
-    def init_db(self):
-        cursor = self.connection.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS pending_registrations (
-                user_id INT PRIMARY KEY,
-                screenshot_url VARCHAR(255),
-                tutorial_url VARCHAR(255)
-            )
-        """)
-
-        self.connection.commit()
-
-        cursor.close()
 
     async def ask_with_timeout(self, thread, user_id, message_content, check, original_message):
         while True:
@@ -133,14 +103,6 @@ class Inscription(commands.Cog):
             del self.pending_registrations[user.id]
             role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
             await user.add_roles(role)
-            try:
-                if self.connection.is_connected():
-                    cursor = self.connection.cursor()
-                    cursor.execute("INSERT INTO registrations (user_id, personnage_screenshot, tutorial_screenshot) VALUES (%s, %s, %s)", (user.id, self.validated_registrations[user.id][0], self.validated_registrations[user.id][1]))
-                    self.connection.commit()
-            except Exception as e:
-                print(f"An error occurred while inserting data into the database: {e}")
-
 
     @commands.command()
     async def non(self, ctx, user: discord.Member, *, reason=None):
@@ -157,10 +119,6 @@ class Inscription(commands.Cog):
             role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
             if role in user.roles:
                 await user.remove_roles(role)
-            if self.connection.is_connected():
-                cursor = self.connection.cursor()
-                cursor.execute("DELETE FROM registrations WHERE user_id = %s", (user.id,))
-                self.connection.commit()
 
     @commands.command()
     async def check(self, ctx, user: discord.Member):
@@ -200,10 +158,6 @@ class Inscription(commands.Cog):
             del self.validated_registrations[member.id]
         if member.id in self.user_message_times:
             del self.user_message_times[member.id]
-        if self.connection.is_connected():
-            cursor = self.connection.cursor()
-            cursor.execute("DELETE FROM registrations WHERE user_id = %s", (member.id,))
-            self.connection.commit()
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
