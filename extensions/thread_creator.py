@@ -6,7 +6,7 @@ from constants import MUDAE_HELP_CHANNEL_ID, SUGGESTION_GSTAR_CHANNEL_ID, SUGGES
 class ThreadCreator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.user_message_times = {}  # This will now store a dictionary for each user
+        self.user_message_times = {} 
         self.channel_messages = {
             MUDAE_HELP_CHANNEL_ID: "Demande d'aide pour Mudae reçue. Nous l'examinerons bientôt.",
             SUGGESTION_GSTAR_CHANNEL_ID: "Suggestion reçue. Nous l'examinerons bientôt.",

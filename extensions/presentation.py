@@ -1,14 +1,18 @@
 import asyncio
+from discord import AllowedMentions
 from discord.ext import commands
 from constants import PRESENTATION_CHANNEL_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID, PRESENTATION_ROLE_ID, ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA
 
+allowed_mentions = AllowedMentions.none()
+
 def generate_message(choice):
-    role_id = "<@&1036402538620129351>" if choice == "yertirand" else "<@&923190695190233138>"
+    recruitment_role_id = GARDIEN_YERTI_ROLE_ID if choice == "yertirand" else GARDIEN_GANG_ROLE_ID
+    role_id = ROLE1_ID_FAFA
     return (
-        f":white_small_square: - Félicitations ! Tu as désormais le rôle {role_id}, ce qui te donne accès à tous les salons du serveur. "
-        f"N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <#1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n"
+        f":white_small_square: - Félicitations ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
+        f"N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <@&1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n"
         f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela n'a pas encore été fait, modifie-le toi-même afin que nous puissions te reconnaître facilement.\n"
-        f":white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle {role_id} ici.\n"
+        f":white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle <@&{recruitment_role_id}> ici.\n"
         f":white_small_square: - Nous souhaitons que tout se déroule dans ta présentation. N'envoie donc pas de messages privés et ne nous mentionne nulle part ailleurs que <a:tention:1093967837992849468> **DANS TA PRÉSENTATION** <a:tention:1093967837992849468> si tu souhaites être recruté."
     )
 
@@ -19,7 +23,7 @@ class Presentation(commands.Cog):
         self.delete_messages = {}
 
     async def ask_question(self, thread, message, check):
-        await thread.send(f"{thread.owner.mention} {message}")
+        await thread.send(f"{thread.owner.mention} {message}", allowed_mentions=allowed_mentions)
         try:
             response = await self.bot.wait_for('message', check=check, timeout=600)
             return response
@@ -35,9 +39,9 @@ class Presentation(commands.Cog):
             user_id = self.threads[thread.id]
             user = thread.guild.get_member(user_id) 
 
-            admin_role = thread.guild.get_role(GARDIEN_YERTI_ROLE_ID)
-            if admin_role in user.roles:
-                await user.remove_roles(admin_role)
+            presentation_role = thread.guild.get_role(PRESENTATION_ROLE_ID)
+            if presentation_role in user.roles:
+                await user.remove_roles(presentation_role)
 
             role_ids = [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]
             for role in user.roles:
@@ -93,7 +97,7 @@ class Presentation(commands.Cog):
                 if response is None:
                     return
                 if len(response.content) > 32:
-                    await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
+                    await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.", allowed_mentions=allowed_mentions)
                     continue
                 confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo '{response.content}'. Est-ce correct ? Répondez par 'Oui' ou 'Non'.", check)
                 if confirmation is None:
@@ -106,7 +110,7 @@ class Presentation(commands.Cog):
                         print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
                     break
         else:
-            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Oui' ou 'Non'.")
+            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Oui' ou 'Non'.", allowed_mentions=allowed_mentions)
             return
 
         questions = [
@@ -133,16 +137,29 @@ class Presentation(commands.Cog):
         await self.ask_choice(thread, check)
 
     async def ask_choice(self, thread, check):
-        await thread.send(f"{thread.owner.mention} Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.")
+        await thread.send(f"{thread.owner.mention} Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.", allowed_mentions=allowed_mentions)
         while True:
             try:
                 response = await self.bot.wait_for('message', timeout=600, check=check)
                 if response.content.lower() in ['yertirand', '-gang-']:
-                    await thread.send(generate_message(response.content.lower()))
+                    await thread.send(generate_message(response.content.lower()), allowed_mentions=allowed_mentions)
                     self.delete_messages[thread.id] = False
+
+                    user = thread.guild.get_member(self.threads[thread.id])
+
+                    role_ids = [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]
+                    for role in user.roles:
+                        if role.id not in role_ids and role != thread.guild.default_role and role != thread.guild.me.top_role:
+                            await user.remove_roles(role)
+
+                    for role_id in role_ids:
+                        role = thread.guild.get_role(role_id)
+                        if role not in user.roles:
+                            await user.add_roles(role)
+
                     return
                 else:
-                    await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
+                    await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.", allowed_mentions=allowed_mentions)
             except asyncio.TimeoutError:
                 await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
                 await thread.delete()

@@ -2,6 +2,8 @@ import asyncio
 from discord.ext import commands
 import discord
 from datetime import datetime
+import mysql.connector
+from mysql.connector import Error
 from constants import INSCRIPTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, INSCRIPTION_VALIDATION_CHANNEL_ID, INSCRIPTION_INVALIDATION_CHANNEL_ID, INSCRIPTION_ROLE_ID
 
 class Inscription(commands.Cog):
@@ -14,6 +16,34 @@ class Inscription(commands.Cog):
         self.threads_created = set()
         self.users_warned = set()
         self.user_message_times = {}
+        self.connection = mysql.connector.connect(host='localhost',
+                                                 database='bot_gaylord',
+                                                 user='root',
+                                                 password='')
+        if self.connection.is_connected():
+            db_Info = self.connection.get_server_info()
+            print("Connected to MySQL Server version ", db_Info)
+            cursor = self.connection.cursor()
+            cursor.execute("select database();")
+            record = cursor.fetchone()
+            print("You're connected to database: ", record)
+
+        self.init_db()
+
+    def init_db(self):
+        cursor = self.connection.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pending_registrations (
+                user_id INT PRIMARY KEY,
+                screenshot_url VARCHAR(255),
+                tutorial_url VARCHAR(255)
+            )
+        """)
+
+        self.connection.commit()
+
+        cursor.close()
 
     async def ask_with_timeout(self, thread, user_id, message_content, check, original_message):
         while True:
@@ -31,8 +61,16 @@ class Inscription(commands.Cog):
                     await user.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
                 invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> {self.bot.get_user(user_id).mention} a mis plus de 10 minutes à répondre donc son inscription est annulé.")
-                await thread.delete()
+                # Check if the thread still exists before trying to delete it
+                if thread.guild.get_channel(thread.id) is not None:
+                    await thread.delete()
                 await original_message.delete()
+                return None
+            except discord.errors.NotFound:
+                print("Le canal n'existe plus.")
+                return None
+            except Exception as e:
+                print(f"Une erreur inattendue est survenue : {e}")
                 return None
 
     @commands.Cog.listener()
@@ -40,7 +78,14 @@ class Inscription(commands.Cog):
         thread = message.channel
         now = datetime.now()
         if isinstance(thread, discord.Thread) and thread.id in self.threads and self.threads[thread.id] and message.author.id != self.threads[thread.id] and not any(role.id == CHEF_SINGE_ROLE_ID for role in message.author.roles) and not message.author.bot:
-            await message.delete()
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                print("Bot does not have the 'Manage Messages' permission.")
+            except discord.NotFound:
+                print("The message was not found.")
+            except discord.HTTPException as e:
+                print(f"An HTTP exception occurred: {e}")
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
             return
         if message.channel.id != INSCRIPTION_CHANNEL_ID or message.author.bot:
@@ -88,6 +133,14 @@ class Inscription(commands.Cog):
             del self.pending_registrations[user.id]
             role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
             await user.add_roles(role)
+            try:
+                if self.connection.is_connected():
+                    cursor = self.connection.cursor()
+                    cursor.execute("INSERT INTO registrations (user_id, personnage_screenshot, tutorial_screenshot) VALUES (%s, %s, %s)", (user.id, self.validated_registrations[user.id][0], self.validated_registrations[user.id][1]))
+                    self.connection.commit()
+            except Exception as e:
+                print(f"An error occurred while inserting data into the database: {e}")
+
 
     @commands.command()
     async def non(self, ctx, user: discord.Member, *, reason=None):
@@ -97,45 +150,95 @@ class Inscription(commands.Cog):
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de {user.mention} a été invalidée pour la raison suivante : {reason}")
             else:
                 await invalidation_channel.send(f"<:tag_non:1034266050872737923> L'inscription de {user.mention} a été invalidée.")
-            role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
-            if role in user.roles:
-                await user.remove_roles(role)
             if user.id in self.pending_registrations:
                 del self.pending_registrations[user.id]
             if user.id in self.validated_registrations:
                 del self.validated_registrations[user.id]
+            role = discord.utils.get(ctx.guild.roles, id=INSCRIPTION_ROLE_ID)
+            if role in user.roles:
+                await user.remove_roles(role)
+            if self.connection.is_connected():
+                cursor = self.connection.cursor()
+                cursor.execute("DELETE FROM registrations WHERE user_id = %s", (user.id,))
+                self.connection.commit()
+
+    @commands.command()
+    async def check(self, ctx, user: discord.Member):
+        if user.id in self.pending_registrations:
+            await ctx.send(f"{user.mention} est en attente de validation.")
+        elif user.id in self.validated_registrations:
+            await ctx.send(f"{user.mention} a été validé.")
+        else:
+            await ctx.send(f"{user.mention} n'est pas inscrit.")
+
+    @commands.command()
+    async def close(self, ctx, thread: discord.Thread):
+        if thread.id in self.threads:
+            del self.threads[thread.id]
+        await thread.delete()
 
     @commands.Cog.listener()
-    async def on_raw_message_delete(self, payload):
-        if payload.message_id in self.original_messages:
-            user_id = self.original_messages[payload.message_id]
-            if user_id in self.pending_registrations or user_id in self.validated_registrations:
-                invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
-                await invalidation_channel.send(f"<:tag_non:1034266050872737923> {self.bot.get_user(user_id).mention} a supprimé son message donc son inscription est annulé.")
-                member = discord.utils.get(self.bot.get_all_members(), id=user_id)
-                role = discord.utils.get(member.guild.roles, id=INSCRIPTION_ROLE_ID)
-                if role in member.roles:
-                    await member.remove_roles(role)
-                if user_id in self.pending_registrations:
-                    del self.pending_registrations[user_id]
-                if user_id in self.validated_registrations:
-                    del self.validated_registrations[user_id]
-                del self.original_messages[payload.message_id]
-        elif payload.channel_id in self.threads:
-            user_id = self.threads[payload.channel_id]
-            if user_id in self.pending_registrations or user_id in self.validated_registrations:
-                invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
-                await invalidation_channel.send(f"<:tag_non:1034266050872737923> {self.bot.get_user(user_id).mention} a supprimé son fil donc son inscription est annulé.")
-                member = discord.utils.get(self.bot.get_all_members(), id=user_id)
-                role = discord.utils.get(member.guild.roles, id=INSCRIPTION_ROLE_ID)
-                if role in member.roles:
-                    await member.remove_roles(role)
-                if user_id in self.pending_registrations:
-                    del self.pending_registrations[user_id]
-                if user_id in self.validated_registrations:
-                    del self.validated_registrations[user_id]
-                del self.threads[payload.channel_id]
+    async def on_thread_join(self, thread):
+        if thread.id in self.threads and not self.threads[thread.id]:
+            self.threads[thread.id] = thread.owner.id
 
+    @commands.Cog.listener()
+    async def on_thread_remove(self, thread):
+        if thread.id in self.threads:
+            del self.threads[thread.id]
+
+    @commands.Cog.listener()
+    async def on_thread_delete(self, thread):
+        if thread.id in self.threads:
+            del self.threads[thread.id]
+
+    @commands.Cog.listener()
+    async def on_member_remove(self, member):
+        if member.id in self.pending_registrations:
+            del self.pending_registrations[member.id]
+        if member.id in self.validated_registrations:
+            del self.validated_registrations[member.id]
+        if member.id in self.user_message_times:
+            del self.user_message_times[member.id]
+        if self.connection.is_connected():
+            cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM registrations WHERE user_id = %s", (member.id,))
+            self.connection.commit()
+
+    @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        if isinstance(message.channel, discord.Thread) and message.channel.id in self.threads:
+            user_id = self.threads[message.channel.id]
+            user = message.guild.get_member(user_id)
+
+            if message.author.id != user_id and not any(role.id == CHEF_SINGE_ROLE_ID for role in message.author.roles) and not message.author.bot:
+                return
+
+            original_message_ids = [k for k, v in self.original_messages.items() if v == user_id]
+            if original_message_ids: 
+                original_message_id = original_message_ids[0]
+                original_channel = self.bot.get_channel(INSCRIPTION_CHANNEL_ID)
+                try: 
+                    original_message = await original_channel.fetch_message(original_message_id)
+                    if original_message:
+                        await original_message.delete()
+                except discord.NotFound:
+                    print(f"Original message with ID {original_message_id} not found.")
+                except discord.Forbidden:
+                    print(f"Bot does not have permissions to delete the original message with ID {original_message_id}.")
+                except discord.HTTPException as e:
+                    print(f"An HTTP exception occurred while trying to delete the original message with ID {original_message_id}: {e}")
+
+            await message.channel.delete()
+
+            role = discord.utils.get(user.guild.roles, id=INSCRIPTION_ROLE_ID)
+            if role in user.roles:
+                await user.remove_roles(role)
+
+            await user.send("Votre inscription a été annulée car un message dans votre fil de discussion a été supprimé.")
+
+            invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
+            await invalidation_channel.send(f"L'inscription de {user.mention} a été annulée car un message dans son fil de discussion a été supprimé.")
 
 async def setup(bot):
     await bot.add_cog(Inscription(bot))
