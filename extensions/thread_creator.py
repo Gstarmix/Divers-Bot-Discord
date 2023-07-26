@@ -30,7 +30,6 @@ class ThreadCreator(commands.Cog):
             SUGGESTION_GSTAR_CHANNEL_ID: 600,
             SUGGESTION_FAFA_CHANNEL_ID: 600,
             VIDEO_CHANNEL_ID: 600,
-            MEMES_CHANNEL_ID: 600,
             VDO_VDM_CHANNEL_ID: 600,
             RECHERCHE_KELKIN_CHANNEL_ID: 600,
         }
@@ -42,7 +41,7 @@ class ThreadCreator(commands.Cog):
             now = datetime.datetime.now()
             if message.author.id not in self.user_message_times:
                 self.user_message_times[message.author.id] = {}
-            if message.channel.id in self.user_message_times[message.author.id] and (now - self.user_message_times[message.author.id][message.channel.id]).total_seconds() < self.channel_delays[message.channel.id]:
+            if message.channel.id in self.user_message_times[message.author.id] and message.channel.id in self.channel_delays and (now - self.user_message_times[message.author.id][message.channel.id]).total_seconds() < self.channel_delays[message.channel.id]:
                 await message.author.send(f"Vous devez attendre {self.channel_delays[message.channel.id] // 60} minutes avant de pouvoir envoyer un nouveau message. Si besoin, veuillez modifier votre dernier message.")
                 await message.delete()
             else:
