@@ -6,7 +6,7 @@ from constants import *
 allowed_mentions = AllowedMentions.none()
 
 def generate_message(choice):
-    recruitment_role_id = GARDIEN_GANG_ROLE_ID if choice == "yertirand" else GARDIEN_YERTI_ROLE_ID
+    recruitment_role_id = GARDIEN_YERTI_ROLE_ID if choice == "yertirand" else GARDIEN_GANG_ROLE_ID
     role_id = ROLE1_ID_FAFA
     return (
         f":white_small_square: - Félicitations ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
