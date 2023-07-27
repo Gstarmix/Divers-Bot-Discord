@@ -59,16 +59,14 @@ class Presentation(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         thread = message.channel
-        if (
-            thread.id in self.threads
-            and self.delete_messages.get(thread.id, False)
-            and message.author.id != self.threads[thread.id]
-            and not (
-                any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID] for role in message.author.roles)
-                or message.author == self.bot.user
-            )
-        ):
-            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
+        if thread.id in self.threads and self.delete_messages.get(thread.id, False):
+            if message.author.id != self.threads[thread.id]:
+                if not any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID] for role in message.author.roles) and message.author != self.bot.user:
+                    await message.delete()
+                    await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
+                else:
+                    await message.delete()
+                    await thread.send("Un message d'un utilisateur non autorisé a été supprimé.")
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
