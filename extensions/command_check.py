@@ -42,7 +42,7 @@ class CommandCheck(commands.Cog):
                     content = message.content
                     await message.delete()
                     allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]])
-                    await message.channel.send(f"{message.author.mention} Vous avez envoyé une commande dans le mauvais salon. Votre message `{content}` a été supprimé. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
                     message_sent = True
                     return
 
