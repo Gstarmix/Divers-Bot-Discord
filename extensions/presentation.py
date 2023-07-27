@@ -3,8 +3,6 @@ from discord import AllowedMentions
 from discord.ext import commands
 from constants import *
 
-allowed_mentions = AllowedMentions.none()
-
 def generate_message(choice):
     recruitment_role_id = GARDIEN_YERTI_ROLE_ID if choice == "yertirand" else GARDIEN_GANG_ROLE_ID
     role_id = ROLE1_ID_FAFA
@@ -23,7 +21,7 @@ class Presentation(commands.Cog):
         self.delete_messages = {}
 
     async def ask_question(self, thread, message, check):
-        await thread.send(f"{thread.owner.mention} {message}", allowed_mentions=allowed_mentions)
+        await thread.send(f"{thread.owner.mention} {message}")
         try:
             response = await self.bot.wait_for('message', check=check, timeout=600)
             return response
@@ -86,7 +84,7 @@ class Presentation(commands.Cog):
         while True:
             response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
             while response is not None and response.content.lower() not in ['oui', 'non']:
-                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
+                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.")
                 response = await self.bot.wait_for('message', check=check, timeout=600)
             if response is None:
                 return
@@ -95,27 +93,25 @@ class Presentation(commands.Cog):
                     await thread.owner.edit(nick=thread.name)
                 except Exception as e:
                     print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
-                    await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.", allowed_mentions=allowed_mentions)
+                    await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
                 break
             elif response.content.lower() == 'non':
                 while True:
                     response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
                     if response is None:
                         return
-                    while len(response.content) > 32:
-                        response = await self.ask_question(thread, f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.", check)
-                        if response is None:
+                    if len(response.content) <= 32:
+                        confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
+                        if confirmation is None:
                             return
-                    confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
-                    if confirmation is None:
-                        return
-                    if confirmation.content.lower() == 'oui':
-                        try:
-                            await thread.owner.edit(nick=response.content)
-                            await thread.edit(name=response.content)
-                            break
-                        except Exception as e:
-                            print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
+                        if confirmation.content.lower() == 'oui':
+                            try:
+                                await thread.owner.edit(nick=response.content)
+                                await thread.edit(name=response.content)
+                                break
+                            except Exception as e:
+                                print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
+                break
 
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
@@ -140,33 +136,8 @@ class Presentation(commands.Cog):
 
         await self.ask_choice(thread, check)
 
-    async def ask_choice(self, thread, check):
-        await thread.send(f"{thread.owner.mention} Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par ``Yertirand`` ou ``-GANG-``.", allowed_mentions=allowed_mentions)
-        while True:
-            try:
-                response = await self.bot.wait_for('message', timeout=600, check=check)
-                if response.content.lower() in ['yertirand', '-gang-']:
-                    await thread.send(generate_message(response.content.lower()), allowed_mentions=allowed_mentions)
-                    self.delete_messages[thread.id] = False
-
-                    user = thread.guild.get_member(self.threads[thread.id])
-
-                    role_ids = [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]
-                    for role in user.roles:
-                        if role.id not in role_ids and role != thread.guild.default_role and role != thread.guild.me.top_role:
-                            await user.remove_roles(role)
-
-                    for role_id in role_ids:
-                        role = thread.guild.get_role(role_id)
-                        if role not in user.roles:
-                            await user.add_roles(role)
-
-                    return
-                else:
-                    await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Yertirand`` ou ``-GANG-``.", allowed_mentions=allowed_mentions)
-            except asyncio.TimeoutError:
-                await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-                await thread.delete()
+# Réinitialisez allowed_mentions localement ici
+allowed_mentions = AllowedMentions.none()
 
 async def setup(bot):
     await bot.add_cog(Presentation(bot))
