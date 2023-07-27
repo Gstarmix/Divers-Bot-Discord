@@ -1,7 +1,7 @@
 import datetime
 import discord
 from discord.ext import commands
-from constants import MUDAE_HELP_CHANNEL_ID, SUGGESTION_GSTAR_CHANNEL_ID, SUGGESTION_FAFA_CHANNEL_ID, VIDEO_CHANNEL_ID, MEMES_CHANNEL_ID, VDO_VDM_CHANNEL_ID, RECHERCHE_KELKIN_CHANNEL_ID
+from constants import *
 
 class ThreadCreator(commands.Cog):
     def __init__(self, bot):

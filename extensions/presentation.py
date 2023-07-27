@@ -1,7 +1,7 @@
 import asyncio
 from discord import AllowedMentions
 from discord.ext import commands
-from constants import PRESENTATION_CHANNEL_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID, PRESENTATION_ROLE_ID, ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA
+from constants import *
 
 allowed_mentions = AllowedMentions.none()
 
@@ -83,7 +83,7 @@ class Presentation(commands.Cog):
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
-        response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par 'Oui' ou 'Non'.", check)
+        response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
         if response is None:
             return
         if response.content.lower() == 'oui':
@@ -99,7 +99,7 @@ class Presentation(commands.Cog):
                 if len(response.content) > 32:
                     await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.", allowed_mentions=allowed_mentions)
                     continue
-                confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo '{response.content}'. Est-ce correct ? Répondez par 'Oui' ou 'Non'.", check)
+                confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
                 if confirmation is None:
                     return
                 if confirmation.content.lower() == 'oui':
@@ -110,12 +110,12 @@ class Presentation(commands.Cog):
                         print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
                     break
         else:
-            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Oui' ou 'Non'.", allowed_mentions=allowed_mentions)
+            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
             return
 
         questions = [
-            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par 'Oui' ou si ce n'est pas le cas, envoyez des captures d'écran.",
-            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par 'Oui' ou si ce n'est pas le cas, envoyez des captures d'écran."
+            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
+            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran."
         ]
 
         for question in questions:
@@ -124,20 +124,20 @@ class Presentation(commands.Cog):
                 return
             while response.content.lower() != 'oui':
                 if response.attachments:
-                    response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par 'Non' ou envoyez votre capture d'écran.", check)
+                    response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par ``Non`` ou envoyez votre capture d'écran.", check)
                     if response is None:
                         return
                     elif response.content.lower() == 'non':
                         break
                 else:
-                    response = await self.ask_question(thread, "Veuillez écrire 'Oui' ou envoyer une capture d'écran pour répondre à la question.", check)
+                    response = await self.ask_question(thread, "Veuillez écrire ``Oui`` ou envoyer une capture d'écran pour répondre à la question.", check)
                     if response is None:
                         return
 
         await self.ask_choice(thread, check)
 
     async def ask_choice(self, thread, check):
-        await thread.send(f"{thread.owner.mention} Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.", allowed_mentions=allowed_mentions)
+        await thread.send(f"{thread.owner.mention} Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par ``Yertirand`` ou ``-GANG-``.", allowed_mentions=allowed_mentions)
         while True:
             try:
                 response = await self.bot.wait_for('message', timeout=600, check=check)
@@ -159,7 +159,7 @@ class Presentation(commands.Cog):
 
                     return
                 else:
-                    await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.", allowed_mentions=allowed_mentions)
+                    await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Yertirand`` ou ``-GANG-``.", allowed_mentions=allowed_mentions)
             except asyncio.TimeoutError:
                 await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
                 await thread.delete()

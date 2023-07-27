@@ -1,6 +1,6 @@
 import asyncio
 from discord.ext import commands
-from constants import QUESTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, QUESTION_ROLE_ID
+from constants import *
 
 class Question(commands.Cog):
     def __init__(self, bot):

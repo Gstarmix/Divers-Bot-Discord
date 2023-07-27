@@ -2,7 +2,7 @@ import asyncio
 from discord.ext import commands
 import discord
 from datetime import datetime
-from constants import INSCRIPTION_CHANNEL_ID, CHEF_SINGE_ROLE_ID, INSCRIPTION_VALIDATION_CHANNEL_ID, INSCRIPTION_INVALIDATION_CHANNEL_ID, INSCRIPTION_ROLE_ID
+from constants import *
 
 class Inscription(commands.Cog):
     def __init__(self, bot):
@@ -82,7 +82,7 @@ class Inscription(commands.Cog):
                 message_content = "Désolé, je n'ai pas compris votre message. Je m'attends à une capture d'écran."
                 return
             personnage_screenshot = screenshot_response.attachments[0].url
-            message_content = "Merci pour la capture d'écran ! Ensuite, avez-vous atteint l'étape 17 du tutoriel ? Si oui, pourriez-vous fournir une capture d'écran de la page 17 du tutoriel ?"
+            message_content = "Merci d'avoir fourni la capture d'écran ! Passons à la suite, avez-vous atteint l'étape 17 du tutoriel ? Si c'est le cas, pourriez-vous partager une capture d'écran de la page 17 du tutoriel ? Dans le cas contraire, veuillez effectuer le tutoriel jusqu'à la page 17 (il n'est pas nécessaire de le terminer) en tapant `$tuto` dans le salon <#MUDAE_TUTORIAL_CHANNEL_ID>."
             tutorial_response = await self.ask_with_timeout(thread, message.author.id, message_content, check, message)
             if not tutorial_response or not tutorial_response.attachments:
                 message_content = "Désolé, je n'ai pas compris votre message. Je m'attends à une capture d'écran."
@@ -161,21 +161,23 @@ class Inscription(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
+        print(self.original_messages)
         if isinstance(message.channel, discord.Thread) and message.channel.id in self.threads:
             user_id = self.threads[message.channel.id]
             user = message.guild.get_member(user_id)
 
             if message.author.id != user_id and not any(role.id == CHEF_SINGE_ROLE_ID for role in message.author.roles) and not message.author.bot:
                 return
+            print("hello gaylord")
 
             original_message_ids = [k for k, v in self.original_messages.items() if v == user_id]
             if original_message_ids: 
                 original_message_id = original_message_ids[0]
                 original_channel = self.bot.get_channel(INSCRIPTION_CHANNEL_ID)
                 try: 
-                    original_message = await original_channel.fetch_message(original_message_id)
-                    if original_message:
-                        await original_message.delete()
+                    original_message = original_channel.get_partial_message(original_message_id)
+                    print("hello choupi")
+                    await original_message.delete()
                 except discord.NotFound:
                     print(f"Original message with ID {original_message_id} not found.")
                 except discord.Forbidden:
@@ -183,10 +185,11 @@ class Inscription(commands.Cog):
                 except discord.HTTPException as e:
                     print(f"An HTTP exception occurred while trying to delete the original message with ID {original_message_id}: {e}")
 
+
             await message.channel.delete()
 
-            role = discord.utils.get(user.guild.roles, id=INSCRIPTION_ROLE_ID)
-            if role in user.roles:
+            role = user.get_role(INSCRIPTION_ROLE_ID)
+            if role:
                 await user.remove_roles(role)
 
             await user.send("Votre inscription a été annulée car un message dans votre fil de discussion a été supprimé.")
