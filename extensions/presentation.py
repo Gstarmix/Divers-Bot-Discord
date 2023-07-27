@@ -83,35 +83,37 @@ class Presentation(commands.Cog):
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
-        response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
-        if response is None:
-            return
-        if response.content.lower() == 'oui':
-            try:
-                await thread.owner.edit(nick=thread.name)
-            except Exception as e:
-                print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
-        elif response.content.lower() == 'non':
-            while True:
-                response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
-                if response is None:
-                    return
-                if len(response.content) > 32:
-                    await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.", allowed_mentions=allowed_mentions)
-                    continue
-                confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
-                if confirmation is None:
-                    return
-                if confirmation.content.lower() == 'oui':
-                    try:
-                        await thread.owner.edit(nick=response.content)
-                        await thread.edit(name=response.content)
-                    except Exception as e:
-                        print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
+        while True:
+            response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
+            if response is None:
+                return
+            if response.content.lower() == 'oui':
+                try:
+                    await thread.owner.edit(nick=thread.name)
                     break
-        else:
-            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
-            return
+                except Exception as e:
+                    print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
+            elif response.content.lower() == 'non':
+                while True:
+                    response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
+                    if response is None:
+                        return
+                    if len(response.content) > 32:
+                        await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.", allowed_mentions=allowed_mentions)
+                        continue
+                    confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
+                    if confirmation is None:
+                        return
+                    if confirmation.content.lower() == 'oui':
+                        try:
+                            await thread.owner.edit(nick=response.content)
+                            await thread.edit(name=response.content)
+                            break
+                        except Exception as e:
+                            print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
+                break
+            else:
+                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
 
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
