@@ -111,30 +111,29 @@ class Presentation(commands.Cog):
                                 break
                             except Exception as e:
                                 print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                    else:
-                        await thread.send("Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
+                break
+            else:
+                await thread.send("Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
+                response = None
 
         questions = [
-            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, `envoyez des captures d'écran`.",
-            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, `envoyez des captures d'écran`."
+            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
+            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran."
         ]
 
         for question in questions:
             response = await self.ask_question(thread, question, check)
             if response is None:
                 return
-            confirmation_question = False
-            while response.content.lower() != 'oui' or confirmation_question:
-                if response.attachments or confirmation_question:
+            while response.content.lower() != 'oui':
+                if response.attachments:
                     response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par ``Non`` ou envoyez votre capture d'écran.", check)
-                    confirmation_question = True
                     if response is None:
                         return
                     elif response.content.lower() == 'non':
                         break
                 else:
                     response = await self.ask_question(thread, "Veuillez écrire ``Oui`` ou envoyer une capture d'écran pour répondre à la question.", check)
-                    confirmation_question = False
                     if response is None:
                         return
 
