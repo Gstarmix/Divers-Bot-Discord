@@ -130,5 +130,5 @@ class Presentation(commands.Cog):
         self.delete_messages[thread.id] = False
         await thread.send(generate_message(response.content.lower()), allowed_mentions=AllowedMentions.none())
 
-def setup(bot):
-    bot.add_cog(Presentation(bot))
+async def setup(bot):
+    await bot.add_cog(Presentation(bot))
