@@ -71,7 +71,7 @@ class Inscription(commands.Cog):
             thread = await message.create_thread(name=f"Inscription de {message.author.name}")
             self.threads[thread.id] = message.author.id
             self.threads_created.add(message.id)
-            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous fournir une capture d'écran de votre personnage in-game ? Assurez-vous que votre personnage soit au minimum de niveau héroïque +30 et que le pseudo, le niveau, la date et l'heure soient bien visibles sur la capture d'écran."
+            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous partager une capture d'écran de votre personnage in-game ? Assurez-vous que votre personnage soit au minimum de niveau héroïque +30 et que le pseudo, le niveau, la date et l'heure soient bien visibles sur la capture d'écran."
         except Exception as e:
             return
         try:
@@ -83,13 +83,13 @@ class Inscription(commands.Cog):
                 return
             personnage_screenshot = screenshot_response.attachments[0].url
             tutorial_channel_mention = f"<#{MUDAE_TUTORIAL_CHANNEL_ID}>"
-            message_content = f"Merci d'avoir fourni la capture d'écran ! Passons à la suite, avez-vous atteint l'étape 17 du tutoriel ? Si c'est le cas, pourriez-vous partager une capture d'écran de la page 17 du tutoriel ? Dans le cas contraire, veuillez effectuer le tutoriel jusqu'à la page 17 (il n'est pas nécessaire de le terminer) en tapant `$tuto` dans le salon {tutorial_channel_mention}."
+            message_content = f"Merci d'avoir partagé la capture d'écran ! Passons à la suite, avez-vous atteint l'étape 17 du tutoriel ? Si c'est le cas, pourriez-vous partager une capture d'écran de la page 17 du tutoriel ? Dans le cas contraire, veuillez effectuer le tutoriel jusqu'à la page 17 (il n'est pas nécessaire de le terminer) en tapant `$tuto` dans le salon {tutorial_channel_mention}."
             tutorial_response = await self.ask_with_timeout(thread, message.author.id, message_content, check, message)
             if not tutorial_response or not tutorial_response.attachments:
                 message_content = "Désolé, je n'ai pas compris votre message. Je m'attends à une capture d'écran."
                 return
             tutorial_screenshot = tutorial_response.attachments[0].url
-            await thread.send(f"<@{message.author.id}> Merci ! Votre inscription au concours est en cours de vérification. <@200750717437345792> procédera maintenant à la validation de votre inscription.")
+            await thread.send(f"<@{message.author.id}> Merci d'avoir partagé la capture d'écran ! Votre inscription au concours est en cours de vérification. <@200750717437345792> procédera maintenant à la validation de votre inscription.")
             self.pending_registrations[message.author.id] = (personnage_screenshot, tutorial_screenshot)
             self.original_messages[message.id] = message.author.id
         except Exception as e:
