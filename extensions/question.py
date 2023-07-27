@@ -11,9 +11,7 @@ class Question(commands.Cog):
 
     def is_valid_question(self, title):
         lower_title = title.lower()
-        return any(lower_title.startswith(word) for word in self.interrogative_words) and len(lower_title) >= 20 and '?' in lower_title
-
-
+        return any(lower_title.startswith(word) for word in self.interrogative_words) and len(lower_title) >= 20 and '?' in lower_title and lower_title.split()[0] in self.interrogative_words
 
     async def ask_question(self, thread, message, check, yes_no_question=True):
         first_time = True

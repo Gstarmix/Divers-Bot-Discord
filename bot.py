@@ -17,7 +17,7 @@ async def on_ready():
     await bot.load_extension("extensions.inscription")
     await bot.load_extension("extensions.thread_creator")
     # await bot.load_extension("extensions.presentation")
-    await bot.load_extension("extensions.question")
+    # await bot.load_extension("extensions.question")
     await bot.load_extension("extensions.command_check")
 
 bot.run(TOKEN)
