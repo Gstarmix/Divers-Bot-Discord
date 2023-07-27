@@ -114,7 +114,7 @@ class Presentation(commands.Cog):
                 break
             else:
                 await thread.send("Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
-                response = None
+                return
 
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
