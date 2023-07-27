@@ -115,7 +115,6 @@ class Presentation(commands.Cog):
                                 break
                             except Exception as e:
                                 print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                break
 
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
