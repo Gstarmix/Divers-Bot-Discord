@@ -114,6 +114,7 @@ class Presentation(commands.Cog):
                 break
             else:
                 await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
+                continue
 
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
