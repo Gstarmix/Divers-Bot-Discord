@@ -10,6 +10,7 @@ class Question(commands.Cog):
         self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce que", "qu'est-ce que", "combien", "quel", "quelle", "quels", "quelles"]
 
     def is_valid_question(self, title):
+        lower_title = title.lower()
         return any(title.lower().startswith(word) for word in self.interrogative_words) and len(title) >= 20 and '?' in title and title.split()[0].lower() in self.interrogative_words
 
     async def ask_question(self, thread, message, check, yes_no_question=True):
@@ -24,11 +25,13 @@ class Question(commands.Cog):
                     if response.content.lower() in ['oui', 'non']:
                         return response
                     else:
-                        message = "Je n'ai pas compris votre réponse. Veuillez répondre par 'Oui' ou 'Non'."
+                        message = "Je n'ai pas compris votre réponse. Veuillez répondre par `Oui` ou `Non`."
                 else:
                     return response
             except asyncio.TimeoutError:
                 await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+                author_role = thread.guild.get_role(QUESTION_ROLE_ID)
+                await thread.owner.remove_roles(author_role)
                 await thread.delete()
                 return None
             await thread.send(f"{thread.owner.mention} {message}")
@@ -64,7 +67,7 @@ class Question(commands.Cog):
             self.delete_messages[thread.id] = False
         else:
             while True:
-                response = await self.ask_question(thread, "Le titre que vous avez validé n'est pas une question. Une question doit commencer par un mot interrogatif (comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`), doit contenir au moins 20 caractères et doit se terminer par un '?'. Veuillez écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
+                response = await self.ask_question(thread, "Le titre que vous avez validé n'est pas une question. Une question doit commencer par un mot interrogatif (comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`), doit contenir au moins 20 caractères et doit se terminer par un `?`. Veuillez écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
                 if response is None:
                     return
                 while len(response.content) > 100:
@@ -86,7 +89,7 @@ class Question(commands.Cog):
                         if response is None:
                             return
                     if '?' not in response.content:
-                        response = await self.ask_question(thread, "Votre titre ne se termine pas par un '?'. Veuillez ajouter un '?' à la fin et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
+                        response = await self.ask_question(thread, "Votre titre ne se termine pas par un `?`. Veuillez ajouter un `?` à la fin et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
                         if response is None:
                             return
                     if not any(response.content.lower().split()[0] == word for word in self.interrogative_words):
