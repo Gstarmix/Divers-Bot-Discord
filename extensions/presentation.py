@@ -118,17 +118,18 @@ class Presentation(commands.Cog):
                             await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Le processus continue malgré tout.")
                     else:
                         await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit avoir 32 caractères ou moins.")
-
-        response = await self.ask_question(thread, "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.", check)
-
-        response = await self.ask_question(thread, "Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par 'Yertirand' ou '-GANG-'.", check)
+        
+        response = await self.ask_question(thread, "Quel est le nom de la guilde où vous voulez être recruté ?", check)
         while response is not None and response.content.lower() not in ['yertirand', '-gang-']:
-            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
+            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``yertirand`` ou ``-gang-``.")
             response = await self.bot.wait_for('message', check=check, timeout=600)
         if response is None:
             return
+
+        choice = response.content.lower()
+        await thread.send(generate_message(choice))
+
         self.delete_messages[thread.id] = False
-        await thread.send(generate_message(response.content.lower()), allowed_mentions=AllowedMentions.none())
 
 async def setup(bot):
     await bot.add_cog(Presentation(bot))
