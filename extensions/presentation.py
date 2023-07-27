@@ -81,44 +81,44 @@ class Presentation(commands.Cog):
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
-        while True:
-            response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
-            while response is not None and response.content.lower() not in ['oui', 'non']:
-                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.")
-                response = await self.bot.wait_for('message', check=check, timeout=600)
-            if response is None:
-                return
-            if response.content.lower() == 'oui':
-                try:
-                    await thread.owner.edit(nick=thread.name)
-                except Exception as e:
-                    print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
-                    await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
-                break
-            elif response.content.lower() == 'non':
-                while True:
-                    response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
-                    if response is None:
-                        return
-                    if len(response.content) <= 32:
-                        confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
-                        if confirmation is None:
-                            return
-                        if confirmation.content.lower() == 'oui':
-                            try:
-                                await thread.owner.edit(nick=response.content)
-                                await thread.edit(name=response.content)
-                                break
-                            except Exception as e:
-                                print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
-                                await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
-                        elif confirmation.content.lower() == 'non':
-                            continue
-                        else:
-                            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Le processus continue malgré tout.")
-                    else:
-                        await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit avoir 32 caractères ou moins.")
+        response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
+        while response is not None and response.content.lower() not in ['oui', 'non']:
+            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.")
+            response = await self.bot.wait_for('message', check=check, timeout=600)
+        if response is None:
+            return
 
+        if response.content.lower() == 'oui':
+            try:
+                await thread.owner.edit(nick=thread.name)
+            except Exception as e:
+                print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
+                await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
+        elif response.content.lower() == 'non':
+            while True:
+                response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
+                if response is None:
+                    return
+                if len(response.content) <= 32:
+                    confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
+                    if confirmation is None:
+                        return
+                    if confirmation.content.lower() == 'oui':
+                        try:
+                            await thread.owner.edit(nick=response.content)
+                            await thread.edit(name=response.content)
+                        except Exception as e:
+                            print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
+                            await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
+                        break
+                    elif confirmation.content.lower() == 'non':
+                        continue
+                    else:
+                        await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Le processus continue malgré tout.")
+                else:
+                    await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit avoir 32 caractères ou moins.")
+
+        # Demande sur les captures d'écran
         response = await self.ask_question(thread, "Avez-vous inclus une capture d'écran de votre `fiche personnage`, `arme principale`, `arme secondaire`, `armure`, `SP` et `résistances` ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.", check)
         while response is not None and response.content.lower() not in ['oui', 'non']:
             await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.")
