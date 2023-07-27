@@ -104,17 +104,17 @@ class Presentation(commands.Cog):
                         return
                     if len(response.content) > 32:
                         await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.", allowed_mentions=allowed_mentions)
-                        continue
-                    confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
-                    if confirmation is None:
-                        return
-                    if confirmation.content.lower() == 'oui':
-                        try:
-                            await thread.owner.edit(nick=response.content)
-                            await thread.edit(name=response.content)
-                        except Exception as e:
-                            print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                        break
+                    else:
+                        confirmation = await self.ask_question(thread, f"Vous avez choisi le pseudo `{response.content}`. Est-ce correct ? Répondez par ``Oui`` ou ``Non``.", check)
+                        if confirmation is None:
+                            return
+                        if confirmation.content.lower() == 'oui':
+                            try:
+                                await thread.owner.edit(nick=response.content)
+                                await thread.edit(name=response.content)
+                                break
+                            except Exception as e:
+                                print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
                 break
 
         questions = [
