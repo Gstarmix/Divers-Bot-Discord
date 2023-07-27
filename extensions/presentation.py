@@ -85,6 +85,9 @@ class Presentation(commands.Cog):
 
         while True:
             response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par ``Oui`` ou ``Non``.", check)
+            while response is not None and response.content.lower() not in ['oui', 'non']:
+                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
+                response = await self.bot.wait_for('message', check=check, timeout=600)
             if response is None:
                 return
             if response.content.lower() == 'oui':
@@ -111,11 +114,7 @@ class Presentation(commands.Cog):
                             break
                         except Exception as e:
                             print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                break
-            else:
-                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par ``Oui`` ou ``Non``.", allowed_mentions=allowed_mentions)
-                continue
-
+                            
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
             "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran."
