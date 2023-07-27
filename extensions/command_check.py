@@ -27,24 +27,23 @@ class CommandCheck(commands.Cog):
         if message.author.bot:
             return
 
-        message_sent = False
-        for command in message.content.split():
-            if command.startswith('$') or command.startswith('/'):
-                if command not in self.mod_commands:
-                    continue
-                if command in self.mod_commands and message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]:
-                    return
-                allowed_channels = []
-                for channel_id, commands in self.allowed_commands.items():
-                    if command in commands:
-                        allowed_channels.append(channel_id)
-                if message.channel.id not in allowed_channels and not message_sent:
-                    content = message.content
-                    await message.delete()
-                    allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]])
-                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
-                    message_sent = True
-                    return
+        command = message.content.split()[0]
+
+        if command.startswith('$') or command.startswith('/'):
+            if command not in self.mod_commands:
+                return
+            if command in self.mod_commands and message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]:
+                return
+            allowed_channels = []
+            for channel_id, commands in self.allowed_commands.items():
+                if command in commands:
+                    allowed_channels.append(channel_id)
+            if message.channel.id not in allowed_channels:
+                content = message.content
+                await message.delete()
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]])
+                await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
+                return
 
 async def setup(bot):
     await bot.add_cog(CommandCheck(bot))
