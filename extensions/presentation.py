@@ -93,9 +93,11 @@ class Presentation(commands.Cog):
             if response.content.lower() == 'oui':
                 try:
                     await thread.owner.edit(nick=thread.name)
-                    break
                 except Exception as e:
                     print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
+                    await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.", allowed_mentions=allowed_mentions)
+                finally:
+                    break
             elif response.content.lower() == 'non':
                 while True:
                     response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
@@ -114,7 +116,7 @@ class Presentation(commands.Cog):
                             break
                         except Exception as e:
                             print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                            
+
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
             "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran."
