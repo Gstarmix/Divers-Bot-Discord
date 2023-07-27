@@ -117,8 +117,8 @@ class Presentation(commands.Cog):
                 return
 
         questions = [
-            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
-            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran."
+            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, `envoyez des captures d'écran`.",
+            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, `envoyez des captures d'écran`."
         ]
 
         for question in questions:
