@@ -96,8 +96,7 @@ class Presentation(commands.Cog):
                 except Exception as e:
                     print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
                     await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.", allowed_mentions=allowed_mentions)
-                finally:
-                    break
+                break
             elif response.content.lower() == 'non':
                 while True:
                     response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check)
