@@ -31,39 +31,6 @@ class Presentation(commands.Cog):
             return None
 
     @commands.Cog.listener()
-    async def on_message_delete(self, message):
-        thread = message.channel
-        if thread.id in self.threads:
-            user_id = self.threads[thread.id]
-            user = thread.guild.get_member(user_id) 
-
-            presentation_role = thread.guild.get_role(PRESENTATION_ROLE_ID)
-            if presentation_role in user.roles:
-                await user.remove_roles(presentation_role)
-
-            role_ids = [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]
-            for role in user.roles:
-                if role.id not in role_ids and role != thread.guild.default_role and role != thread.guild.me.top_role:
-                    await user.remove_roles(role)
-
-            for role_id in role_ids:
-                role = thread.guild.get_role(role_id)
-                if role not in user.roles:
-                    await user.add_roles(role)
-
-            await user.send("Votre fil de discussion a été supprimé et vos rôles ont été réinitialisés.")
-            await thread.delete()
-
-            del self.threads[thread.id]
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        thread = message.channel
-        if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID] for role in message.author.roles) and message.author != self.bot.user:
-            await message.delete()
-            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
-
-    @commands.Cog.listener()
     async def on_thread_create(self, thread):
         if thread.parent.id != PRESENTATION_CHANNEL_ID:
             return
@@ -92,7 +59,6 @@ class Presentation(commands.Cog):
                 try:
                     await thread.owner.edit(nick=thread.name)
                 except Exception as e:
-                    print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
                     await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
                 break
             elif response.content.lower() == 'non':
@@ -111,10 +77,8 @@ class Presentation(commands.Cog):
                                 break
                             except Exception as e:
                                 print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                break
-            else:
-                await thread.send("Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
-                return
+                    else:
+                        await thread.send("Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
 
         questions = [
             "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, `envoyez des captures d'écran`.",
@@ -125,15 +89,18 @@ class Presentation(commands.Cog):
             response = await self.ask_question(thread, question, check)
             if response is None:
                 return
-            while response.content.lower() != 'oui':
-                if response.attachments:
+            confirmation_question = False
+            while response.content.lower() != 'oui' or confirmation_question:
+                if response.attachments or confirmation_question:
                     response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par ``Non`` ou envoyez votre capture d'écran.", check)
+                    confirmation_question = True
                     if response is None:
                         return
                     elif response.content.lower() == 'non':
                         break
                 else:
                     response = await self.ask_question(thread, "Veuillez écrire ``Oui`` ou envoyer une capture d'écran pour répondre à la question.", check)
+                    confirmation_question = False
                     if response is None:
                         return
 
