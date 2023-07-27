@@ -110,36 +110,23 @@ class Presentation(commands.Cog):
                                 await thread.edit(name=response.content)
                                 break
                             except Exception as e:
-                                print(f"Erreur lors de la modification du titre du fil ou du pseudo de l'utilisateur : {e}")
-                break
-            else:
-                await thread.send("Votre pseudo est trop long. Il doit être de 32 caractères ou moins. Veuillez le raccourcir.")
-                response = None
+                                print(f"Erreur lors de la modification du pseudo de l'utilisateur : {e}")
+                                await thread.send(f"{thread.owner.mention} Une erreur s'est produite lors de la tentative de modification de votre pseudo. Le processus continue malgré tout.")
+                        elif confirmation.content.lower() == 'non':
+                            continue
+                        else:
+                            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Le processus continue malgré tout.")
+                    else:
+                        await thread.send(f"{thread.owner.mention} Votre pseudo est trop long. Il doit avoir 32 caractères ou moins.")
 
-        questions = [
-            "Avez-vous inclus une capture d'écran de votre fiche personnage ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran.",
-            "Avez-vous inclus des captures d'écran de votre arme principale, arme secondaire, armure, SP et résistances ? Répondez par ``Oui`` ou si ce n'est pas le cas, envoyez des captures d'écran."
-        ]
-
-        for question in questions:
-            response = await self.ask_question(thread, question, check)
-            if response is None:
-                return
-            while response.content.lower() != 'oui':
-                if response.attachments:
-                    response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par ``Non`` ou envoyez votre capture d'écran.", check)
-                    if response is None:
-                        return
-                    elif response.content.lower() == 'non':
-                        break
-                else:
-                    response = await self.ask_question(thread, "Veuillez écrire ``Oui`` ou envoyer une capture d'écran pour répondre à la question.", check)
-                    if response is None:
-                        return
-
-        await self.ask_choice(thread, check)
-
-allowed_mentions = AllowedMentions.none()
+        response = await self.ask_question(thread, "Merci d'avoir vérifié ces informations. Souhaitez-vous rejoindre Yertirand ou -GANG- ? Répondez par ``Yertirand`` ou ``-GANG-``.", check)
+        while response is not None and response.content.lower() not in ['yertirand', '-gang-']:
+            await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par 'Yertirand' ou '-GANG-'.")
+            response = await self.bot.wait_for('message', check=check, timeout=600)
+        if response is None:
+            return
+        self.delete_messages[thread.id] = False
+        await thread.send(generate_message(response.content.lower()), allowed_mentions=AllowedMentions.none())
 
 async def setup(bot):
     await bot.add_cog(Presentation(bot))
