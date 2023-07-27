@@ -7,7 +7,7 @@ class Question(commands.Cog):
         self.bot = bot
         self.threads = {}
         self.delete_messages = {}
-        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce que", "qu'est-ce que", "combien", "quel", "quelle", "quels", "quelles"]
+        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles"]
 
     def is_valid_question(self, title):
         lower_title = title.lower()
