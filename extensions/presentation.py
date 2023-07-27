@@ -68,7 +68,6 @@ class Presentation(commands.Cog):
                 or message.author == self.bot.user
             )
         ):
-            await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
 
     @commands.Cog.listener()
