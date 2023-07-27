@@ -33,42 +33,15 @@ class Presentation(commands.Cog):
     @commands.Cog.listener()
     async def on_message_delete(self, message):
         thread = message.channel
-        if thread.id in self.threads:
-            user_id = self.threads[thread.id]
-            user = thread.guild.get_member(user_id) 
-
-            presentation_role = thread.guild.get_role(PRESENTATION_ROLE_ID)
-            if presentation_role in user.roles:
-                await user.remove_roles(presentation_role)
-
-            role_ids = [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]
-            for role in user.roles:
-                if role.id not in role_ids and role != thread.guild.default_role and role != thread.guild.me.top_role:
-                    await user.remove_roles(role)
-
-            for role_id in role_ids:
-                role = thread.guild.get_role(role_id)
-                if role not in user.roles:
-                    await user.add_roles(role)
-
-            await user.send("Votre fil de discussion a été supprimé et vos rôles ont été réinitialisés.")
-            await thread.delete()
-
-            del self.threads[thread.id]
+        if thread.id in self.threads and message.author.id != self.bot.user.id and not any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID] for role in message.author.roles) and message.author.id != ROLE1_ID_FAFA:
+            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
         thread = message.channel
-        if thread.id in self.threads and self.delete_messages.get(thread.id, False):
-            if message.author.id != self.threads[thread.id]:
-                unauthorized_user = not any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID, ROLE1_ID_FAFA] for role in message.author.roles)
-                if message.author != self.bot.user and unauthorized_user:
-                    await message.delete()
-                    await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
-                else:
-                    await message.delete()
-                    if unauthorized_user:
-                        await thread.send("Un message d'un utilisateur non autorisé a été supprimé.")
+        if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID] for role in message.author.roles) and message.author.id != self.bot.user.id:
+            await message.delete()
+            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
