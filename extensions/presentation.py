@@ -28,7 +28,7 @@ class Presentation(commands.Cog):
         return (
             f":white_small_square: - Félicitations {thread.owner.mention} ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
             f"N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <#1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n"
-            f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela n'a pas encore été fait, modifie-le toi-même afin que nous puissions te reconnaître facilement.\n"
+            f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela n'a pas été fait, modifie-le toi-même afin que nous puissions te reconnaître facilement.\n"
             f":white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle <@&{recruitment_role_id}> ici.\n"
             f":white_small_square: - Nous souhaitons que tout se déroule dans ta présentation. N'envoie donc pas de messages privés et ne nous mentionne nulle part ailleurs que <a:tention:1093967837992849468> **DANS TA PRÉSENTATION** <a:tention:1093967837992849468> si tu souhaites être recruté."
         )
@@ -74,6 +74,11 @@ class Presentation(commands.Cog):
         response = await self.ask_question(thread, "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par `Oui` ou `Non`.", check)
         if response is None:
             return
+        if response.content.lower() == 'oui':
+            try:
+                await thread.owner.edit(nick=thread.name)
+            except Exception as e:
+                print(f"Erreur lors de la modification du pseudo Discord : {e}")
         while response.content.lower() == 'non':
             response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check, yes_no_question=False)
             if response is None:
