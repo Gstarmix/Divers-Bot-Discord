@@ -9,14 +9,14 @@ class Presentation(commands.Cog):
         self.delete_messages = {}
         self.families = ["yertirand", "-gang-"]
 
-    async def generate_message(self, choice):
+    async def generate_message(self, thread, choice):
         recruitment_role_id = GARDIEN_YERTI_ROLE_ID if choice == "yertirand" else GARDIEN_GANG_ROLE_ID
         role_id = ROLE1_ID_FAFA
         new_roles = [self.bot.get_guild(GUILD_ID_FAFA).get_role(role_id) for role_id in [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]]
         
-        await self.thread.owner.remove_roles(*self.thread.owner.roles)
+        await thread.owner.remove_roles(*thread.owner.roles)
         
-        await self.thread.owner.add_roles(*new_roles)
+        await thread.owner.add_roles(*new_roles)
         
         return (
             f":white_small_square: - Félicitations ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
@@ -97,7 +97,7 @@ class Presentation(commands.Cog):
             return
         family_name = response.content.lower()
         if family_name in self.families:
-            message = self.generate_message(family_name)
+            message = await self.generate_message(thread, family_name)
             await thread.send(message)
         else:
             await thread.send(f"{thread.owner.mention} Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`.")
