@@ -23,12 +23,18 @@ class CommandCheck(commands.Cog):
                 self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
             self.mod_commands.extend(commands)
 
+        self.forbidden_commands = ["$lang"]
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
         command = message.content.split()[0]
+
+        if command in self.forbidden_commands:
+            await message.channel.send(f"{message.author.mention} Vous avez utilisé une commande interdite `{command}`. Veuillez ne pas utiliser cette commande.")
+            return
 
         if command.startswith('$') or command.startswith('/'):
             if command not in self.mod_commands:
@@ -43,7 +49,10 @@ class CommandCheck(commands.Cog):
                 content = message.content
                 await message.delete()
                 allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]])
-                await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
+                if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}. Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau $tuto dans ce salon.")
+                else:
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
                 return
 
 async def setup(bot):
