@@ -23,12 +23,20 @@ class CommandCheck(commands.Cog):
                 self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
             self.mod_commands.extend(commands)
 
+        self.forbidden_commands = [ "$lang", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$rollsleft", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul"]
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
         command = message.content.split()[0]
+
+        if command in self.forbidden_commands:
+            if any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID] for role in message.author.roles):
+                return
+            await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande admin `{command}`. Cette commande est réservée à l'administrateur et aux modérateurs. Je vous prie de ne pas l'utiliser.")
+            return
 
         if command.startswith('$') or command.startswith('/'):
             if command not in self.mod_commands:
@@ -43,7 +51,10 @@ class CommandCheck(commands.Cog):
                 content = message.content
                 await message.delete()
                 allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]])
-                await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
+                if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}. Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon.")
+                else:
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
                 return
 
 async def setup(bot):
