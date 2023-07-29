@@ -83,7 +83,7 @@ class Inscription(commands.Cog):
                 return
             personnage_screenshot = screenshot_response.attachments[0].url
             tutorial_channel_mention = f"<#{MUDAE_TUTORIAL_CHANNEL_ID}>"
-            message_content = f"Merci d'avoir partagé la capture d'écran ! Passons à la suite, avez-vous atteint l'étape 17 du tutoriel ? Si c'est le cas, pourriez-vous partager une capture d'écran de la page 17 du tutoriel ? Dans le cas contraire, veuillez effectuer le tutoriel jusqu'à la page 17 (il n'est pas nécessaire de le terminer) en tapant `$tuto` dans le salon {tutorial_channel_mention}."
+            message_content = f"Merci d'avoir partagé la capture d'écran ! Passons à la suite, avez-vous atteint l'étape 17 du tutoriel ? Si c'est le cas, pourriez-vous partager une capture d'écran de la page 17 du tutoriel ? Dans le cas contraire, veuillez effectuer le tutoriel jusqu'à la page 17 (il n'est pas nécessaire de terminer cette page) en tapant `$tuto` dans le salon {tutorial_channel_mention}."
             tutorial_response = await self.ask_with_timeout(thread, message.author.id, message_content, check, message)
             if not tutorial_response or not tutorial_response.attachments:
                 message_content = "Désolé, je n'ai pas compris votre message. Je m'attends à une capture d'écran."
