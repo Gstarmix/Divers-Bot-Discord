@@ -1,5 +1,7 @@
 import asyncio
+from discord import AllowedMentions
 from discord.ext import commands
+from discord.errors import NotFound
 from constants import *
 
 class Presentation(commands.Cog):
@@ -14,12 +16,17 @@ class Presentation(commands.Cog):
         role_id = ROLE1_ID_FAFA
         new_roles = [self.bot.get_guild(GUILD_ID_FAFA).get_role(role_id) for role_id in [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]]
         
-        await thread.owner.remove_roles(*thread.owner.roles)
+        for role in thread.owner.roles:
+            if role not in new_roles:
+                try:
+                    await thread.owner.remove_roles(role)
+                except NotFound:
+                    print(f"Could not remove role {role.name}")
         
         await thread.owner.add_roles(*new_roles)
         
         return (
-            f":white_small_square: - Félicitations ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
+            f":white_small_square: - Félicitations {thread.owner.mention} ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
             f"N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <#1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n"
             f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela n'a pas encore été fait, modifie-le toi-même afin que nous puissions te reconnaître facilement.\n"
             f":white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle <@&{recruitment_role_id}> ici.\n"
@@ -98,7 +105,8 @@ class Presentation(commands.Cog):
         family_name = response.content.lower()
         if family_name in self.families:
             message = await self.generate_message(thread, family_name)
-            await thread.send(message)
+            allowed_mentions = AllowedMentions(everyone=False, users=True, roles=False)
+            await thread.send(message, allowed_mentions=allowed_mentions)
         else:
             await thread.send(f"{thread.owner.mention} Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`.")
 
