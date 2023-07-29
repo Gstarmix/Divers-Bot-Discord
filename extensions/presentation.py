@@ -103,12 +103,15 @@ class Presentation(commands.Cog):
         if response is None:
             return
         family_name = response.content.lower()
-        if family_name in self.families:
-            message = await self.generate_message(thread, family_name)
-            allowed_mentions = AllowedMentions(everyone=False, users=True, roles=False)
-            await thread.send(message, allowed_mentions=allowed_mentions)
-        else:
-            await thread.send(f"{thread.owner.mention} Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`.")
+        while family_name not in self.families:
+            response = await self.ask_question(thread, "Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`.", check, yes_no_question=False)
+            if response is None:
+                return
+            family_name = response.content.lower()
+
+        message = await self.generate_message(thread, family_name)
+        allowed_mentions = AllowedMentions(everyone=False, users=True, roles=False)
+        await thread.send(message, allowed_mentions=allowed_mentions)
 
         self.delete_messages[thread.id] = False
 
