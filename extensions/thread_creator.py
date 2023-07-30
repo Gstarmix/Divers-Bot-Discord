@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import discord
 from discord.ext import commands
@@ -50,6 +51,7 @@ class ThreadCreator(commands.Cog):
                     print("Création du fil...")
                     thread_name = f"{self.thread_names[message.channel.id]} de {message.author.name}"
                     thread = await message.channel.create_thread(message=message, name=thread_name)
+                    await asyncio.sleep(5)  # Ajout du délai
                     await thread.send(self.channel_messages[message.channel.id])
                 except Exception as e:
                     print(f"Erreur lors de la création du fil : {e}")

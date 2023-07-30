@@ -17,8 +17,19 @@ class Question(commands.Cog):
         first_time = True
         while True:
             if first_time:
+                user_message_sent = False
+                async for msg in thread.history(limit=5):
+                    if msg.author == thread.owner:
+                        user_message_sent = True
+                        break
+
+                if not user_message_sent:
+                    await asyncio.sleep(5)
+                    continue
+
                 await thread.send(f"{thread.owner.mention} {message}")
                 first_time = False
+
             try:
                 response = await self.bot.wait_for('message', check=check, timeout=600)
                 if yes_no_question:
