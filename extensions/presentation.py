@@ -85,24 +85,33 @@ class Presentation(commands.Cog):
         if response is None:
             return
         if response.content.lower() == 'oui':
-            try:
-                await thread.owner.edit(nick=thread.name)
-            except Exception as e:
-                print(f"Erreur lors de la modification du pseudo Discord : {e}")
+            new_name = thread.name
+            if len(new_name) <= 32:
+                try:
+                    await thread.owner.edit(nick=new_name)
+                except Exception as e:
+                    print(f"Erreur lors de la modification du pseudo Discord : {e}")
+            else:
+                await thread.send(f"{thread.owner.mention} Votre pseudo est trop long (plus de 32 caractères). Veuillez le changer.")
+                return
         while response.content.lower() == 'non':
             response = await self.ask_question(thread, "Veuillez écrire votre pseudo en jeu à la suite de ce message.", check, yes_no_question=False)
             if response is None:
                 return
             new_name = response.content
-            response = await self.ask_question(thread, f"Vous avez choisi le pseudo `{new_name}`. Est-ce correct ? Répondez par `Oui` ou `Non`.", check)
-            if response is None:
+            if len(new_name) <= 32:
+                response = await self.ask_question(thread, f"Vous avez choisi le pseudo `{new_name}`. Est-ce correct ? Répondez par `Oui` ou `Non`.", check)
+                if response is None:
+                    return
+                if response.content.lower() == 'oui':
+                    try:
+                        await thread.owner.edit(nick=new_name)
+                        await thread.edit(name=new_name)
+                    except Exception as e:
+                        print(f"Erreur lors de la modification du pseudo Discord ou du titre du fil : {e}")
+            else:
+                await thread.send(f"{thread.owner.mention} Votre pseudo est trop long (plus de 32 caractères). Veuillez le changer.")
                 return
-            if response.content.lower() == 'oui':
-                try:
-                    await thread.owner.edit(nick=new_name)
-                    await thread.edit(name=new_name)
-                except Exception as e:
-                    print(f"Erreur lors de la modification du pseudo Discord ou du titre du fil : {e}")
 
         response = await self.ask_question(thread, "Avez-vous inclus une capture d'écran de votre fiche personnage, arme principale, arme secondaire, armure, SP et résistances ? Répondez par `Oui` ou `Non`.", check)
         if response is None:
