@@ -2,16 +2,27 @@ import asyncio
 from discord.ext import commands
 from constants import *
 
+# class Question(commands.Cog):
+#     def __init__(self, bot):
+#         self.bot = bot
+#         self.threads = {}
+#         self.delete_messages = {}
+#         self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles"]
+
+#     def is_valid_question(self, title):
+#         lower_title = title.lower()
+#         return any(lower_title.startswith(word) for word in self.interrogative_words) and len(lower_title) >= 20 and '?' in lower_title and lower_title.split()[0] in self.interrogative_words
+
 class Question(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.threads = {}
         self.delete_messages = {}
         self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles"]
+        self.interrogative_words += [word.capitalize() for word in self.interrogative_words]
 
     def is_valid_question(self, title):
-        lower_title = title.lower()
-        return any(lower_title.startswith(word) for word in self.interrogative_words) and len(lower_title) >= 20 and '?' in lower_title and lower_title.split()[0] in self.interrogative_words
+        return any(title.startswith(word) for word in self.interrogative_words) and len(title) >= 20 and '?' in title and title.split()[0] in self.interrogative_words
 
     async def ask_question(self, thread, message, check, yes_no_question=True):
         first_time = True
