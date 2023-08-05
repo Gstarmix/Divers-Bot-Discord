@@ -71,7 +71,7 @@ class Inscription(commands.Cog):
             thread = await message.create_thread(name=f"Inscription de {message.author.name}")
             self.threads[thread.id] = message.author.id
             self.threads_created.add(message.id)
-            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous partager une capture d'écran de votre personnage in-game ? Assurez-vous que votre personnage soit au minimum de niveau héroïque +30 et que le pseudo, le niveau, la date et l'heure soient bien visibles sur la capture d'écran."
+            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous partager une capture d'écran de votre personnage in-game ? Assurez-vous que le pseudo, la date et l'heure soient bien visibles sur la capture d'écran."
         except Exception as e:
             return
         try:
