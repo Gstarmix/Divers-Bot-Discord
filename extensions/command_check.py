@@ -13,7 +13,8 @@ class CommandCheck(commands.Cog):
             MUDAE_POKESLOT_CHANNEL_ID: ["$pokemon", "$p", "$pokedex", "$pd", "$sortpkm", "$ps", "$shinyhunt", "$sh", "$release", "$r", "$autorelease", "$arl", "$pokelike", "$pl", "$pokelikelist", "$togglepokelike", "$pokeprofile", "$pokerank", "$pokeserv", "$pokemode", "$pr", "$profile", "$help"],
             MULTI_GAMES_CHANNEL_ID: ["$blacktea", "$greentea", "$redtea", "$yellowtea", "$mixtea", "$quiz", "$jankenpon", "$pokeduel", "/bingo", "/chifumi", "/colormind", "/jeux", "/morpion", "/pendu", "/puissance4", "$42ball", "$mm", "$pr", "$profile", "$ima", "$im", "$search", "$changeimg", "$fate", "$quotimage", "$beam", "$blacktea", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$like", "$likelist", "$likeremove", "$lr", "$ll", "$l", "$top", "$topo", "$topl", "$topserv", "$left", "$myid", "$avatar", "$skills", "$embedcolor", "$help", "$divorce"],
             MUDAE_MODO_CHANNEL_ID: [],
-            LOG_CHANNEL_ID: []
+            LOG_CHANNEL_ID: [],
+            ACCOMPLISSEMENT_CHANNEL_ID: []
         }
 
         self.mod_commands = []
