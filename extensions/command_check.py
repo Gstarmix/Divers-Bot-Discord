@@ -41,13 +41,14 @@ class CommandCheck(commands.Cog):
         if command in self.forbidden_commands:
             if any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID] for role in message.author.roles):
                 return
+            await message.delete()
             await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande admin `{command}`. Cette commande est réservée à l'administrateur et aux modérateurs. Je vous prie de ne pas l'utiliser.")
             return
 
         if command.startswith('$') or command.startswith('/'):
             if command not in self.mod_commands:
                 return
-            if command in self.mod_commands and message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]:
+            if command in self.mod_commands and message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, ACCOMPLISSEMENT_CHANNEL_ID]:
                 return
             allowed_channels = []
             for channel_id, commands in self.allowed_commands.items():
@@ -56,7 +57,7 @@ class CommandCheck(commands.Cog):
             if message.channel.id not in allowed_channels:
                 content = message.content
                 await message.delete()
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID]])
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, ACCOMPLISSEMENT_CHANNEL_ID]])
                 if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
                     await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}. Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon.")
                 else:
