@@ -13,17 +13,17 @@ class CommandCheck(commands.Cog):
             MUDAE_POKESLOT_CHANNEL_ID: ["$pokemon", "$p", "$pokedex", "$pd", "$sortpkm", "$ps", "$shinyhunt", "$sh", "$release", "$r", "$autorelease", "$arl", "$pokelike", "$pl", "$pokelikelist", "$togglepokelike", "$pokeprofile", "$pokerank", "$pokeserv", "$pokemode", "$pr", "$profile", "$help"],
             MULTI_GAMES_CHANNEL_ID: ["$blacktea", "$greentea", "$redtea", "$yellowtea", "$mixtea", "$quiz", "$jankenpon", "$pokeduel", "/bingo", "/chifumi", "/colormind", "/jeux", "/morpion", "/pendu", "/puissance4", "$42ball", "$mm", "$pr", "$profile", "$ima", "$im", "$search", "$changeimg", "$fate", "$quotimage", "$beam", "$blacktea", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$like", "$likelist", "$likeremove", "$lr", "$ll", "$l", "$top", "$topo", "$topl", "$topserv", "$left", "$myid", "$avatar", "$skills", "$embedcolor", "$help", "$divorce"],
             MUDAE_MODO_CHANNEL_ID: [],
-            LOG_CHANNEL_ID: [],
-            ACCOMPLISSEMENT_CHANNEL_ID: []
+            LOG_CHANNEL_ID: []
         }
 
         self.mod_commands = []
         for channel_id, commands in self.allowed_commands.items():
-            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, ACCOMPLISSEMENT_CHANNEL_ID]:
+            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
                 self.allowed_commands[MUDAE_MODO_CHANNEL_ID].extend(commands)
                 self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
+                for accomplishment_channel_id in ACCOMPLISSEMENT_CHANNEL_ID:
+                    self.allowed_commands[accomplishment_channel_id].extend(commands)
             self.mod_commands.extend(commands)
-        self.allowed_commands[ACCOMPLISSEMENT_CHANNEL_ID] = self.mod_commands.copy()
 
         self.forbidden_commands = ["$lang", "$skiptuto", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$rollsleft", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul", "$setpermission", "$ic"]
 
@@ -48,7 +48,7 @@ class CommandCheck(commands.Cog):
         if command.startswith('$') or command.startswith('/'):
             if command not in self.mod_commands:
                 return
-            if command in self.mod_commands and message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, ACCOMPLISSEMENT_CHANNEL_ID]:
+            if command in self.mod_commands and (message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID] or message.channel.id in ACCOMPLISSEMENT_CHANNEL_ID):
                 return
             allowed_channels = []
             for channel_id, commands in self.allowed_commands.items():
@@ -57,7 +57,7 @@ class CommandCheck(commands.Cog):
             if message.channel.id not in allowed_channels:
                 content = message.content
                 await message.delete()
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, ACCOMPLISSEMENT_CHANNEL_ID]])
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID])
                 if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
                     await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}. Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon.")
                 else:
