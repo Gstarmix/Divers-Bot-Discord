@@ -1,13 +1,13 @@
 import asyncio
 from discord.ext import commands
 from constants import *
-    
+
 class Question(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.threads = {}
         self.delete_messages = {}
-        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles"]
+        self.interrogative_words = ["qui", "quoi", "quoicoubeh", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles"]
 
     def is_valid_question(self, title):
         lower_title = title.lower()
@@ -73,12 +73,15 @@ class Question(commands.Cog):
             return m.channel == thread and m.author == thread.owner
 
         if self.is_valid_question(thread.name):
-            await thread.send(f"{thread.owner.mention} Très bien, votre titre semble approprié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
-            await thread.owner.remove_roles(author_role)
-            self.delete_messages[thread.id] = False
+            if thread.name.lower().startswith("quoicoubeh"):
+                await thread.send(f"{thread.owner.mention} Quelle originalité dans votre question ! Je vous invite à la reformuler de façon plus conventionnelle et à faire preuve d'un peu plus de maturité.")
+            else:
+                await thread.send(f"{thread.owner.mention} Très bien, votre titre semble approprié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
+                await thread.owner.remove_roles(author_role)
+                self.delete_messages[thread.id] = False
         else:
             while True:
-                response = await self.ask_question(thread, "Le titre que vous avez validé n'est pas une question. Une question doit commencer par un mot interrogatif (comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`), doit contenir au moins 20 caractères et doit se terminer par un `?`. Veuillez écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
+                response = await self.ask_question(thread, "Le titre que vous avez validé n'est pas une question. Une question doit commencer par un mot interrogatif (comme `qui`, `quoi`, `quoicoubeh`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`), doit contenir au moins 20 caractères et doit se terminer par un `?`. Veuillez écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
                 if response is None:
                     return
                 while len(response.content) > 100:
@@ -104,7 +107,7 @@ class Question(commands.Cog):
                         if response is None:
                             return
                     if not any(response.content.lower().split()[0] == word for word in self.interrogative_words):
-                        response = await self.ask_question(thread, "Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
+                        response = await self.ask_question(thread, "Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`, `quoicoubeh`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
                         if response is None:
                             return
 
