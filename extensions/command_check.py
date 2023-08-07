@@ -23,6 +23,8 @@ class CommandCheck(commands.Cog):
                 self.allowed_commands[MUDAE_MODO_CHANNEL_ID].extend(commands)
                 self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
                 self.allowed_commands[ACCOMPLISSEMENT_CHANNEL_ID].extend(commands)
+
+        for channel_id, commands in self.allowed_commands.items():
             self.mod_commands.extend(commands)
 
         self.forbidden_commands = ["$lang", "$skiptuto", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$rollsleft", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul", "$setpermission", "$ic"]
