@@ -10,7 +10,7 @@ class EmojiChanger(commands.Cog):
     def cog_unload(self):
         self.change_emoji.cancel()
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(minutes=10)
     async def change_emoji(self):
         channel = self.bot.get_channel(ANGE_DEMON_CHANNEL_ID)
         if not channel:
