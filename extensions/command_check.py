@@ -16,6 +16,9 @@ class CommandCheck(commands.Cog):
             LOG_CHANNEL_ID: []
         }
 
+        for accomplishment_channel_id in ACCOMPLISSEMENT_CHANNEL_ID:
+            self.allowed_commands[accomplishment_channel_id] = []
+
         self.mod_commands = []
         for channel_id, commands in self.allowed_commands.items():
             if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
