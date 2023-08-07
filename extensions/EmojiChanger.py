@@ -28,5 +28,5 @@ class EmojiChanger(commands.Cog):
     async def before_change_emoji(self):
         await self.bot.wait_until_ready()
 
-def setup(bot):
-    bot.add_cog(EmojiChanger(bot))
+async def setup(bot):
+    await bot.add_cog(EmojiChanger(bot))
