@@ -97,6 +97,8 @@ class Inscription(commands.Cog):
 
     @commands.command()
     async def oui(self, ctx, user: discord.Member):
+        if not discord.utils.get(ctx.author.roles, id=CHEF_SINGE_ROLE_ID):
+            return
         if user.id in self.pending_registrations:
             validation_channel = self.bot.get_channel(INSCRIPTION_VALIDATION_CHANNEL_ID)
             await validation_channel.send(f":white_check_mark: L'inscription de {user.mention} a été validée.")
@@ -107,6 +109,8 @@ class Inscription(commands.Cog):
 
     @commands.command()
     async def non(self, ctx, user: discord.Member, *, reason=None):
+        if not discord.utils.get(ctx.author.roles, id=CHEF_SINGE_ROLE_ID):
+            return
         if user.id in self.pending_registrations or user.id in self.validated_registrations:
             invalidation_channel = self.bot.get_channel(INSCRIPTION_INVALIDATION_CHANNEL_ID)
             if reason:
