@@ -3,7 +3,7 @@ from datetime import datetime
 import asyncio
 from constants import *
 
-DEFAULT_DURATION_MINUTES = 10
+DEFAULT_DURATION_MINUTES = 5
 
 class MudaeScheduler(commands.Cog):
     def __init__(self, bot):
