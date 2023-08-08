@@ -5,6 +5,7 @@ class CommandCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.allowed_commands = {
+            MUDAE_CONTROL_CHANNEL_ID: [],
             MUDAE_TUTORIAL_CHANNEL_ID: ["$tuto", "$chall"],
             MUDAE_WAIFUS_CHANNEL_ID: ["$w", "$h", "$m", "$wa", "$wg", "$ha", "$hg", "$ma", "$mg", "$dk", "$dailykakera", "$mu", "$ku", "$tu", "$rt", "$skillsgm", "$vsgm", "$dsgm", "$favarenagm", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls", "$vote", "$daily", "$rolls", "$usestack", "$rollsleft", "$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$mk", "$rollsup", "$setrolls", "$rdmimg", "$overview", "$mm", "$pr", "$profile", "$ima", "$im", "$ru", "$fc", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$like", "$likelist", "$likeremove", "$lr", "$ll", "$l", "$top", "$topo", "$topl", "$topserv", "$left", "$myid", "$avatar", "$rc", "$setfooter", "$embedcolor", "$help", "$divorce"],
             MUDAE_TRADE_CHANNEL_ID: ["$trade", "$marryexchange", "$pinexchange", "$give", "$givekakera", "$givepin", "$mm", "$pr", "$profile", "$givek", "$givekakera", "$ima", "$im", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$like", "$likelist", "$likeremove", "$lr", "$ll", "$l", "$top", "$topo", "$topl", "$topserv", "$left", "$myid", "$avatar", "$givecustom", "$embedcolor", "$help", "$divorce"],
@@ -21,10 +22,10 @@ class CommandCheck(commands.Cog):
 
         self.mod_commands = []
         for channel_id, commands in self.allowed_commands.items():
-            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_TOP_100_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
+            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
                 self.allowed_commands[MUDAE_MODO_CHANNEL_ID].extend(commands)
                 self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
-                self.allowed_commands[MUDAE_TOP_100_CHANNEL_ID].extend(commands)
+                self.allowed_commands[MUDAE_CONTROL_CHANNEL_ID].extend(commands)
                 for accomplishment_channel_id in ACCOMPLISSEMENT_CHANNEL_ID:
                     self.allowed_commands[accomplishment_channel_id].extend(commands)
             self.mod_commands.extend(commands)
@@ -43,7 +44,7 @@ class CommandCheck(commands.Cog):
             command = ""
 
         if command in self.forbidden_commands:
-            if any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID, MUDAE_TOP_100_CHANNEL_ID] for role in message.author.roles):
+            if any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID, MUDAE_CONTROL_CHANNEL_ID] for role in message.author.roles):
                 return
             await message.delete()
             await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande admin `{command}`. Cette commande est réservée à l'administrateur et aux modérateurs. Je vous prie de ne pas l'utiliser.")
@@ -52,7 +53,7 @@ class CommandCheck(commands.Cog):
         if command.startswith('$') or command.startswith('/'):
             if command not in self.mod_commands:
                 return
-            if command in self.mod_commands and (message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_TOP_100_CHANNEL_ID] or message.channel.id in ACCOMPLISSEMENT_CHANNEL_ID):
+            if command in self.mod_commands and (message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] or message.channel.id in ACCOMPLISSEMENT_CHANNEL_ID):
                 return
             allowed_channels = []
             for channel_id, commands in self.allowed_commands.items():
@@ -61,7 +62,7 @@ class CommandCheck(commands.Cog):
             if message.channel.id not in allowed_channels:
                 content = message.content
                 await message.delete()
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_TOP_100_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID])
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID])
                 if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
                     await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}. Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon.")
                 else:
