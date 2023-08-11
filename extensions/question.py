@@ -66,6 +66,8 @@ class Question(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
+        if thread.parent_id != QUESTION_CHANNEL_ID:
+            return
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
