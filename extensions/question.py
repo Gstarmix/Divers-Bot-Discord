@@ -9,9 +9,27 @@ class Question(commands.Cog):
         self.delete_messages = {}
         self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles"]
 
-    def is_valid_question(self, title):
+    def get_question_error(self, title):
         lower_title = title.lower()
-        return any(lower_title.startswith(word) for word in self.interrogative_words) and len(lower_title) >= 20 and '?' in lower_title and lower_title.split()[0] in self.interrogative_words
+        if not any(lower_title.startswith(word) for word in self.interrogative_words):
+            return "starts_with_interrogative_word"
+        if len(lower_title) < 20:
+            return "length_too_short"
+        if len(lower_title) > 100:
+            return "length_too_long"
+        if not lower_title.endswith('?'):
+            return "does_not_end_with_question_mark"
+        return None
+
+    def send_error_message(self, error_type, thread):
+        if error_type == "starts_with_interrogative_word":
+            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
+        elif error_type == "length_too_short":
+            return f"{thread.owner.mention} Votre titre est trop court. Il doit contenir au moins 20 caractères. Veuillez l'étendre et écrire votre nouveau titre à la suite de ce message."
+        elif error_type == "length_too_long":
+            return f"{thread.owner.mention} Votre titre est trop long. Il doit être de 100 caractères ou moins. Veuillez le raccourcir et écrire votre nouveau titre à la suite de ce message."
+        elif error_type == "does_not_end_with_question_mark":
+            return f"{thread.owner.mention} Votre titre ne se termine pas par un `?`. Veuillez ajouter un `?` à la fin et écrire votre nouveau titre à la suite de ce message."
 
     async def ask_question(self, thread, message, check, yes_no_question=True):
         first_time = True
@@ -41,11 +59,39 @@ class Question(commands.Cog):
                     return response
             except asyncio.TimeoutError:
                 await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-                author_role = thread.guild.get_role(QUESTION_ROLE_ID)
-                await thread.owner.remove_roles(author_role)
+                await thread.owner.remove_roles(QUESTION_ROLE_ID)
                 await thread.delete()
                 return None
             await thread.send(f"{thread.owner.mention} {message}")
+
+    @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        def check(m):
+            return m.channel == thread and m.author == thread.owner
+
+        question_role = thread.guild.get_role(QUESTION_ROLE_ID)
+        await thread.owner.add_roles(question_role)
+
+        while True:
+            error_type = self.get_question_error(thread.name)
+            if error_type:
+                error_message = self.send_error_message(error_type, thread)
+                await thread.send(error_message)
+
+                try:
+                    response = await self.bot.wait_for('message', check=check, timeout=600)
+                    thread.name = response.content
+                    continue
+                except asyncio.TimeoutError:
+                    await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+                    await thread.owner.remove_roles(question_role)
+                    await thread.delete()
+                    return
+            else:
+                await thread.edit(name=response.content)
+                await thread.send(f"{thread.owner.mention} Très bien, votre titre semble approprié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
+                await thread.owner.remove_roles(question_role)
+                break
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -53,60 +99,6 @@ class Question(commands.Cog):
         if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id == CHEF_SINGE_ROLE_ID for role in message.author.roles) and message.author != self.bot.user:
             await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
-
-    @commands.Cog.listener()
-    async def on_thread_create(self, thread):
-        if thread.parent.id != QUESTION_CHANNEL_ID:
-            return
-
-        author_role = thread.guild.get_role(QUESTION_ROLE_ID)
-        await thread.owner.add_roles(author_role)
-
-        self.threads[thread.id] = thread.owner.id
-        self.delete_messages[thread.id] = True
-
-        async for message in thread.history(limit=1):
-            await message.pin()
-            break
-
-        def check(m):
-            return m.channel == thread and m.author == thread.owner
-
-        if self.is_valid_question(thread.name):
-            await thread.send(f"{thread.owner.mention} Très bien, votre titre semble approprié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
-            await thread.owner.remove_roles(author_role)
-            self.delete_messages[thread.id] = False
-        else:
-            while True:
-                response = await self.ask_question(thread, "Le titre que vous avez validé n'est pas une question. Une question doit commencer par un mot interrogatif (comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`), doit contenir au moins 20 caractères et doit se terminer par un `?`. Veuillez écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
-                if response is None:
-                    return
-                while len(response.content) > 100:
-                    response = await self.ask_question(thread, "Votre titre est trop long. Il doit être de 100 caractères ou moins. Veuillez le raccourcir et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
-                    if response is None:
-                        return
-                if self.is_valid_question(response.content):
-                    try:
-                        await thread.edit(name=response.content)
-                        await thread.send(f"{thread.owner.mention} Votre titre a bien été modifié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
-                        await thread.owner.remove_roles(author_role)
-                        self.delete_messages[thread.id] = False
-                        break
-                    except Exception as e:
-                        print(f"Erreur lors de la modification du titre du fil : {e}")
-                else:
-                    if len(response.content) < 20:
-                        response = await self.ask_question(thread, "Votre titre est trop court. Il doit contenir au moins 20 caractères. Veuillez le rallonger et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
-                        if response is None:
-                            return
-                    if '?' not in response.content:
-                        response = await self.ask_question(thread, "Votre titre ne se termine pas par un `?`. Veuillez ajouter un `?` à la fin et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
-                        if response is None:
-                            return
-                    if not any(response.content.lower().split()[0] == word for word in self.interrogative_words):
-                        response = await self.ask_question(thread, "Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message.", check, yes_no_question=False)
-                        if response is None:
-                            return
 
 async def setup(bot):
     await bot.add_cog(Question(bot))
