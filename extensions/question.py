@@ -31,38 +31,15 @@ class Question(commands.Cog):
         elif error_type == "does_not_end_with_question_mark":
             return f"{thread.owner.mention} Votre titre ne se termine pas par un `?`. Veuillez ajouter un `?` à la fin et écrire votre nouveau titre à la suite de ce message."
 
-    async def ask_question(self, thread, message, check, yes_no_question=True):
-        first_time = True
-        while True:
-            if first_time:
-                user_message_sent = False
-                async for msg in thread.history(limit=5):
-                    if msg.author == thread.owner:
-                        user_message_sent = True
-                        break
-
-                if not user_message_sent:
-                    await asyncio.sleep(5)
-                    continue
-
-                await thread.send(f"{thread.owner.mention} {message}")
-                first_time = False
-
-            try:
-                response = await self.bot.wait_for('message', check=check, timeout=600)
-                if yes_no_question:
-                    if response.content.lower() in ['oui', 'non']:
-                        return response
-                    else:
-                        message = "Je n'ai pas compris votre réponse. Veuillez répondre par `Oui` ou `Non`."
-                else:
-                    return response
-            except asyncio.TimeoutError:
-                await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-                await thread.owner.remove_roles(QUESTION_ROLE_ID)
-                await thread.delete()
-                return None
-            await thread.send(f"{thread.owner.mention} {message}")
+    async def ask_question(self, thread, message, check):
+        await thread.send(f"{thread.owner.mention} {message}")
+        try:
+            response = await self.bot.wait_for('message', check=check, timeout=600)
+            return response
+        except asyncio.TimeoutError:
+            await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+            await thread.delete()
+            return None
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -73,13 +50,14 @@ class Question(commands.Cog):
 
         question_role = thread.guild.get_role(QUESTION_ROLE_ID)
         await thread.owner.add_roles(question_role)
+        self.threads[thread.id] = thread.owner.id
+        self.delete_messages[thread.id] = True
 
         while True:
             error_type = self.get_question_error(thread.name)
             if error_type:
                 error_message = self.send_error_message(error_type, thread)
                 await thread.send(error_message)
-
                 try:
                     response = await self.bot.wait_for('message', check=check, timeout=600)
                     thread.name = response.content
@@ -90,15 +68,17 @@ class Question(commands.Cog):
                     await thread.delete()
                     return
             else:
-                await thread.edit(name=response.content)
+                if 'response' in locals():
+                    await thread.edit(name=response.content)
                 await thread.send(f"{thread.owner.mention} Très bien, votre titre semble approprié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
                 await thread.owner.remove_roles(question_role)
+                self.delete_messages[thread.id] = False
                 break
 
     @commands.Cog.listener()
     async def on_message(self, message):
         thread = message.channel
-        if thread.id in self.threads and self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id == CHEF_SINGE_ROLE_ID for role in message.author.roles) and message.author != self.bot.user:
+        if self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [CHEF_SINGE_ROLE_ID, QUESTION_ROLE_ID] for role in message.author.roles) and message.author != self.bot.user:
             await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
 
