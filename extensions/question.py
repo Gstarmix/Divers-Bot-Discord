@@ -45,6 +45,11 @@ class Question(commands.Cog):
     async def on_thread_create(self, thread):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
+
+        async for message in thread.history(limit=1):
+            await message.pin()
+            break
+
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
@@ -64,7 +69,6 @@ class Question(commands.Cog):
                     continue
                 except asyncio.TimeoutError:
                     await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-                    await thread.owner.remove_roles(question_role)
                     await thread.delete()
                     return
             else:
