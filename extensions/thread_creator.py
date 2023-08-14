@@ -16,6 +16,8 @@ class ThreadCreator(commands.Cog):
             MEMES_CHANNEL_ID: "Meme soumis. Hâte de rire ! Les commentaires suivront.",
             VDO_VDM_CHANNEL_ID: "Anecdote soumise. Hâte de la lire ! Les commentaires suivront.",
             RECHERCHE_KELKIN_CHANNEL_ID: "Demande de recherche reçue. Nous l'examinerons bientôt.",
+            COMMERCES_INT4_CHANNEL_ID: "Commerce soumis ! Les commentaires suivront.",
+            ACTIVITES_INT4_CHANNEL_ID: "Activité soumise ! Les commentaires suivront.",
         }
         self.thread_names = {
             MUDAE_HELP_CHANNEL_ID: "Aide Mudae",
@@ -25,6 +27,8 @@ class ThreadCreator(commands.Cog):
             MEMES_CHANNEL_ID: "Meme",
             VDO_VDM_CHANNEL_ID: "Anecdote",
             RECHERCHE_KELKIN_CHANNEL_ID: "Recherche",
+            COMMERCES_INT4_CHANNEL_ID: "Commerce",
+            ACTIVITES_INT4_CHANNEL_ID: "Activité",
         }
         self.channel_delays = {
             MUDAE_HELP_CHANNEL_ID: 600,
@@ -33,6 +37,8 @@ class ThreadCreator(commands.Cog):
             VIDEO_CHANNEL_ID: 600,
             VDO_VDM_CHANNEL_ID: 600,
             RECHERCHE_KELKIN_CHANNEL_ID: 600,
+            COMMERCES_INT4_CHANNEL_ID: 600,
+            ACTIVITES_INT4_CHANNEL_ID: 600,
         }
 
     @commands.Cog.listener()
