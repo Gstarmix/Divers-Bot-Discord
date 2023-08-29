@@ -16,7 +16,7 @@ class MudaeRoleManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        guild = self.bot.get_guild(GUILD_ID_TEST)
+        guild = self.bot.get_guild(GUILD_ID_GSTAR)
         if not guild:
             return
         print(f"{self.bot.user.name} has connected to Discord!")
@@ -24,7 +24,7 @@ class MudaeRoleManager(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         guild = message.guild
-        if guild.id != GUILD_ID_TEST:
+        if guild.id != GUILD_ID_GSTAR:
             return
 
         channel = message.channel
