@@ -22,7 +22,7 @@ async def on_ready():
 
     # await bot.load_extension("extensions.emoji_changer")
 
-    await bot.load_extension("extensions.channel_visibility_manager")
+    # await bot.load_extension("extensions.channel_visibility_manager")
     await bot.load_extension("extensions.mudae_role_manager")
 
 bot.run(TOKEN)
