@@ -7,7 +7,7 @@ from constants import *
 TIMEOUT_DURATION = 5
 
 SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
-TEXT_COMMANDS = {"$w", "$h", "m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
+TEXT_COMMANDS = {"$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us"}
 
 class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
@@ -16,15 +16,15 @@ class MudaeRoleManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        guild = self.bot.get_guild(GUILD_ID_GSTAR)
+        guild = self.bot.get_guild(GUILD_ID_TEST)
         if not guild:
             return
         print(f"{self.bot.user.name} has connected to Discord!")
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         guild = message.guild
-        if guild.id != GUILD_ID_GSTAR:
+        if guild.id != GUILD_ID_TEST:
             return
 
         channel = message.channel
@@ -53,15 +53,23 @@ class MudaeRoleManager(commands.Cog):
         if command_name not in SLASH_COMMANDS and command_name not in TEXT_COMMANDS:
             return
 
-        await channel.set_permissions(guild.default_role, send_messages=False)
-        await channel.set_permissions(author, send_messages=True)
+        chan_perms = channel.overwrites_for(guild.default_role)
+        chan_perms.update(send_messages=False)
+        old_user_perms = channel.overwrites_for(author)
+        user_perms = channel.overwrites_for(author)
+        user_perms.update(send_messages=True)
+
+        await channel.set_permissions(guild.default_role, overwrite=chan_perms)
+        await channel.set_permissions(author, overwrite=user_perms)
 
         self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
 
         await asyncio.sleep(TIMEOUT_DURATION)
 
-        await channel.set_permissions(guild.default_role, send_messages=True)
-        await channel.set_permissions(author, send_messages=None)
+        chan_perms = channel.overwrites_for(guild.default_role)
+        chan_perms.update(send_messages=True)
+        await channel.set_permissions(guild.default_role, overwrite=chan_perms)
+        await channel.set_permissions(author, overwrite=old_user_perms)
 
         self.user_timeout.pop(author.id, None)
 
