@@ -2,10 +2,11 @@ import discord
 from discord.ext import commands, tasks
 from datetime import datetime, timedelta
 import asyncio
-from constants import * 
+from constants import *
+
 TIMEOUT_DURATION = 5
 
-SLASH_COMMANDS = ["/wa", "/ha", "/ma", "/wg", "/hg", "/mg"]
+SLASH_COMMANDS = ["wa", "ha", "ma", "wg", "hg", "mg"]
 TEXT_COMMANDS = ["$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$rolls", "$bw", "$bk", "$tu", "$mu", "$ku", "$rt", "$vote", "$daily"]
 
 class MudaeRoleManager(commands.Cog):
@@ -17,7 +18,6 @@ class MudaeRoleManager(commands.Cog):
     async def on_ready(self):
         guild = self.bot.get_guild(GUILD_ID_TEST)
         if not guild:
-            print("Bot is not in the guild.")
             return
         print(f"{self.bot.user.name} has connected to Discord!")
 
@@ -25,36 +25,28 @@ class MudaeRoleManager(commands.Cog):
     async def on_message(self, message):
         guild = message.guild
         if guild.id != GUILD_ID_TEST:
-            print("Bot is not in the guild.")
             return
 
-        # Initialize command_name to None
         command_name = None
 
-        # Check if the message is a slash command
         if message.application_id and message.interaction:
-            command_name = f"/{message.interaction.name}"
+            command_name = message.interaction.name
 
-        # Or if it's a text command
         elif not message.author.bot and message.content in TEXT_COMMANDS:
-            command_name = message.content
+            command_name = message.content[1:]
 
-        # If a valid command is detected
         if command_name in SLASH_COMMANDS or command_name in TEXT_COMMANDS:
-            # Skip if the user is already in a timeout
             if message.author.id in self.user_timeout:
                 return
 
-            role_membre_test = guild.get_role(MEMBRE_TEST_ID)
+            role_membre_test = guild.default_role
             role_singe_mudae = guild.get_role(SINGE_MUDAE_ID)
 
             if not role_membre_test or not role_singe_mudae:
-                print("One of the roles not found.")
                 return
 
             channel = guild.get_channel(GENERAL_CHANNEL_ID)
             if not channel:
-                print("Channel not found.")
                 return
 
             await message.author.add_roles(role_singe_mudae)
@@ -69,7 +61,7 @@ class MudaeRoleManager(commands.Cog):
         await asyncio.sleep(TIMEOUT_DURATION)
 
         guild = self.bot.get_guild(GUILD_ID_TEST)
-        role_membre_test = guild.get_role(MEMBRE_TEST_ID)
+        role_membre_test = guild.default_role
         role_singe_mudae = guild.get_role(SINGE_MUDAE_ID)
         channel = guild.get_channel(GENERAL_CHANNEL_ID)
         user = guild.get_member(user_id)
