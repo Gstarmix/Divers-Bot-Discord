@@ -7,7 +7,7 @@ from constants import *
 TIMEOUT_DURATION = 5
 
 SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
-TEXT_COMMANDS = {"$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us"}
+TEXT_COMMANDS = {"$w", "$h", "m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
 
 class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
@@ -16,7 +16,7 @@ class MudaeRoleManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        guild = self.bot.get_guild(GUILD_ID_GSTAR)
+        guild = self.bot.get_guild(GUILD_ID_TEST)
         if not guild:
             return
         print(f"{self.bot.user.name} has connected to Discord!")
@@ -24,11 +24,11 @@ class MudaeRoleManager(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         guild = message.guild
-        if guild.id != GUILD_ID_GSTAR:
+        if guild.id != GUILD_ID_TEST:
             return
 
         channel = message.channel
-        if channel.id != MUDAE_WAIFUS_CHANNEL_ID:
+        if channel.id != GENERAL_CHANNEL_ID:
             return
 
         command_name = message.content
@@ -59,8 +59,8 @@ class MudaeRoleManager(commands.Cog):
         user_perms = channel.overwrites_for(author)
         user_perms.update(send_messages=True)
 
-        await channel.set_permissions(guild.default_role, overwrite=chan_perms)
         await channel.set_permissions(author, overwrite=user_perms)
+        await channel.set_permissions(guild.default_role, overwrite=chan_perms)
 
         self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
 
