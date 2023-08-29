@@ -31,8 +31,7 @@ class MudaeRoleManager(commands.Cog):
         if channel.id != GENERAL_CHANNEL_ID:
             return
 
-        if message.content:
-            command_name = message.content
+        command_name = message.content
 
         author = message.author
         if message.interaction:
