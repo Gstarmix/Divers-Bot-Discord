@@ -2,9 +2,8 @@ import discord
 from discord.ext import commands, tasks
 from datetime import datetime, timedelta
 import asyncio
-from constants import *  # Assurez-vous que ce fichier est dans le même répertoire et correctement configuré
+from constants import *
 
-# Durée de l'attente avant de réinitialiser les permissions du rôle et du canal (en secondes)
 TIMEOUT_DURATION = 5
 
 # Liste des commandes acceptées
