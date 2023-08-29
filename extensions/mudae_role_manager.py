@@ -6,8 +6,8 @@ from constants import *
 
 TIMEOUT_DURATION = 5
 
-SLASH_COMMANDS = ["wa", "ha", "ma", "wg", "hg", "mg"]
-TEXT_COMMANDS = ["$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$rolls", "$bw", "$bk", "$tu", "$mu", "$ku", "$rt", "$vote", "$daily"]
+SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
+TEXT_COMMANDS = {"$w", "$h", "m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
 
 class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
@@ -31,39 +31,37 @@ class MudaeRoleManager(commands.Cog):
         if channel.id != GENERAL_CHANNEL_ID:
             return
 
+        if message.content:
+            command_name = message.content
+
         author = message.author
         if message.interaction:
             author = message.interaction.user
-
-        if author.id in self.user_timeout:
-            return
-
-        if author.bot:
-            return
-
-        command_name = None
-
-        if message.interaction:
             command_name = message.interaction.name
             if not message.embeds:
                 return
 
-        if message.content:
-            command_name = message.content
+        if author.bot:
+            if "la roulette est limitée" in command_name:
+                await channel.set_permissions(guild.default_role, send_messages=True)
+                await channel.set_permissions(author, send_messages=None)
+                self.user_timeout.pop(author.id, None)
+            return
+
+        if author.id in self.user_timeout:
+            return
 
         if command_name not in SLASH_COMMANDS and command_name not in TEXT_COMMANDS:
             return
 
-        role_membre_test = guild.default_role
-
-        await channel.set_permissions(role_membre_test, send_messages=False)
+        await channel.set_permissions(guild.default_role, send_messages=False)
         await channel.set_permissions(author, send_messages=True)
 
         self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
 
         await asyncio.sleep(TIMEOUT_DURATION)
 
-        await channel.set_permissions(role_membre_test, send_messages=True)
+        await channel.set_permissions(guild.default_role, send_messages=True)
         await channel.set_permissions(author, send_messages=None)
 
         self.user_timeout.pop(author.id, None)
