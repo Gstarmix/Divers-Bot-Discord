@@ -23,6 +23,9 @@ class MudaeRoleManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if not message.embeds:
+            return
+
         guild = message.guild
         if guild.id != GUILD_ID_TEST:
             return
@@ -44,10 +47,6 @@ class MudaeRoleManager(commands.Cog):
                 return
 
             role_membre_test = guild.default_role
-            role_singe_mudae = guild.get_role(SINGE_MUDAE_ID)
-
-            if not role_membre_test or not role_singe_mudae:
-                return
 
             channel = guild.get_channel(GENERAL_CHANNEL_ID)
             if not channel:
@@ -65,11 +64,10 @@ class MudaeRoleManager(commands.Cog):
 
         guild = self.bot.get_guild(GUILD_ID_TEST)
         role_membre_test = guild.default_role
-        role_singe_mudae = guild.get_role(SINGE_MUDAE_ID)
         channel = guild.get_channel(GENERAL_CHANNEL_ID)
         user = guild.get_member(user_id)
 
-        if not (role_membre_test and role_singe_mudae and channel and user):
+        if not (role_membre_test and channel and user):
             return
 
         await channel.set_permissions(role_membre_test, send_messages=True)
