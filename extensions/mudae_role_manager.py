@@ -19,7 +19,6 @@ class MudaeRoleManager(commands.Cog):
         guild = self.bot.get_guild(GUILD_ID_TEST)
         if not guild:
             return
-        print(f"{self.bot.user.name} has connected to Discord!")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -27,16 +26,20 @@ class MudaeRoleManager(commands.Cog):
         if guild.id != GUILD_ID_TEST:
             return
 
+        author = message.author
+        if message.interaction:
+            author = message.interaction.user
+
         command_name = None
 
         if message.application_id and message.interaction:
             command_name = message.interaction.name
 
-        elif not message.author.bot and message.content in TEXT_COMMANDS:
+        elif not author.bot and message.content in TEXT_COMMANDS:
             command_name = message.content[1:]
 
         if command_name in SLASH_COMMANDS or command_name in TEXT_COMMANDS:
-            if message.author.id in self.user_timeout:
+            if author.id in self.user_timeout:
                 return
 
             role_membre_test = guild.default_role
@@ -49,13 +52,13 @@ class MudaeRoleManager(commands.Cog):
             if not channel:
                 return
 
-            await message.author.add_roles(role_singe_mudae)
+            await author.add_roles(role_singe_mudae)
             await channel.set_permissions(role_membre_test, send_messages=False)
-            await channel.set_permissions(message.author, send_messages=True)
+            await channel.set_permissions(author, send_messages=True)
 
-            self.user_timeout[message.author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
+            self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
 
-            await self.reset_role_and_channel_permissions(message.author.id)
+            await self.reset_role_and_channel_permissions(author.id)
 
     async def reset_role_and_channel_permissions(self, user_id):
         await asyncio.sleep(TIMEOUT_DURATION)
