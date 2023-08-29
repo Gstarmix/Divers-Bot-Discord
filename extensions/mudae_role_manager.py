@@ -16,14 +16,18 @@ class MudaeRoleManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        print("Bot is starting up.")
         guild = self.bot.get_guild(GUILD_ID_TEST)
         if not guild:
+            print("Bot is not in the guild.")
             return
+        print(f"{self.bot.user.name} has connected to Discord!")
 
     @commands.Cog.listener()
     async def on_message(self, message):
         guild = message.guild
         if guild.id != GUILD_ID_TEST:
+            print("Hello 1: Bot is not in the correct guild.")
             return
 
         author = message.author
@@ -40,18 +44,22 @@ class MudaeRoleManager(commands.Cog):
 
         if command_name in SLASH_COMMANDS or command_name in TEXT_COMMANDS:
             if author.id in self.user_timeout:
+                print("Hello 2: User is in timeout.")
                 return
 
             role_membre_test = guild.default_role
             role_singe_mudae = guild.get_role(SINGE_MUDAE_ID)
 
             if not role_membre_test or not role_singe_mudae:
+                print("Hello 3: One or both roles are not found.")
                 return
 
             channel = guild.get_channel(GENERAL_CHANNEL_ID)
             if not channel:
+                print("Hello 4: Channel not found.")
                 return
 
+            print("Hello 5: About to add role to user.")
             await author.add_roles(role_singe_mudae)
             await channel.set_permissions(role_membre_test, send_messages=False)
             await channel.set_permissions(author, send_messages=True)
