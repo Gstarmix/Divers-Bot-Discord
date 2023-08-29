@@ -23,7 +23,7 @@ class CommandCheck(commands.Cog):
 
         self.mod_commands = []
         for channel_id, commands in self.allowed_commands.items():
-            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
+            if channel_id not in [MUDAE_MODO_CHANNEL_ID, MUDAE_HELP_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
                 self.allowed_commands[MUDAE_MODO_CHANNEL_ID].extend(commands)
                 self.allowed_commands[MUDAE_HELP_CHANNEL_ID].extend(commands)
                 self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
