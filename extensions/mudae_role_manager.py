@@ -18,13 +18,22 @@ class MudaeRoleManager(commands.Cog):
     async def on_ready(self):
         guild = self.bot.get_guild(GUILD_ID_TEST)
         if not guild:
+            print("Hello 0: Bot is not in the correct guild.")
             return
         print(f"{self.bot.user.name} has connected to Discord!")
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        print(repr(message.content))
+
         guild = message.guild
         if guild.id != GUILD_ID_TEST:
+            print("Hello 1: Message is not from the correct guild.")
+            return
+
+        channel = message.channel
+        if channel.id != GENERAL_CHANNEL_ID:
+            print("Hello 2: Message is not from the correct channel.")
             return
 
         author = message.author
@@ -34,6 +43,7 @@ class MudaeRoleManager(commands.Cog):
         command_name = None
 
         if not message.embeds:
+            print("Hello 3: Message does not contain an embed.")
             return
 
         if message.application_id and message.interaction:
@@ -44,39 +54,24 @@ class MudaeRoleManager(commands.Cog):
 
         if command_name in SLASH_COMMANDS or command_name in TEXT_COMMANDS:
             if author.id in self.user_timeout:
+                print("Hello 4: Author is in timeout.")
                 return
 
             role_membre_test = guild.default_role
 
-            if not role_membre_test:
-                return
-
-            channel = guild.get_channel(GENERAL_CHANNEL_ID)
-            if not channel:
-                return
-
+            print("Hello 5: Setting permissions.")
             await channel.set_permissions(role_membre_test, send_messages=False)
             await channel.set_permissions(author, send_messages=True)
 
             self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
 
-            await self.reset_role_and_channel_permissions(author.id)
+            await asyncio.sleep(TIMEOUT_DURATION)
 
-    async def reset_role_and_channel_permissions(self, user_id):
-        await asyncio.sleep(TIMEOUT_DURATION)
+            print("Hello 6: Resetting permissions.")
+            await channel.set_permissions(role_membre_test, send_messages=True)
+            await channel.set_permissions(author, send_messages=None)
 
-        guild = self.bot.get_guild(GUILD_ID_TEST)
-        role_membre_test = guild.default_role
-        channel = guild.get_channel(GENERAL_CHANNEL_ID)
-        user = guild.get_member(user_id)
-
-        if not (role_membre_test and channel and user):
-            return
-
-        await channel.set_permissions(role_membre_test, send_messages=True)
-        await channel.set_permissions(user, send_messages=None)
-
-        self.user_timeout.pop(user_id, None)
+            self.user_timeout.pop(author.id, None)
 
 async def setup(bot):
     await bot.add_cog(MudaeRoleManager(bot))
