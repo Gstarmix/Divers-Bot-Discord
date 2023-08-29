@@ -28,7 +28,7 @@ class MudaeRoleManager(commands.Cog):
             return
 
         channel = message.channel
-        if channel.id != GENERAL_CHANNEL_ID:
+        if channel.id != MUDAE_WAIFUS_CHANNEL_ID:
             return
 
         command_name = message.content
