@@ -23,9 +23,6 @@ class MudaeRoleManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if not message.embeds:
-            return
-
         guild = message.guild
         if guild.id != GUILD_ID_TEST:
             return
@@ -36,10 +33,13 @@ class MudaeRoleManager(commands.Cog):
 
         command_name = None
 
+        if not message.embeds:
+            return
+
         if message.application_id and message.interaction:
             command_name = message.interaction.name
 
-        if not author.bot and message.content in TEXT_COMMANDS:
+        elif not author.bot and message.content in TEXT_COMMANDS:
             command_name = message.content
 
         if command_name in SLASH_COMMANDS or command_name in TEXT_COMMANDS:
@@ -48,12 +48,15 @@ class MudaeRoleManager(commands.Cog):
 
             role_membre_test = guild.default_role
 
+            if not role_membre_test:
+                return
+
             channel = guild.get_channel(GENERAL_CHANNEL_ID)
             if not channel:
                 return
 
-            await channel.set_permissions(author, send_messages=True)
             await channel.set_permissions(role_membre_test, send_messages=False)
+            await channel.set_permissions(author, send_messages=True)
 
             self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
 
