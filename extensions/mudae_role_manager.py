@@ -54,7 +54,7 @@ class MudaeRoleManager(commands.Cog):
             return
 
         chan_perms = channel.overwrites_for(guild.default_role)
-        chan_perms.update(send_messages=False)
+        chan_perms.update(send_messages=False, view_channel=True)
         old_user_perms = channel.overwrites_for(author)
         user_perms = channel.overwrites_for(author)
         user_perms.update(send_messages=True)
@@ -67,7 +67,7 @@ class MudaeRoleManager(commands.Cog):
         await asyncio.sleep(TIMEOUT_DURATION)
 
         chan_perms = channel.overwrites_for(guild.default_role)
-        chan_perms.update(send_messages=True)
+        chan_perms.update(send_messages=True, view_channel=True)
         await channel.set_permissions(guild.default_role, overwrite=chan_perms)
         await channel.set_permissions(author, overwrite=old_user_perms)
 
