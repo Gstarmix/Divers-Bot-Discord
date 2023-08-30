@@ -57,7 +57,7 @@ class Inscription(commands.Cog):
             thread = await message.create_thread(name=f"Inscription de {message.author.name}")
             self.threads[thread.id] = message.author.id
             self.threads_created.add(message.id)
-            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous partager une capture d'écran de votre personnage in-game ?"
+            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous partager une capture d'écran de votre personnage in-game, en veillant à ce que le pseudo, la date et l'heure soient visibles ? Si vous n'avez pas de touche pour faire une capture d'écran (impr écran), vous pouvez l'utiliser depuis le [clavier virtuel](<https://www.malekal.com/activer-le-clavier-visuel-de-windows-10/>)."
         except:
             return
         try:
