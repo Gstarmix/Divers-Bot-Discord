@@ -67,7 +67,7 @@ class Inscription(commands.Cog):
             if not screenshot_response or not screenshot_response.attachments:
                 return
             personnage_screenshot = screenshot_response.attachments[0].url
-            await thread.send(f"<@{message.author.id}> Merci d'avoir partagé la capture d'écran ! Votre inscription au concours est en cours de vérification.")
+            await thread.send(f"<@{message.author.id}> Merci pour la capture d'écran que vous avez partagée ! <@200750717437345792> procédera à la vérification de votre inscription au concours. Veuillez patienter.")
             self.pending_registrations[message.author.id] = personnage_screenshot
             self.original_messages[message.id] = message.author.id
         except:
