@@ -40,10 +40,12 @@ class Inscription(commands.Cog):
     async def on_message(self, message):
         thread = message.channel
         now = datetime.now()
+        chef_singe_role = discord.utils.get(thread.guild.roles, id=CHEF_SINGE_ROLE_ID)
         if isinstance(thread, discord.Thread) and thread.id in self.threads and self.threads[thread.id] and message.author.id != self.threads[thread.id] and not message.author.bot:
-            await message.delete()
-            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
-            return
+            if chef_singe_role not in message.author.roles:
+                await message.delete()
+                await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
+                return
         if message.channel.id != INSCRIPTION_CHANNEL_ID or message.author.bot:
             return
         if message.id in self.threads_created:
