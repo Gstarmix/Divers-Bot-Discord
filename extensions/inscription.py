@@ -40,7 +40,7 @@ class Inscription(commands.Cog):
     async def on_message(self, message):
         thread = message.channel
         now = datetime.now()
-        if isinstance(thread, discord.Thread) and thread.id in self.threads and self.threads[thread.id] and message.author.id != self.threads[thread.id]:
+        if isinstance(thread, discord.Thread) and thread.id in self.threads and self.threads[thread.id] and message.author.id != self.threads[thread.id] and not message.author.bot:
             await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
             return
