@@ -13,13 +13,7 @@ class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.user_timeout = {}
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        guild = self.bot.get_guild(GUILD_ID_GSTAR)
-        if not guild:
-            return
-        print(f"{self.bot.user.name} has connected to Discord!")
+        self.last_command = None
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -41,17 +35,20 @@ class MudaeRoleManager(commands.Cog):
                 return
 
         if author.bot:
-            if "la roulette est limitée" in command_name:
+            if "la roulette est limitée" in command_name and self.last_command:
                 await channel.set_permissions(guild.default_role, send_messages=True)
                 await channel.set_permissions(author, send_messages=None)
                 self.user_timeout.pop(author.id, None)
-                return
+                self.last_command = None
+            return
 
         if author.id in self.user_timeout:
             return
 
         if command_name not in SLASH_COMMANDS and command_name not in TEXT_COMMANDS:
             return
+
+        self.last_command = command_name
 
         chan_perms = channel.overwrites_for(guild.default_role)
         chan_perms.update(send_messages=False, view_channel=True)
