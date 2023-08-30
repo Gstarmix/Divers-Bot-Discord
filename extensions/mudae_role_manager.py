@@ -5,7 +5,6 @@ import asyncio
 from constants import *
 
 TIMEOUT_DURATION = 5
-
 SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
 TEXT_COMMANDS = {"$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
 
@@ -13,7 +12,14 @@ class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.user_timeout = {}
-        self.last_command = None
+        self.last_command = {}
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        guild = self.bot.get_guild(GUILD_ID_GSTAR)
+        if not guild:
+            return
+        print(f"{self.bot.user.name} has connected to Discord!")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -35,20 +41,22 @@ class MudaeRoleManager(commands.Cog):
                 return
 
         if author.bot:
-            if "la roulette est limitée" in command_name and self.last_command:
-                await channel.set_permissions(guild.default_role, send_messages=True)
-                await channel.set_permissions(author, send_messages=None)
-                self.user_timeout.pop(author.id, None)
-                self.last_command = None
-            return
+            if "la roulette est limitée" in command_name:
+                self.last_command.pop(author.id, None)
+                return
 
         if author.id in self.user_timeout:
+            self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
             return
 
         if command_name not in SLASH_COMMANDS and command_name not in TEXT_COMMANDS:
             return
 
-        self.last_command = command_name
+        if self.last_command.get(author.id) in SLASH_COMMANDS | TEXT_COMMANDS:
+            self.last_command.pop(author.id)
+            return
+
+        self.last_command[author.id] = command_name
 
         chan_perms = channel.overwrites_for(guild.default_role)
         chan_perms.update(send_messages=False, view_channel=True)
@@ -60,7 +68,6 @@ class MudaeRoleManager(commands.Cog):
         await channel.set_permissions(guild.default_role, overwrite=chan_perms)
 
         self.user_timeout[author.id] = datetime.now() + timedelta(seconds=TIMEOUT_DURATION)
-
         await asyncio.sleep(TIMEOUT_DURATION)
 
         chan_perms = channel.overwrites_for(guild.default_role)
