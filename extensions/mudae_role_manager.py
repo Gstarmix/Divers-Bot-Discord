@@ -42,8 +42,10 @@ class MudaeRoleManager(commands.Cog):
 
         if author.bot:
             if "la roulette est limitée" in command_name:
+                await channel.set_permissions(guild.default_role, send_messages=True)
+                await channel.set_permissions(author, send_messages=None)
                 self.user_timeout.pop(author.id, None)
-                return
+            return
 
         if author.id in self.user_timeout:
             return
