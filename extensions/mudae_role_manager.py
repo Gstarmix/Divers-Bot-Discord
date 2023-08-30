@@ -7,7 +7,7 @@ from constants import *
 TIMEOUT_DURATION = 5
 
 SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
-TEXT_COMMANDS = {"$w", "$h", "m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
+TEXT_COMMANDS = {"$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
 
 class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
