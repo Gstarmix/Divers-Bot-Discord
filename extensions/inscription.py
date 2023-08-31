@@ -20,10 +20,12 @@ class Inscription(commands.Cog):
             message = await thread.send(f"<@{user_id}> {message_content}")
             try:
                 response = await self.bot.wait_for('message', check=check, timeout=600)
-                if response.attachments and any(att.content_type.startswith('image/') for att in response.attachments):
+                if response.content.lower() == "je ne suis pas un joueur de nostale":
+                    return "Non-NosTale"
+                elif response.attachments and any(att.content_type.startswith('image/') for att in response.attachments):
                     return response
                 else:
-                    message_content = "Je n'ai pas compris votre réponse. Veuillez envoyer une capture d'écran."
+                    message_content = "Je n'ai pas compris votre réponse. Veuillez envoyer une capture d'écran ou précisez que vous n'êtes pas un joueur de NosTale."
                     continue
             except asyncio.TimeoutError:
                 user = thread.guild.get_member(user_id)
@@ -59,18 +61,21 @@ class Inscription(commands.Cog):
             thread = await message.create_thread(name=f"Inscription de {message.author.name}")
             self.threads[thread.id] = message.author.id
             self.threads_created.add(message.id)
-            message_content = "Merci de votre intérêt pour le concours ! Pourriez-vous partager une capture d'écran de votre personnage in-game, en veillant à ce que le pseudo, la date et l'heure soient visibles ? Si vous n'avez pas de touche pour faire une capture d'écran (impr écran), vous pouvez l'utiliser depuis le [clavier virtuel](<https://www.malekal.com/activer-le-clavier-visuel-de-windows-10/>)."
+            message_content = "Merci de votre intérêt pour le concours ! Êtes-vous un joueur de NosTale? Si oui, partagez une capture d'écran de votre personnage in-game, en veillant à ce que le pseudo, la date et l'heure soient visibles. Si vous n'êtes pas un joueur de NosTale, veuillez le préciser."
         except:
             return
         try:
             def check(m):
                 return m.channel == thread and m.author == message.author
             screenshot_response = await self.ask_with_timeout(thread, message.author.id, message_content, check, message)
-            if not screenshot_response or not screenshot_response.attachments:
+            if screenshot_response == "Non-NosTale":
+                self.pending_registrations[message.author.id] = "Non-NosTale"
+            elif screenshot_response and screenshot_response.attachments:
+                personnage_screenshot = screenshot_response.attachments[0].url
+                self.pending_registrations[message.author.id] = personnage_screenshot
+            else:
                 return
-            personnage_screenshot = screenshot_response.attachments[0].url
-            await thread.send(f"<@{message.author.id}> Merci pour la capture d'écran que vous avez partagée ! <@200750717437345792> procédera à la vérification de votre inscription au concours. Veuillez patienter.")
-            self.pending_registrations[message.author.id] = personnage_screenshot
+            await thread.send(f"<@{message.author.id}> Merci pour votre participation ! <@200750717437345792> procédera à la vérification de votre inscription au concours. Veuillez patienter.")
             self.original_messages[message.id] = message.author.id
         except:
             await thread.send(f"<@{message.author.id}> Une erreur est survenue.")
