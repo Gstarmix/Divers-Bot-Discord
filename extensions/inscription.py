@@ -63,7 +63,7 @@ class Inscription(commands.Cog):
             self.threads_created.add(message.id)
             message_content = ("Merci de votre intérêt pour le concours ! Pour poursuivre votre inscription, veuillez suivre les instructions suivantes :\n"
                             "- Si vous êtes un joueur de NosTale, partagez ici une capture d'écran de votre personnage in-game en vous assurant que le pseudo, la date et l'heure soient bien visibles.\n"
-                            "- Si vous n'êtes pas un joueur de NosTale, répondez simplement à ce message en écrivant la phrase exacte `Je ne suis pas un joueur de NosTale`.")
+                            "- Si vous n'êtes pas un joueur de NosTale, répondez simplement à ce message en écrivant la phrase exacte : `Je ne suis pas un joueur de NosTale`.")
         except:
             return
         try:
