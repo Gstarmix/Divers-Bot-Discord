@@ -16,7 +16,7 @@ class CommandCheck(commands.Cog):
             MUDAE_MODO_CHANNEL_ID: [],
             LOG_CHANNEL_ID: [],
             MUDAE_CONTROL_CHANNEL_ID: [],
-            MUDAE_WAIFUS_CHANNEL_2_ID: ["$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us", "$usestack", "$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"],
+            MUDAE_WAIFUS_CHANNEL_2_ID: ["$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us", "$usestack", "$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"],
             MUDAE_SETTINGS_CHANNEL_2_ID: []
         }
 
