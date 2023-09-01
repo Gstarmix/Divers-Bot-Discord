@@ -27,9 +27,6 @@ class CommandCheck(commands.Cog):
             if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID, MUDAE_WAIFUS_CHANNEL_2_ID, MUDAE_SETTINGS_CHANNEL_2_ID]:
                 self.mod_commands.extend(commands)
 
-        all_commands_except_poke_and_waifus = set(self.mod_commands) - set(self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]) - set(self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID])
-        self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID] = list(all_commands_except_poke_and_waifus)
-
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
@@ -51,9 +48,6 @@ class CommandCheck(commands.Cog):
             if message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID]:
                 return
 
-            if command in self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID] and command in self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID]:
-                return
-
             if message.channel.id == MUDAE_WAIFUS_CHANNEL_2_ID:
                 if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]:
                     await message.delete()
@@ -67,14 +61,16 @@ class CommandCheck(commands.Cog):
             if message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
                 if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID] or command in self.forbidden_commands:
                     await message.delete()
-                    target_channel = MUDAE_POKESLOT_CHANNEL_ID
-                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{target_channel}>.")
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{MUDAE_POKESLOT_CHANNEL_ID}>.")
+                    return
+                elif command in self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID]:
+                    await message.delete()
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{MUDAE_WAIFUS_CHANNEL_2_ID}>.")
                     return
                 else:
                     return
 
             allowed_channels = [channel_id for channel_id, commands in self.allowed_commands.items() if command in commands]
-            allowed_channels = list(filter(lambda x: x not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID, MUDAE_SETTINGS_CHANNEL_2_ID], allowed_channels))
             allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
 
             if message.channel.id not in allowed_channels:
