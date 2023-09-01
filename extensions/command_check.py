@@ -16,8 +16,8 @@ class CommandCheck(commands.Cog):
             MUDAE_MODO_CHANNEL_ID: [],
             LOG_CHANNEL_ID: [],
             MUDAE_CONTROL_CHANNEL_ID: [],
-            MUDAE_WAIFUS_CHANNEL_2_ID: ["$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us", "$usestack"],
-            MUDAE_SETTINGS_CHANNEL_2_ID: []
+            MUDAE_WAIFUS_CHANNEL_2_ID: ["$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us", "$usestack", "$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"],
+            MUDAE_SETTINGS_CHANNEL_2_ID: ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"]
         }
 
         self.forbidden_commands = ["$lang", "$skiptuto", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul", "$setpermission", "$ic", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls"]
@@ -51,6 +51,9 @@ class CommandCheck(commands.Cog):
             if message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID]:
                 return
 
+            if command in self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID] and command in self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID]:
+                return
+
             if message.channel.id == MUDAE_WAIFUS_CHANNEL_2_ID:
                 if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]:
                     await message.delete()
@@ -62,9 +65,9 @@ class CommandCheck(commands.Cog):
                     return
 
             if message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
-                if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID] or command in self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID] or command in self.forbidden_commands:
+                if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID] or command in self.forbidden_commands:
                     await message.delete()
-                    target_channel = MUDAE_POKESLOT_CHANNEL_ID if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID] else MUDAE_WAIFUS_CHANNEL_2_ID
+                    target_channel = MUDAE_POKESLOT_CHANNEL_ID
                     await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{target_channel}>.")
                     return
                 else:
