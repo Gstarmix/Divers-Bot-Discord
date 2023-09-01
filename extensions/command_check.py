@@ -17,7 +17,7 @@ class CommandCheck(commands.Cog):
             LOG_CHANNEL_ID: [],
             MUDAE_CONTROL_CHANNEL_ID: [],
             MUDAE_WAIFUS_CHANNEL_2_ID: ["$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us", "$usestack", "$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"],
-            MUDAE_SETTINGS_CHANNEL_2_ID: []
+            MUDAE_SETTINGS_CHANNEL_2_ID: ["$profile", "$pr"]
         }
 
         self.forbidden_commands = ["$lang", "$skiptuto", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul", "$setpermission", "$ic", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls"]
