@@ -45,7 +45,7 @@ class CommandCheck(commands.Cog):
         if command in self.forbidden_commands:
             if not any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID] for role in message.author.roles):
                 await message.delete()
-                await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande admin `{command}`. Cette commande est réservée à l'administrateur et aux modérateurs. Je vous prie de ne pas l'utiliser.")
+                await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}`. Cette commande est interdite. Je vous prie de ne plus l'envoyer.")
             return
 
         if message.channel.id == MUDAE_WAIFUS_CHANNEL_2_ID or message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
