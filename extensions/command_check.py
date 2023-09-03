@@ -4,7 +4,7 @@ from constants import *
 class CommandCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.specific_commands = ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"]
+        self.specific_commands = ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$rollsup", "$ru", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim"]
         self.allowed_commands = {
             MUDAE_CONTROL_CHANNEL_ID: [],
             MUDAE_TUTORIAL_CHANNEL_ID: ["$tuto", "$chall"],
