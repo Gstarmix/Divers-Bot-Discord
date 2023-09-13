@@ -19,6 +19,7 @@ async def on_ready():
     await bot.load_extension("extensions.presentation")
     await bot.load_extension("extensions.question")
     await bot.load_extension("extensions.command_check")
+    await bot.load_extension("extensions.faq_mudae")
     # await bot.load_extension("extensions.emoji_changer")
     # await bot.load_extension("extensions.channel_visibility_manager")
     # await bot.load_extension("extensions.mudae_role_manager")
