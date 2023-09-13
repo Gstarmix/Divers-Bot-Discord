@@ -24,7 +24,7 @@ class TradeWatch(commands.Cog):
 
         command_used = None
         for cmd in WATCHED_COMMANDS:
-            if cmd in message.content:
+            if message.content.startswith(cmd):
                 command_used = cmd
                 break
 
@@ -36,8 +36,8 @@ class TradeWatch(commands.Cog):
             )
 
             await message.channel.send(
-                f"<@{message.author.id}> :tention: <@{NOTIFY_GSTAR}> a été informé par MP que vous utilisez la commande `{command_used}` et surveille vos échanges et ventes de prêt. "
-                f"Des mesures sévères seront prises en cas d'abus d'utilisation de cette commande, allant d'un mute jusqu'à un ban. :tention:"
+                f"<@{message.author.id}> <a:tention:1095042549384757299> <@{NOTIFY_GSTAR}> a été informé par MP que vous utilisez la commande `{command_used}` et surveille vos échanges et ventes de prêt. "
+                f"Des mesures sévères seront prises en cas d'abus d'utilisation de cette commande, allant d'un mute jusqu'à un ban. <a:tention:1095042549384757299>"
             )
 
 async def setup(bot):
