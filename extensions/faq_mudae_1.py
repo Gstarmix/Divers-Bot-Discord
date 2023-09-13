@@ -11,7 +11,7 @@ messages = [
         "description": "Pour vous initier à Mudae, utilisez la commande `$tuto` dans le salon <#1132979275469955172>. Notez que ce salon n'accepte pas d'autres commandes."
     },
     {
-        "description": "Utilisez les commandes `$w`, `$h`, ou `$m` dans ce salon pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures."
+        "description": "Utilisez les commandes `$w`, `$h`, ou `$m` dans ce salon toutes les 1 heures pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures."
     },
     {
         "description": "Pour avoir un aperçu de votre collection de personnages, utilisez la commande `$mm`."
@@ -38,7 +38,7 @@ messages = [
         "description": "Les jeux secondaires de Mudae se trouvent dans le salon <#1131241853866479686>."
     },
     {
-        "description": "Pour en savoir plus sur l'achat de badges avec des kakeras, utilisez la commande `$k`."
+        "description": "Pour en savoir plus sur l'achat de badges avec des kakeras, utilisez la commande `$k` dans le salon <#1134516617317978133>."
     },
     {
         "description": "Lors du choix des personnages à marier, privilégiez ceux qui ont un grand nombre de kakeras dans leur embed."
@@ -50,7 +50,7 @@ messages = [
         "description": "Utilisez la commande `$disable` dans <#1132365309127430224> pour désactiver certaines séries et ainsi augmenter vos chances d'obtenir des personnages spécifiques. Pour plus d'informations sur les séries à désactiver, consultez [ce tableau](https://docs.google.com/spreadsheets/d/1uSn_E6bdzkQzB-tmDii1Es21tz9hvbvEckc6pGOno40/edit). Notez que l'utilisation de `$wish` réactivera un personnage d'une série que vous aviez précédemment désactivée."
     },
     {
-        "description": "L'utilisation de commandes slash comme `/wa`, `/ha`, etc., offre des avantages tels qu'une augmentation de 10% des chances et des kakeras reçus."
+        "description": "L'utilisation de commandes slash comme `/wa`, `/ha`, etc., offre des avantages tels qu'une augmentation de 10% des chances de tirer un personnage souhaité, une augmentation de 10% du nombre de kakeras reçus, ainsi qu'un doublement du temps disponible pour se marier à un personnage ou récupérer un kakera, passant de 45 à 90 secondes."
     },
     {
         "description": "Si vous avez des questions supplémentaires, posez-les dans le salon <#1131562652913647657>."
