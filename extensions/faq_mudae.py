@@ -120,7 +120,7 @@ class FaqMudae(commands.Cog):
             command_type = 'text'
 
         if command_type:
-            if random() <= 0.3:
+            if random() <= 0.1:
                 selected_message = choice(messages)
                 await message.channel.send(
                     f"<@{user.id}> **`{selected_message['title']}`**\n"
