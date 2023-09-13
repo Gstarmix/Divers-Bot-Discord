@@ -27,7 +27,7 @@ messages = [
     },
     {
         "title": "Comment obtenir le kakera arc-en-ciel ?",
-        "description": "- Le **kakera arc-en-ciel** :kakera_rainbow: apparaît aléatoirement lors des tirages de certains personnages déjà mariés. La probabilité est de 0.044%.",
+        "description": "- Le **kakera arc-en-ciel** <:kakera_rainbow:1146568126465577020> apparaît aléatoirement lors des tirages de certains personnages déjà mariés. La probabilité est de 0.044%.",
         "command_desc": ":camera_with_flash: [Apparition et récupération d'un kakera arc-en-ciel](https://image.noelshack.com/fichiers/2023/35/7/1693706863-kakeraarcenciel.png)\n"
                     ":camera_with_flash: [Tableau des probabilités d'apparition des kakeras](https://image.noelshack.com/fichiers/2023/35/7/1693707489-dropratekakera.png)"
     },
@@ -45,7 +45,7 @@ messages = [
     },
     {
         "title": "Où sont annoncés les gagnants et peuvent-ils gagner plusieurs fois ?",
-        "description": "- Les noms des gagnants sont publiés dans le salon <#1146566186012778556>. Un même joueur peut y apparaître plusieurs fois s'il a remporté plusieurs victoires, c'est-à-dire qu'il a fait apparaître et a récupéré le **kakera arc-en-ciel** :kakera_rainbow: à plusieurs reprises.",
+        "description": "- Les noms des gagnants sont publiés dans le salon <#1146566186012778556>. Un même joueur peut y apparaître plusieurs fois s'il a remporté plusieurs victoires, c'est-à-dire qu'il a fait apparaître et a récupéré le **kakera arc-en-ciel** <:kakera_rainbow:1146568126465577020> à plusieurs reprises.",
         "command_desc": ":camera_with_flash: [Salon des accomplissements](https://image.noelshack.com/fichiers/2023/35/7/1693706863-accomplissement.png)"
     },
     {
