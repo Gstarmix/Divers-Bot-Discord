@@ -37,10 +37,10 @@ class TradeWatch(commands.Cog):
 
             additional_msg = ""
             if message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
-                additional_msg = "\nNote: Les commandes `$trade` et `$givek` sont limitées au tutoriel. Vous pouvez seulement échanger et donner un kakera. Utilisez `$trade @User 1 ka` et `$givek 1 ka`."
+                additional_msg = "\nNote: Les commandes `$trade` et `$givek` sont limitées au tutoriel. Vous pouvez seulement échanger et donner un kakera. Utilisez `$trade @User 1 ka` et `$givek @User 1 ka`."
 
             await message.channel.send(
-                f"<@{message.author.id}>\n<a:tention:1095042549384757299> <@{NOTIFY_GSTAR}> a été informé par MP que vous utilisez la commande `{command_used}` et surveille vos échanges et ventes de prêt. "
+                f"<a:tention:1095042549384757299> <@{NOTIFY_GSTAR}> a été informé par MP que vous utilisez la commande `{command_used}` et surveille vos échanges et ventes de prêt. "
                 f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. <a:tention:1095042549384757299>{additional_msg}"
             )
 
