@@ -62,7 +62,7 @@ messages = [
         "description": "Consultez le salon <#1122920806155042997> pour des astuces et des commandes utiles."
     },
     {
-        "description": "Pour jouer au jeu du tirage de Pokémon, rendez-vous dans le salon <#1122921340354179129>. Pour plus d'informations sur les probabilités d'apparition des Pokémon, consultez [ce tableau](https://www.zupimages.net/up/23/37/jhlg.png)."
+        "description": "Pour jouer au jeu du tirage de Pokémon, rendez-vous dans le salon <#1122921340354179129>."
     }
 
 ]
