@@ -23,7 +23,7 @@ messages = [
         "title": "Quel est l'ordre optimal pour obtenir les badges ?",
         "description": "- Pour économiser plus de 10 000 kakeras, l'ordre recommandé pour obtenir les badges est : Bronze 2, Silver 2, Gold 2 (dans l'ordre que vous préférez), suivi de Ruby 4, puis ce que vous voulez ensuite.",
         "emoji": ":camera_with_flash:",
-        "command_desc": "[Ordre recommandé pour obtenir les badges](https://www.zupimages.net/up/23/37/zdt3.png)"
+        "command_desc": "[Ordre recommandé pour obtenir les badges](https://www.zupimages.net/up/23/37/ip79.png)"
     },
     {
         "title": "Comment obtenir le kakera arc-en-ciel ?",
