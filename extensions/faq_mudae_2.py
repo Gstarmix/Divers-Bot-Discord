@@ -60,7 +60,7 @@ messages = [
     },
     {
         "title": "Comment obtenir des personnages ?",
-        "description": "- Utilisez les commandes `$w`, `$h`, ou `$m` dans ce salon toutes les heures à xxh00 pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures à xxh00.",
+        "description": "- Utilisez les commandes `$w`, `$h`, ou `$m` dans ce salon toutes les 1 heures pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures.",
         "command_desc": ":clapper: [Exemple de mariage lors d'un tirage de personnages](https://i.imgur.com/xn6cQcE.gif)"
     },
     {
