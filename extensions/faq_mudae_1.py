@@ -68,7 +68,7 @@ messages = [
 ]
 
 
-class FaqMudae2(commands.Cog):
+class FaqMudae1(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -103,4 +103,4 @@ class FaqMudae2(commands.Cog):
                 )
 
 async def setup(bot):
-    await bot.add_cog(FaqMudae2(bot))
+    await bot.add_cog(FaqMudae1(bot))
