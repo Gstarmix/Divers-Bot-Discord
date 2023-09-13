@@ -15,6 +15,10 @@ class TradeWatch(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        # Ignorer les messages du bot lui-même
+        if message.author == self.bot.user:
+            return
+
         if message.channel.id not in [MUDAE_TRADE_CHANNEL_ID, MUDAE_SETTINGS_CHANNEL_2_ID]:
             return
 
