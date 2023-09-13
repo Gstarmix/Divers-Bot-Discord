@@ -7,7 +7,7 @@ class Question(commands.Cog):
         self.bot = bot
         self.threads = {}
         self.delete_messages = {}
-        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "comment se fait-il", "d'où", "jusqu'où", "depuis quand", "jusqu'à quand", "en quoi", "à quoi", "pourquoi est-ce que", "de quel", "de quelle", "de quels", "de quelles"]
+        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "comment se fait-il", "d'où", "jusqu'où", "depuis quand", "jusqu'à quand", "en quoi", "à quoi", "de quel", "de quelle", "de quels", "de quelles"]
 
     def get_question_error(self, title):
         first_word = title.split(" ")[0] if " " in title else title 
