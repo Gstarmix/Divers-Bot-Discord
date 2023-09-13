@@ -7,7 +7,7 @@ class Question(commands.Cog):
         self.bot = bot
         self.threads = {}
         self.delete_messages = {}
-        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "comment se fait-il", "d'où", "jusqu'où", "depuis quand", "jusqu'à quand", "en quoi", "à quoi", "de quel", "de quelle", "de quels", "de quelles"]
+        self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "d'où", "jusqu'où", "depuis", "jusqu'à", "en quoi", "à", "de"]
 
     def get_question_error(self, title):
         first_word = title.split(" ")[0] if " " in title else title 
@@ -29,7 +29,7 @@ class Question(commands.Cog):
         if error_type == "first_word_not_capitalized":
             return f"{thread.owner.mention} Le premier mot de votre titre doit commencer par une majuscule. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         if error_type == "starts_with_interrogative_word":
-            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce`, `qu'est-ce`, `combien`, `quel`, `quelle`, `quels`, `quelles`, `lequel`, `laquelle`, `lesquels`, `lesquelles`, `comment se fait-il`, `d'où`, `jusqu'où`, `depuis quand`, `jusqu'à quand`, `en quoi`, `à quoi`, `pourquoi est-ce que`, `de quel`, `de quelle`, `de quels`, `de quelles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
+            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce`, `qu'est-ce`, `combien`, `quel`, `quelle`, `quels`, `quelles`, `lequel`, `laquelle`, `lesquels`, `lesquelles`, `d'où`, `jusqu'où`, `depuis quand`, `jusqu'à quand`, `en quoi`, `à quoi`, `pourquoi est-ce que`, `de quel`, `de quelle`, `de quels`, `de quelles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_short":
             return f"{thread.owner.mention} Votre titre est trop court. Il doit contenir au moins 20 caractères. Veuillez l'étendre et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_long":
