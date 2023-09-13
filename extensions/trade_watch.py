@@ -40,8 +40,8 @@ class TradeWatch(commands.Cog):
                 additional_msg = "\nNote: Dans cette instance, les commandes `$trade` et `$givek` sont limitées au tutoriel. Vous pouvez seulement échanger et donner un kakera. Utilisez `$trade @User 1 ka` et `$givek @User 1 ka`."
 
             await message.channel.send(
-                f"<a:tention:1095042549384757299> <@{NOTIFY_GSTAR}> a été informé par MP que vous utilisez la commande `{command_used}` et surveille vos échanges et ventes de prêt. "
-                f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. <a:tention:1095042549384757299>{additional_msg}"
+                f"<@{NOTIFY_GSTAR}> a été informé par MP que vous utilisez la commande `{command_used}` et surveille vos échanges et ventes de prêt.\n"
+                f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. {additional_msg}"
             )
 
 async def setup(bot):
