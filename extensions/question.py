@@ -10,6 +10,10 @@ class Question(commands.Cog):
         self.interrogative_words = ["qui", "quoi", "où", "quand", "pourquoi", "comment", "est-ce", "qu'est-ce", "combien", "quel"]
 
     def get_question_error(self, title):
+        first_word = title.split(" ")[0] if " " in title else title 
+        if not first_word[0].isupper():
+            return "first_word_not_capitalized"
+        
         lower_title = title.lower()
         if not any(lower_title.startswith(word) for word in self.interrogative_words):
             return "starts_with_interrogative_word"
@@ -22,6 +26,8 @@ class Question(commands.Cog):
         return None
 
     def send_error_message(self, error_type, thread):
+        if error_type == "first_word_not_capitalized":
+            return f"{thread.owner.mention} Le premier mot de votre titre doit commencer par une majuscule. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         if error_type == "starts_with_interrogative_word":
             return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif. Il doit commencer par un mot comme `qui`, `quoi`, `où`, `quand`, `pourquoi`, `comment`, `est-ce que`, `qu'est-ce que`, `combien`, `quel`, `quelle`, `quels`, `quelles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_short":
