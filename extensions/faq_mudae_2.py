@@ -60,7 +60,7 @@ messages = [
     },
     {
         "title": "Comment obtenir des personnages ?",
-        "description": "- Utilisez les commandes `$w`, `$h`, ou `$m` dans le salon <#1146542491290579094> toutes les heures à xxh00 pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures à xxh00.",
+        "description": "- Utilisez les commandes `$w`, `$h`, ou `$m` dans ce salon toutes les heures à xxh00 pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures à xxh00.",
         "command_desc": ":clapper: [Exemple de mariage lors d'un tirage de personnages](https://i.imgur.com/xn6cQcE.gif)"
     },
     {
@@ -92,7 +92,7 @@ messages = [
     }
 ]
 
-class FaqMudae(commands.Cog):
+class FaqMudae2(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -129,4 +129,4 @@ class FaqMudae(commands.Cog):
                 )
 
 async def setup(bot):
-    await bot.add_cog(FaqMudae(bot))
+    await bot.add_cog(FaqMudae2(bot))
