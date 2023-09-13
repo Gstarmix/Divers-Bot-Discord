@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 from constants import *
 
-SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg", "test"}
+SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
 TEXT_COMMANDS = {"$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
 
 messages = [
