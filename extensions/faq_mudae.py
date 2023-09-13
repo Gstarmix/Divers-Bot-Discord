@@ -92,7 +92,7 @@ messages = [
     }
 ]
 
-class SimplifiedMudaeRoleManager(commands.Cog):
+class FaqMudae(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -129,4 +129,4 @@ class SimplifiedMudaeRoleManager(commands.Cog):
                 )
 
 async def setup(bot):
-    await bot.add_cog(SimplifiedMudaeRoleManager(bot))
+    await bot.add_cog(FaqMudae(bot))
