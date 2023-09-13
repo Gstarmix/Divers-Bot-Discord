@@ -124,9 +124,8 @@ class Presentation(commands.Cog):
                     return
                 if response.content.lower() == 'non':
                     break
-            else: 
-                await thread.send(f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par `Non` ou envoyez une nouvelle `capture d'écran`.")
-                response = await self.ask_question(thread, "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par `Non` ou envoyez une nouvelle `capture d'écran`.", check, yes_no_question=False, image_allowed=True)
+            else:
+                response = await self.ask_question(thread, f"{thread.owner.mention} Je n'ai pas compris votre réponse. Veuillez répondre par `Non` ou envoyez une nouvelle `capture d'écran`.", check, yes_no_question=False, image_allowed=True)
                 if response is None:
                     return
 
