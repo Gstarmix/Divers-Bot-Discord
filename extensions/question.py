@@ -11,10 +11,11 @@ class Question(commands.Cog):
         self.interrogative_words = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "d'où", "depuis", "jusqu'", "à", "de", "en"]
 
     def get_question_error(self, title):
-        first_word = title.split(" ")[0].lower()
+        first_word_original = title.split(" ")[0]
+        first_word = first_word_original.lower()
         lower_title = title.lower()
         
-        if not first_word[0].isupper():
+        if not first_word_original[0].isupper():
             return "first_word_not_capitalized"
         
         if not any(first_word.startswith(word) for word in self.interrogative_words):
