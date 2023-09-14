@@ -12,11 +12,13 @@ class Question(commands.Cog):
 
     def get_question_error(self, title):
         first_word = title.split(" ")[0].lower()
+        lower_title = title.lower()
+        
         if not first_word[0].isupper():
             return "first_word_not_capitalized"
         
         if not any(first_word.startswith(word) for word in self.interrogative_words):
-            if not (first_word.endswith("-il") or first_word.endswith("-elle")):
+            if not ("-il" in first_word or "-elle" in first_word):
                 return "starts_with_interrogative_word"
         
         # Les autres vérifications
