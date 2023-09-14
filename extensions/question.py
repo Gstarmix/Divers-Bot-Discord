@@ -11,14 +11,12 @@ class Question(commands.Cog):
         self.interrogative_words = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "d'où", "depuis", "jusqu'", "à", "de", "en"]
 
     def get_question_error(self, title):
-        first_word = title.split(" ")[0] if " " in title else title
+        first_word = title.split(" ")[0].lower()
         if not first_word[0].isupper():
             return "first_word_not_capitalized"
         
-        # Vérification pour les mots interrogatifs et les mots se terminant par "-il" ou "-elle"
-        lower_title = title.lower()
-        if not any(lower_title.startswith(word) for word in self.interrogative_words):
-            if not lower_title.endswith(("-il", "-elle")):
+        if not any(first_word.startswith(word) for word in self.interrogative_words):
+            if not (first_word.endswith("-il") or first_word.endswith("-elle")):
                 return "starts_with_interrogative_word"
         
         # Les autres vérifications
