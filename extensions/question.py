@@ -35,7 +35,7 @@ class Question(commands.Cog):
         if error_type == "first_word_not_capitalized":
             return f"{thread.owner.mention} Le premier mot de votre titre doit commencer par une majuscule. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "starts_with_interrogative_word":
-            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif ou une expression interrogative. Il doit commencer par un mot ou une expression comme `qui`, `que`, `quoi`, `qu'`, `où`, `quand`, `pourquoi`, `comment`, `est-ce`, `combien`, `quel`, `quelle`, `quels`, `quelles`, `lequel`, `laquelle`, `lesquels`, `lesquelles`, `d'où`, `depuis`, `jusqu'`, `à`, `de`, `en`, ou tout mot se terminant par `-il`, `-elle`, `-je`, `-tu`, `-nous`, `-vous`, `-ils`, `-elles`, `-t-`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
+            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif ou une expression interrogative. Il doit commencer par un mot ou une expression comme `qui`, `que`, `quoi`, `qu'`, `où`, `quand`, `pourquoi`, `comment`, `est-ce`, `combien`, `quel`, `quelle`, `quels`, `quelles`, `lequel`, `laquelle`, `lesquels`, `lesquelles`, `d'où`, `depuis`, `jusqu'`, `à`, `de`, `en`, ou tout mot se terminant par `-je`, `-tu`, `-il`, `-elle`, `-nous`, `-vous`, `-ils`, `-elles`, `-t-`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_short":
             return f"{thread.owner.mention} Votre titre est trop court. Il doit contenir au moins 20 caractères. Veuillez l'étendre et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_long":
