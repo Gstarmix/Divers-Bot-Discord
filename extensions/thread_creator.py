@@ -7,18 +7,7 @@ from constants import *
 class ThreadCreator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.user_message_times = {} 
-        self.channel_messages = {
-            MUDAE_HELP_CHANNEL_ID: "Demande d'aide pour Mudae reçue. Nous l'examinerons bientôt.",
-            SUGGESTION_GSTAR_CHANNEL_ID: "Suggestion reçue. Nous l'examinerons bientôt.",
-            SUGGESTION_FAFA_CHANNEL_ID: "Suggestion reçue. Nous l'examinerons bientôt.",
-            VIDEO_CHANNEL_ID: "Vidéo soumise. Hâte de la regarder ! Les commentaires suivront.",
-            MEMES_CHANNEL_ID: "Meme soumis. Hâte de rire ! Les commentaires suivront.",
-            VDO_VDM_CHANNEL_ID: "Anecdote soumise. Hâte de la lire ! Les commentaires suivront.",
-            RECHERCHE_KELKIN_CHANNEL_ID: "Demande de recherche reçue. Nous l'examinerons bientôt.",
-            COMMERCES_INT4_CHANNEL_ID: "Commerce soumis ! Les commentaires suivront.",
-            ACTIVITES_INT4_CHANNEL_ID: "Activité soumise ! Les commentaires suivront.",
-        }
+        self.user_message_times = {}
         self.thread_names = {
             MUDAE_HELP_CHANNEL_ID: "Aide Mudae",
             SUGGESTION_GSTAR_CHANNEL_ID: "Suggestion",
@@ -29,6 +18,7 @@ class ThreadCreator(commands.Cog):
             RECHERCHE_KELKIN_CHANNEL_ID: "Recherche",
             COMMERCES_INT4_CHANNEL_ID: "Commerce",
             ACTIVITES_INT4_CHANNEL_ID: "Activité",
+            MUDAE_IDEAS_CHANNEL_ID: "Idée Mudae"
         }
         self.channel_delays = {
             MUDAE_HELP_CHANNEL_ID: 600,
@@ -39,12 +29,12 @@ class ThreadCreator(commands.Cog):
             RECHERCHE_KELKIN_CHANNEL_ID: 600,
             COMMERCES_INT4_CHANNEL_ID: 600,
             ACTIVITES_INT4_CHANNEL_ID: 600,
+            MUDAE_IDEAS_CHANNEL_ID: 600
         }
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        print(f"Message reçu de {message.author.name} dans le canal {message.channel.id}")
-        if message.channel.id in self.channel_messages.keys() and not message.author.bot:
+        if message.channel.id in self.thread_names.keys() and not message.author.bot:
             now = datetime.datetime.now()
             if message.author.id not in self.user_message_times:
                 self.user_message_times[message.author.id] = {}
@@ -54,11 +44,10 @@ class ThreadCreator(commands.Cog):
             else:
                 self.user_message_times[message.author.id][message.channel.id] = now
                 try:
-                    print("Création du fil...")
-                    thread_name = f"{self.thread_names[message.channel.id]} de {message.author.name}"
+                    thread_name = self.thread_names[message.channel.id]
                     thread = await message.channel.create_thread(message=message, name=thread_name)
-                    await asyncio.sleep(5)  # Ajout du délai
-                    await thread.send(self.channel_messages[message.channel.id])
+                    await asyncio.sleep(5)
+                    await thread.send("Réagissez ici !")
                 except Exception as e:
                     print(f"Erreur lors de la création du fil : {e}")
 
