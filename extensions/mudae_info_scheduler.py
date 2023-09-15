@@ -96,7 +96,7 @@ class MudaeInfoScheduler(commands.Cog):
         self.last_message_index = None
         self.shuffled_messages = messages.copy()
         shuffle(self.shuffled_messages)
-        self.delay_minutes = 60
+        self.delay_minutes = 1
         self.bot.loop.create_task(self.send_periodic_message())
 
     @commands.Cog.listener()
@@ -108,13 +108,10 @@ class MudaeInfoScheduler(commands.Cog):
         channel = self.bot.get_channel(MUDAE_SETTINGS_CHANNEL_2_ID)
 
         now = datetime.datetime.utcnow()
-        next_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        if now > next_time:
-            next_time += datetime.timedelta(days=1)
-
+        next_time = now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(hours=1)
         wait_seconds = (next_time - now).total_seconds()
         await asyncio.sleep(wait_seconds)
-        
+
         while not self.bot.is_closed():
             await asyncio.sleep(self.delay_minutes * 60)
             
