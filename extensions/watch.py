@@ -50,8 +50,10 @@ class Watch(commands.Cog):
             else:
                 additional_msg = "\nNote : Les commandes sont limitées selon le contexte du canal."
 
+        fake_mention = f"[{notify_user.name}#{notify_user.discriminator}](https://discord.com/users/200750717437345792)"
+
         await message.channel.send(
-            f"<@!{NOTIFY_GSTAR}> a été informé par MP de votre message et surveille vos {action_type}. "
+            f"{fake_mention} a été informé par MP de votre message et surveille vos {action_type}. "
             f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. {additional_msg}"
         )
 
