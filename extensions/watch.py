@@ -39,7 +39,7 @@ class Watch(commands.Cog):
     async def notify_admin_and_warn_user(self, message, action_type):
         notify_user = await self.bot.fetch_user(NOTIFY_GSTAR)
         await notify_user.send(
-            f"{message.author.mention} envoie le message suivant dans {message.channel.mention}: `{message.content}`\n"
+            f"{message.author.mention} envoie le message suivant dans {message.channel.mention}: `{message.content}`. "
             f"Lien du message: {message.jump_url}"
         )
 
