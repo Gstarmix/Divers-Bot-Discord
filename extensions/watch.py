@@ -24,36 +24,31 @@ class Watch(commands.Cog):
 
         # Surveiller les échanges et les dons
         if message.channel.id in [MUDAE_TRADE_CHANNEL_ID, MUDAE_KAKERA_CHANNEL_ID, MUDAE_SETTINGS_CHANNEL_2_ID]:
-            for cmd in TRADE_WATCHED_COMMANDS:
-                if message.content.startswith(cmd):
-                    await self.notify_and_warn(message, "échanges et dons de kakeras")
-                    break
+            await self.check_watched_commands(message, TRADE_WATCHED_COMMANDS, "échanges et dons de kakeras")
 
         # Surveiller l'ajout d'images
         if message.channel.id in [MUDAE_WISH_CHANNEL_ID, MUDAE_SETTINGS_CHANNEL_2_ID]:
-            for cmd in IMAGE_WATCHED_COMMANDS:
-                if message.content.startswith(cmd):
-                    await self.notify_and_warn(message, "ajouts d'images customisées")
-                    break
+            await self.check_watched_commands(message, IMAGE_WATCHED_COMMANDS, "ajouts d'images customisées")
 
-    async def notify_and_warn(self, message, action_type):
+    async def check_watched_commands(self, message, watched_commands, action_type):
+        for cmd in watched_commands:
+            if message.content.startswith(cmd):
+                await self.notify_admin_and_warn_user(message, action_type)
+                break
+
+    async def notify_admin_and_warn_user(self, message, action_type):
         notify_user = await self.bot.fetch_user(NOTIFY_GSTAR)
         await notify_user.send(
-            f"{message.author.mention} envoie le message suivant dans {message.channel.mention}: `{message.content}`. "
+            f"{message.author.mention} envoie le message suivant dans {message.channel.mention}: `{message.content}`\n"
             f"Lien du message: {message.jump_url}"
         )
 
         additional_msg = ""
         if message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
-            if action_type == "échanges et ventes de prêt":
-                additional_msg = "\nNote : Dans cette instance, les commandes `$trade` et `$givek` sont limitées au tutoriel. Vous pouvez seulement échanger et donner un kakera. Utilisez `$trade @User 1 ka` et `$givek @User 1 ka`."
-            else:
-                additional_msg = "\nNote : Les commandes sont limitées selon le contexte du canal."
-
-        fake_mention = f"[{notify_user.name}#{notify_user.discriminator}](https://discord.com/users/200750717437345792)"
+            additional_msg = "\nNote : Les commandes sont limitées selon le contexte du canal."
 
         await message.channel.send(
-            f"{fake_mention} a été informé par MP de votre message et surveille vos {action_type}. "
+            f"Gstar a été informé par MP de votre message et surveille vos {action_type}. "
             f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. {additional_msg}"
         )
 
