@@ -8,7 +8,7 @@ TRADE_WATCHED_COMMANDS = {"$trade", "$marryexchange", "$give", "$givek", "$givek
 # Commandes à surveiller pour l'ajout d'images
 IMAGE_WATCHED_COMMANDS = {"$ai", "$addimg"}
 
-class TradeWatch(commands.Cog):
+class Watch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -39,7 +39,7 @@ class TradeWatch(commands.Cog):
     async def notify_and_warn(self, message, action_type):
         notify_user = await self.bot.fetch_user(NOTIFY_GSTAR)
         await notify_user.send(
-            f"{message.author.mention} envoie le message suivant dans {message.channel.mention}: `{message.content}`\n"
+            f"{message.author.mention} envoie le message suivant dans {message.channel.mention}: `{message.content}`. "
             f"Lien du message: {message.jump_url}"
         )
 
@@ -51,9 +51,9 @@ class TradeWatch(commands.Cog):
                 additional_msg = "\nNote : Les commandes sont limitées selon le contexte du canal."
 
         await message.channel.send(
-            f"<@{NOTIFY_GSTAR}> a été informé par MP de votre message et surveille vos {action_type}. "
+            f"`<@{NOTIFY_GSTAR}>` a été informé par MP de votre message et surveille vos {action_type}. "
             f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. {additional_msg}"
         )
 
 async def setup(bot):
-    await bot.add_cog(TradeWatch(bot))
+    await bot.add_cog(Watch(bot))

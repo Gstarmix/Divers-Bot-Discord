@@ -21,7 +21,7 @@ async def on_ready():
     await bot.load_extension("extensions.command_check")
     # await bot.load_extension("extensions.faq_mudae_1")
     # await bot.load_extension("extensions.faq_mudae_2")
-    await bot.load_extension("extensions.trade_watch")
+    await bot.load_extension("extensions.watch")
     # await bot.load_extension("extensions.emoji_changer")
     # await bot.load_extension("extensions.channel_visibility_manager")
     # await bot.load_extension("extensions.mudae_role_manager")
