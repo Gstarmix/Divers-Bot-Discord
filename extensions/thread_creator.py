@@ -45,6 +45,7 @@ class ThreadCreator(commands.Cog):
                 self.user_message_times[message.author.id][message.channel.id] = now
                 try:
                     thread_name = self.thread_names[message.channel.id]
+                    thread_name = f"{self.thread_names[message.channel.id]} de {message.author.name}"
                     thread = await message.channel.create_thread(message=message, name=thread_name)
                     await asyncio.sleep(5)
                     await thread.send("Réagissez ici !")
