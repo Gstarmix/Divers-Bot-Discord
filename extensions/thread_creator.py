@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import discord
 from discord.ext import commands
 from constants import *
 
@@ -40,7 +41,10 @@ class ThreadCreator(commands.Cog):
                 self.user_message_times[message.author.id] = {}
             if message.channel.id in self.user_message_times[message.author.id] and message.channel.id in self.channel_delays and (now - self.user_message_times[message.author.id][message.channel.id]).total_seconds() < self.channel_delays[message.channel.id]:
                 await message.author.send(f"Vous devez attendre {self.channel_delays[message.channel.id] // 60} minutes avant de pouvoir envoyer un nouveau message. Si besoin, veuillez modifier votre dernier message.")
-                await message.delete()
+                try:
+                    await message.delete()
+                except discord.NotFound:
+                    print("Message déjà supprimé.")
             else:
                 self.user_message_times[message.author.id][message.channel.id] = now
                 try:
