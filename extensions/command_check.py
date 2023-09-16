@@ -33,8 +33,8 @@ class CommandCheck(commands.Cog):
         self.specific_commands = config['specific_commands']
         self.allowed_commands = config['allowed_commands']
 
-        self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID].extend(self.specific_commands)
-        self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID].extend(self.specific_commands)
+        self.allowed_commands["MUDAE_WAIFUS_CHANNEL_2_ID"].extend(self.specific_commands)
+        self.allowed_commands["MUDAE_SETTINGS_CHANNEL_2_ID"].extend(self.specific_commands)
 
         self.forbidden_commands = config['forbidden_commands']
         
