@@ -107,7 +107,7 @@ class CommandCheck(commands.Cog):
                 channel = self.bot.get_channel(channel_id)
                 if channel:
                     sorted_commands = sorted(commands_list)
-                    await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join(sorted_commands)}")
+                    await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
 
     @post_allowed_commands.before_loop
     async def before_post_allowed_commands(self):
