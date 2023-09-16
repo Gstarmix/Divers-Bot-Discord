@@ -27,9 +27,6 @@ class CommandCheck(commands.Cog):
         except FileNotFoundError:
             self.last_message_id = {}
 
-        print(os.getcwd())  # pour afficher le répertoire de travail actuel
-
-
         self.specific_commands = config['specific_commands']
         self.allowed_commands = config['allowed_commands']
 
