@@ -114,12 +114,13 @@ class CommandCheck(commands.Cog):
     @post_allowed_commands.before_loop
     async def before_post_allowed_commands(self):
         now = datetime.now()
-        next_half_hour = now.replace(second=0, microsecond=0)
-        if now.minute < 30:
-            next_half_hour = next_half_hour.replace(minute=30)
-        else:
-            next_half_hour = next_half_hour.replace(minute=0) + timedelta(hours=1)
-        await asyncio.sleep((next_half_hour - now).total_seconds())
+        next_run_time = now.replace(minute=0, second=0, microsecond=0)
+
+        if now.minute > 0 or now.second > 0 or now.microsecond > 0:
+            next_run_time = next_run_time + timedelta(hours=1)
+
+        sleep_time = (next_run_time - now).total_seconds()
+        await asyncio.sleep(sleep_time)
 
     def cog_unload(self):
         self.post_allowed_commands.cancel()
