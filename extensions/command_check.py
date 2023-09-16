@@ -43,8 +43,8 @@ class CommandCheck(commands.Cog):
             if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID, MUDAE_WAIFUS_CHANNEL_2_ID, MUDAE_SETTINGS_CHANNEL_2_ID]:
                 self.mod_commands.extend(commands)
 
-        all_commands_except_poke_and_waifus = set(self.mod_commands) - set(self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]) - set(self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID])
-        self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID] = list(all_commands_except_poke_and_waifus)
+        all_commands_except_poke_and_waifus = set(self.mod_commands) - set(self.allowed_commands["MUDAE_POKESLOT_CHANNEL_ID"]) - set(self.allowed_commands["MUDAE_WAIFUS_CHANNEL_2_ID"])
+        self.allowed_commands["MUDAE_SETTINGS_CHANNEL_2_ID"] = list(all_commands_except_poke_and_waifus)
 
         self.post_allowed_commands.start()
         self.message_counts = {}  # Nouveau dictionnaire pour suivre le nombre de messages par salon
