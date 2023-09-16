@@ -36,6 +36,8 @@ class CommandCheck(commands.Cog):
         all_commands_except_poke_and_waifus = set(self.mod_commands) - set(self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]) - set(self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID])
         self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID] = list(all_commands_except_poke_and_waifus)
 
+        self.post_allowed_commands.start()
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
@@ -112,12 +114,16 @@ class CommandCheck(commands.Cog):
     @post_allowed_commands.before_loop
     async def before_post_allowed_commands(self):
         now = datetime.now()
-        next_half_hour = (now + timedelta(minutes=30)).replace(second=0, microsecond=0)
-        if next_half_hour.minute < 30:
+        next_half_hour = now.replace(second=0, microsecond=0)
+        if now.minute < 30:
             next_half_hour = next_half_hour.replace(minute=30)
         else:
             next_half_hour = next_half_hour.replace(minute=0) + timedelta(hours=1)
         await asyncio.sleep((next_half_hour - now).total_seconds())
-        
+
+    def cog_unload(self):
+        self.post_allowed_commands.cancel()
+
+
 async def setup(bot):
     await bot.add_cog(CommandCheck(bot))
