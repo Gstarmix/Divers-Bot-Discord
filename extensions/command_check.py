@@ -2,13 +2,18 @@ from datetime import datetime, timedelta
 import asyncio
 from discord.ext import commands, tasks
 import json
+import os
 from constants import *
 
 class CommandCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+        # Définir le chemin absolu vers le dossier où se trouvent les fichiers JSON
+        json_folder_path = 'C:/Users/Gstar/Desktop/Bot GSTAR/extensions/'
+
         # Charger les configurations à partir du fichier JSON
-        with open('commands_config.json', 'r') as f:
+        with open(os.path.join(json_folder_path, 'commands_config.json'), 'r') as f:
             config = json.load(f)
 
         self.forbidden_commands = config['forbidden_commands']
@@ -16,7 +21,7 @@ class CommandCheck(commands.Cog):
 
         # Charger les derniers messages à partir du fichier JSON
         try:
-            with open('last_messages.json', 'r') as f:
+            with open(os.path.join(json_folder_path, 'last_messages.json'), 'r') as f:
                 self.last_message_id = json.load(f)
         except FileNotFoundError:
             self.last_message_id = {}
