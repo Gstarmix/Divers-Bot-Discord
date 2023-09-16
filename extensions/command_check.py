@@ -9,21 +9,24 @@ class CommandCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        # Définir le chemin absolu vers le dossier où se trouvent les fichiers JSON
-        path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\commands_config.json"
+        # Définir le chemin relatif vers le dossier où se trouvent les fichiers JSON
+        commands_config_path = "extensions/commands_config.json"
+        last_messages_path = "extensions/last_messages.json"
 
         # Charger les configurations à partir du fichier JSON
-        with open(path, 'r') as f:  # Utilisez la variable 'path' ici
+        with open(commands_config_path, 'r') as f:
             config = json.load(f)
+
+        self.forbidden_commands = config['forbidden_commands']
+        self.allowed_commands = config['allowed_commands']
 
         # Charger les derniers messages à partir du fichier JSON
         try:
-            last_messages_path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\last_messages.json"  # Définir le chemin absolu pour last_messages.json
-            with open(last_messages_path, 'r') as f:  # Utilisez last_messages_path ici
+            with open(last_messages_path, 'r') as f:
                 self.last_message_id = json.load(f)
         except FileNotFoundError:
             self.last_message_id = {}
-            
+
         print(os.getcwd())  # pour afficher le répertoire de travail actuel
 
 
