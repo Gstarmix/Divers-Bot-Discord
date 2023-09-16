@@ -10,15 +10,16 @@ class CommandCheck(commands.Cog):
         self.bot = bot
 
         # Définir le chemin absolu vers le dossier où se trouvent les fichiers JSON
-        json_folder_path = 'C:/Users/Gstar/Desktop/Bot GSTAR/extensions/'
+        path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\commands_config.json"
 
         # Charger les configurations à partir du fichier JSON
-        with open('./commands_config.json', 'r') as f:
+        with open(path, 'r') as f:  # Utilisez la variable path ici
             config = json.load(f)
 
         # Charger les derniers messages à partir du fichier JSON
         try:
-            with open('./last_messages.json', 'r') as f:
+            last_messages_path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\last_messages.json"  # Définir le chemin absolu pour last_messages.json
+            with open(last_messages_path, 'r') as f:  # Utilisez last_messages_path ici
                 self.last_message_id = json.load(f)
         except FileNotFoundError:
             self.last_message_id = {}
