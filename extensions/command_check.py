@@ -96,23 +96,29 @@ class CommandCheck(commands.Cog):
             allowed_channels = list(filter(lambda x: x not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID, MUDAE_SETTINGS_CHANNEL_2_ID], allowed_channels))
             allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
 
-            if message.channel.id not in allowed_channels:
-                await message.delete()
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
-                wrong_channel_msg += f" Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
-
-                
-                # Ajout pour voir MUDAE_SETTINGS_CHANNEL_2_ID
-                if message.channel.id in [MUDAE_TRADE_CHANNEL_ID, MUDAE_WISH_CHANNEL_ID, MUDAE_KAKERA_CHANNEL_ID, MULTI_GAMES_CHANNEL_ID]:
-                    allowed_channels.append(MUDAE_SETTINGS_CHANNEL_2_ID)
-                
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
-                wrong_channel_msg += f" Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
-                
-                if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
-                    wrong_channel_msg += " Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon."
-                    
-                await message.channel.send(wrong_channel_msg)
+        if message.channel.id not in allowed_channels:
+            await message.delete()
+            
+            # Initialisation par défaut de wrong_channel_msg
+            wrong_channel_msg = f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon."
+            
+            # Convertir allowed_channels en set pour éviter les doublons
+            allowed_channels = set(allowed_channels)
+            
+            # Ajout pour voir MUDAE_SETTINGS_CHANNEL_2_ID
+            if message.channel.id in [MUDAE_TRADE_CHANNEL_ID, MUDAE_WISH_CHANNEL_ID, MUDAE_KAKERA_CHANNEL_ID, MULTI_GAMES_CHANNEL_ID]:
+                allowed_channels.add(MUDAE_SETTINGS_CHANNEL_2_ID)  # Utilisez add pour un ensemble
+            
+            # Convertir le set en liste pour le join
+            allowed_channels = list(allowed_channels)
+            allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
+            
+            wrong_channel_msg += f" Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
+            
+            if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
+                wrong_channel_msg += " Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon."
+            
+            await message.channel.send(wrong_channel_msg)
 
         # Mettre à jour le compte de messages pour le salon
         if message.channel.id in self.message_counts:
@@ -132,8 +138,8 @@ class CommandCheck(commands.Cog):
                             try:
                                 message_to_delete = await channel.fetch_message(self.last_message_id[channel_id])
                                 await message_to_delete.delete()
-                            except:  # Attraper toutes les exceptions, comme le message déjà supprimé
-                                pass
+                            except Exception as e:  # Attraper toutes les exceptions, comme le message déjà supprimé
+                                print(f"Error deleting message: {e}")
 
                     # Réinitialiser le compteur de messages pour ce salon
                     self.message_counts[channel_id] = 0
@@ -142,8 +148,8 @@ class CommandCheck(commands.Cog):
                     sorted_commands = sorted(commands_list)
                     sent_message = await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
                     self.last_message_id[channel_id] = sent_message.id
-        # Mettre à jour le dernier message_id et sauvegarder dans le fichier JSON
-        self.last_message_id[channel_id] = sent_message.id
+        
+        # Sauvegarder le dernier message_id dans le fichier JSON
         with open('last_messages.json', 'w') as f:
             json.dump(self.last_message_id, f)
 
