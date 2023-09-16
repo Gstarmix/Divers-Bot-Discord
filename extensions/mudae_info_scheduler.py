@@ -108,7 +108,10 @@ class MudaeInfoScheduler(commands.Cog):
         channel = self.bot.get_channel(MUDAE_SETTINGS_CHANNEL_2_ID)
 
         now = datetime.datetime.utcnow()
-        next_time = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        next_time = now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(hours=1, minutes=30)
+        if now.minute >= 30:
+            next_time += datetime.timedelta(hours=1)
+
         wait_seconds = (next_time - now).total_seconds()
         await asyncio.sleep(wait_seconds)
 
