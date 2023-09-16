@@ -1,5 +1,5 @@
 {
-    "specific_commands": ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$rollsup", "$ru", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim", "$usestack", "us"],
+    "specific_commands": ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$rollsup", "$ru", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim", "$usestack", "$us"],
     "allowed_commands": {
       "MUDAE_TUTORIAL_CHANNEL_ID": ["$tuto", "$chall"],
       "MUDAE_WAIFUS_CHANNEL_ID": ["$w", "$h", "$m", "$wa", "$wg", "$ha", "$hg", "$ma", "$mg", "$dk", "$dailykakera", "$mu", "$ku", "$tu", "$rt", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls", "$vote", "$daily", "$rolls", "$usestack", "$rollsleft", "$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$rollsup", "$setrolls", "$rdmimg", "$overview", "$mm", "$ima", "$im", "$ru", "$fc", "$search", "$changeimg", "$fn", "$sm", "$firstmarry", "$fm", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$rc", "$setfooter", "$embedcolor", "$help", "$divorce", "$bonus", "$boostwish", "$bw", "$boostkakera", "$bk", "$usestack", "$us"],
