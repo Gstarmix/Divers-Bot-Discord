@@ -98,7 +98,9 @@ class CommandCheck(commands.Cog):
 
             if message.channel.id not in allowed_channels:
                 await message.delete()
-                wrong_channel_msg = f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon."
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
+                wrong_channel_msg += f" Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
+
                 
                 # Ajout pour voir MUDAE_SETTINGS_CHANNEL_2_ID
                 if message.channel.id in [MUDAE_TRADE_CHANNEL_ID, MUDAE_WISH_CHANNEL_ID, MUDAE_KAKERA_CHANNEL_ID, MULTI_GAMES_CHANNEL_ID]:
