@@ -1,4 +1,6 @@
-from discord.ext import commands
+from datetime import datetime, timedelta
+import asyncio
+from discord.ext import commands, tasks
 from constants import *
 
 class CommandCheck(commands.Cog):
@@ -84,10 +86,38 @@ class CommandCheck(commands.Cog):
 
             if message.channel.id not in allowed_channels:
                 await message.delete()
-                wrong_channel_msg = f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
+                wrong_channel_msg = f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon."
+                
+                # Ajout pour voir MUDAE_SETTINGS_CHANNEL_2_ID
+                if message.channel.id in [MUDAE_TRADE_CHANNEL_ID, MUDAE_WISH_CHANNEL_ID, MUDAE_KAKERA_CHANNEL_ID, MULTI_GAMES_CHANNEL_ID]:
+                    allowed_channels.append(MUDAE_SETTINGS_CHANNEL_2_ID)
+                
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
+                wrong_channel_msg += f" Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
+                
                 if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
                     wrong_channel_msg += " Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon."
+                    
                 await message.channel.send(wrong_channel_msg)
 
+    @tasks.loop(hours=1)
+    async def post_allowed_commands(self):
+        for channel_id, commands_list in self.allowed_commands.items():
+            if commands_list:
+                channel = self.bot.get_channel(channel_id)
+                if channel:
+                    sorted_commands = sorted(commands_list)
+                    await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join(sorted_commands)}")
+
+    @post_allowed_commands.before_loop
+    async def before_post_allowed_commands(self):
+        now = datetime.now()
+        next_half_hour = (now + timedelta(minutes=30)).replace(second=0, microsecond=0)
+        if next_half_hour.minute < 30:
+            next_half_hour = next_half_hour.replace(minute=30)
+        else:
+            next_half_hour = next_half_hour.replace(minute=0) + timedelta(hours=1)
+        await asyncio.sleep((next_half_hour - now).total_seconds())
+        
 async def setup(bot):
     await bot.add_cog(CommandCheck(bot))

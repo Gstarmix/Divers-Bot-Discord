@@ -22,13 +22,13 @@ messages = [
         "title": "Quel est l'ordre optimal pour obtenir les badges ?",
         "description": "- Pour économiser plus de 10 000 kakeras, l'ordre recommandé pour obtenir les badges est : Bronze 2, Silver 2, Gold 2 (dans l'ordre que vous préférez), suivi de Ruby 4, puis ce que vous voulez ensuite.",
         "emoji": ":camera_with_flash:",
-        "command_desc": "[Ordre recommandé pour obtenir les badges](https://www.zupimages.net/up/23/37/ip79.png)"
+        "command_desc": "[Ordre recommandé pour obtenir les badges](https://www.zupimages.net/up/23/37/3ch5.png)"
     },
     {
         "title": "Comment obtenir le kakera arc-en-ciel ?",
         "description": "- Le **kakera arc-en-ciel** <:kakera_rainbow:1146568126465577020> apparaît aléatoirement lors des tirages de certains personnages déjà mariés. La probabilité est de 0.044%.",
-        "command_desc": ":camera_with_flash: [Apparition et récupération d'un kakera arc-en-ciel](https://image.noelshack.com/fichiers/2023/35/7/1693706863-kakeraarcenciel.png>)\n"
-                    ":camera_with_flash: [Tableau des probabilités d'apparition des kakeras](<https://image.noelshack.com/fichiers/2023/35/7/1693707489-dropratekakera.png)"
+        "command_desc": ":camera_with_flash: [Apparition et récupération d'un kakera arc-en-ciel](https://image.noelshack.com/fichiers/2023/35/7/1693706863-kakeraarcenciel.png)\n"
+                    ":camera_with_flash: [Tableau des probabilités d'apparition des kakeras](https://image.noelshack.com/fichiers/2023/35/7/1693707489-dropratekakera.png)"
     },
     {
         "title": "Que faire si j'obtiens un kakera arc-en-ciel ?",
@@ -58,7 +58,7 @@ messages = [
     },
     {
         "title": "Comment obtenir des personnages ?",
-        "description": "- Utilisez les commandes `$w`, `$h`, ou `$m` dans ce salon toutes les 1 heures pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures.",
+        "description": "- Utilisez les commandes `$w`, `$h`, ou `$m` dans le salon <#1146542491290579094> toutes les 1 heures pour obtenir des personnages. Vous pouvez réagir à leur embed pour vous marier toutes les 3 heures.",
         "command_desc": ":clapper: [Exemple de mariage lors d'un tirage de personnages](https://i.imgur.com/xn6cQcE.gif)"
     },
     {
@@ -108,7 +108,7 @@ class MudaeInfoScheduler(commands.Cog):
         channel = self.bot.get_channel(MUDAE_SETTINGS_CHANNEL_2_ID)
 
         now = datetime.datetime.utcnow()
-        next_time = now.replace(minute=0, second=0, microsecond=0) + datetime.timedelta(hours=1)
+        next_time = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         wait_seconds = (next_time - now).total_seconds()
         await asyncio.sleep(wait_seconds)
 
