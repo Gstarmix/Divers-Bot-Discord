@@ -8,6 +8,7 @@ TRADE_WATCHED_COMMANDS = {"$trade", "$marryexchange", "$give", "$givek", "$givek
 # Commandes à surveiller pour l'ajout d'images
 IMAGE_WATCHED_COMMANDS = {"$ai", "$addimg"}
 
+
 class Watch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -51,6 +52,7 @@ class Watch(commands.Cog):
             f"Gstar a été informé par MP de votre message et surveille vos {action_type}. "
             f"Des mesures sévères seront prises en cas d'abus, allant d'un mute jusqu'à un ban. {additional_msg}"
         )
+
 
 async def setup(bot):
     await bot.add_cog(Watch(bot))

@@ -102,5 +102,6 @@ class FaqMudae1(commands.Cog):
                     f"<@{user.id}> {selected_message['description']}"
                 )
 
+
 async def setup(bot):
     await bot.add_cog(FaqMudae1(bot))

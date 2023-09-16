@@ -1,7 +1,6 @@
 from random import shuffle
 import asyncio
 import datetime
-import discord
 from discord.ext import commands
 from constants import *
 
@@ -28,7 +27,7 @@ messages = [
         "title": "Comment obtenir le kakera arc-en-ciel ?",
         "description": "- Le **kakera arc-en-ciel** <:kakera_rainbow:1146568126465577020> apparaît aléatoirement lors des tirages de certains personnages déjà mariés. La probabilité est de 0.044%.",
         "command_desc": ":camera_with_flash: [Apparition et récupération d'un kakera arc-en-ciel](https://image.noelshack.com/fichiers/2023/35/7/1693706863-kakeraarcenciel.png)\n"
-                    ":camera_with_flash: [Tableau des probabilités d'apparition des kakeras](https://image.noelshack.com/fichiers/2023/35/7/1693707489-dropratekakera.png)"
+                        ":camera_with_flash: [Tableau des probabilités d'apparition des kakeras](https://image.noelshack.com/fichiers/2023/35/7/1693707489-dropratekakera.png)"
     },
     {
         "title": "Que faire si j'obtiens un kakera arc-en-ciel ?",
@@ -70,8 +69,8 @@ messages = [
         "title": "Comment gagner des kakeras ?",
         "description": "- Utilisez `$divorce` et `$dk` dans <#1146892017402662912>, et réagissez aux kakeras aléatoires dans <#1146542491290579094>.",
         "command_desc": ":clapper: [Utilisation de la commande `$divorce`](https://i.imgur.com/Ot2dJQQ.gif)\n"
-                    ":clapper: [Utilisation de la commande `$dk`](https://i.imgur.com/WWhfuSA.gif)\n"
-                    ":clapper: [Apparition et récupération d'un kakera](https://i.imgur.com/7lSfm9I.gif)"
+                        ":clapper: [Utilisation de la commande `$dk`](https://i.imgur.com/WWhfuSA.gif)\n"
+                        ":clapper: [Apparition et récupération d'un kakera](https://i.imgur.com/7lSfm9I.gif)"
     },
     {
         "title": "Comment optimiser mes tirages ?",
@@ -89,6 +88,7 @@ messages = [
         "command_desc": ":camera_with_flash: [Salon mudae-help](https://image.noelshack.com/fichiers/2023/35/7/1693706903-salonhelp.png)"
     }
 ]
+
 
 class MudaeInfoScheduler(commands.Cog):
     def __init__(self, bot):
@@ -130,6 +130,7 @@ class MudaeInfoScheduler(commands.Cog):
                 f"{selected_message['description']}\n"
                 f"{selected_message['command_desc']}"
             )
+
 
 async def setup(bot):
     await bot.add_cog(MudaeInfoScheduler(bot))

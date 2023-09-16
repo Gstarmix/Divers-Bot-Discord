@@ -1,8 +1,8 @@
 import asyncio
 import datetime
-import discord
 from discord.ext import commands
 from constants import *
+
 
 class ThreadCreator(commands.Cog):
     def __init__(self, bot):
@@ -44,13 +44,14 @@ class ThreadCreator(commands.Cog):
             else:
                 self.user_message_times[message.author.id][message.channel.id] = now
                 try:
-                    thread_name = self.thread_names[message.channel.id]
+                    # thread_name = self.thread_names[message.channel.id]
                     thread_name = f"{self.thread_names[message.channel.id]} de {message.author.name}"
                     thread = await message.channel.create_thread(message=message, name=thread_name)
                     await asyncio.sleep(5)
                     await thread.send("Réagissez ici !")
                 except Exception as e:
                     print(f"Erreur lors de la création du fil : {e}")
+
 
 async def setup(bot):
     await bot.add_cog(ThreadCreator(bot))

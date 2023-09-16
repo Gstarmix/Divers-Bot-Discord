@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from datetime import datetime, timedelta
 import asyncio
 from constants import *
@@ -8,6 +8,7 @@ TIMEOUT_DURATION = 5
 
 SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg"}
 TEXT_COMMANDS = {"$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg"}
+
 
 class MudaeRoleManager(commands.Cog):
     def __init__(self, bot):
@@ -72,6 +73,7 @@ class MudaeRoleManager(commands.Cog):
         await channel.set_permissions(author, overwrite=old_user_perms)
 
         self.user_timeout.pop(author.id, None)
+
 
 async def setup(bot):
     await bot.add_cog(MudaeRoleManager(bot))

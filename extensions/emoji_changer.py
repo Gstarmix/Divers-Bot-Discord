@@ -1,6 +1,6 @@
-import discord
 from discord.ext import commands, tasks
 from constants import ANGE_DEMON_CHANNEL_ID
+
 
 class EmojiChanger(commands.Cog):
     def __init__(self, bot):
@@ -27,6 +27,7 @@ class EmojiChanger(commands.Cog):
     @change_emoji.before_loop
     async def before_change_emoji(self):
         await self.bot.wait_until_ready()
+
 
 async def setup(bot):
     await bot.add_cog(EmojiChanger(bot))

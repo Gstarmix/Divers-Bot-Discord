@@ -2,6 +2,7 @@ import asyncio
 from discord.ext import commands
 from constants import *
 
+
 class Question(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -70,6 +71,7 @@ class Question(commands.Cog):
         self.threads[thread.id] = thread.owner.id
         self.delete_messages[thread.id] = True
 
+        response = None
         while True:
             error_type = self.get_question_error(thread.name)
             if error_type:
@@ -84,7 +86,7 @@ class Question(commands.Cog):
                     await thread.delete()
                     return
             else:
-                if 'response' in locals():
+                if response:
                     await thread.edit(name=response.content)
                 await thread.send(f"{thread.owner.mention} Très bien, votre titre semble approprié. Le fil est maintenant ouvert à tous pour la discussion. Merci de votre coopération.")
                 await thread.owner.remove_roles(question_role)
@@ -97,6 +99,7 @@ class Question(commands.Cog):
         if self.delete_messages.get(thread.id, False) and message.author.id != self.threads[thread.id] and not any(role.id in [CHEF_SINGE_ROLE_ID, QUESTION_ROLE_ID] for role in message.author.roles) and message.author != self.bot.user:
             await message.delete()
             await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil pendant le déroulement du questionnaire.")
+
 
 async def setup(bot):
     await bot.add_cog(Question(bot))

@@ -5,6 +5,7 @@ from constants import *
 
 DEFAULT_DURATION_MINUTES = 5
 
+
 class MudaeScheduler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -31,11 +32,12 @@ class MudaeScheduler(commands.Cog):
         self.bot.loop.create_task(self.restore_channel_visibility())
 
     async def restore_channel_visibility(self):
-        "Task to restore channel visibility after DEFAULT_DURATION_MINUTES."
+        """Task to restore channel visibility after DEFAULT_DURATION_MINUTES."""
         await asyncio.sleep(DEFAULT_DURATION_MINUTES * 60)
         channel = self.bot.get_channel(MUDAE_CONTROL_CHANNEL_ID)
         await channel.set_permissions(channel.guild.default_role, view_channel=True)
         print(f"Channel visibility restored in {channel.name} at {datetime.now()}")
+
 
 async def setup(bot):
     await bot.add_cog(MudaeScheduler(bot))

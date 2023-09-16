@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord.errors import NotFound
 from constants import *
 
+
 class Presentation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -147,6 +148,7 @@ class Presentation(commands.Cog):
         await thread.send(message, allowed_mentions=allowed_mentions)
 
         self.delete_messages[thread.id] = False
+
 
 async def setup(bot):
     await bot.add_cog(Presentation(bot))
