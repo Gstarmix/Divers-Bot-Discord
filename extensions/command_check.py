@@ -1,36 +1,52 @@
-from discord.ext import commands
+from datetime import datetime, timedelta
+import asyncio
+from discord.ext import commands, tasks
+import json
+import os
 from constants import *
 
 class CommandCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.allowed_commands = {
-            MUDAE_CONTROL_CHANNEL_ID: [],
-            MUDAE_TUTORIAL_CHANNEL_ID: ["$tuto", "$chall"],
-            MUDAE_WAIFUS_CHANNEL_ID: ["$w", "$h", "$m", "$wa", "$wg", "$ha", "$hg", "$ma", "$mg", "$dk", "$dailykakera", "$mu", "$ku", "$tu", "$rt", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls", "$vote", "$daily", "$rolls", "$usestack", "$rollsleft", "$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$mk", "$rollsup", "$setrolls", "$rdmimg", "$overview", "$mm", "$pr", "$profile", "$ima", "$im", "$ru", "$fc", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$rc", "$setfooter", "$embedcolor", "$help", "$divorce", "$bonus", "$boostwish", "$bw", "$boostkakera", "$bk"],
-            MUDAE_TRADE_CHANNEL_ID: ["$trade", "$marryexchange", "$pinexchange", "$give", "$givekakera", "$givepin", "$mm", "$pr", "$profile", "$givek", "$givekakera", "$ima", "$im", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$givecustom", "$embedcolor", "$help", "$divorce", "$bonus"],
-            MUDAE_WISH_CHANNEL_ID: ["$wl", "$wr", "$wp", "$wishdm", "$wish", "$wishremove", "$wishlist", "$wishremoveall", "$wishd", "$wishk", "$wishl", "$boostwish", "$wishdm", "$wishsort", "$wishpurge", "$firstwish", "$fw", "$wishseries", "$wishserieslist", "$clearwishes", "$qs", "$ql", "$qw", "$disable", "$disablelist", "$serverdisable", "$dl", "$sd", "$mm", "$pr", "$profile", "$antidisablelist", "$ad", "$antidisable", "$adl", "$enable", "$antienableall", "$antienable", "$add", "$wishk", "$ima", "$im", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$like", "$likelist", "$likeremove", "$lr", "$ll", "$l", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$ae", "$togglewestern", "$embedcolor", "$help", "$divorce", "$bonus", "$boostwish", "$bw"],
-            MUDAE_KAKERA_CHANNEL_ID: ["$k", "$dk", "$kl", "$lk", "$givek", "$kakera", "$kakerareward", "$togglekakerarolls", "$infokl", "$kakeraloot", "$kakeratower", "$mk", "$dailykakera", "$wishk", "$kakeradm", "$givekakera", "$badgevalue", "$togglekakerasnipe", "$kakerareact", "$kakerarefund", "$kakeraremove", "$cleankakera", "$kakerarefundall", "$kakeraremoveall", "$kakerascrap", "$givescrap", "$mm", "$pr", "$profile", "$ima", "$im", "$ku", "$tu", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2" "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$badge", "$badges", "$bronze", "$silver", "$gold", "$sapphire", "$ruby", "$emerald", "$quantity", "$quality", "$myid", "$avatar", "$build", "$destroy", "$embedcolor", "$help", "$divorce", "$bonus", "$boostkakera", "$bk"],
-            MUDAE_POKESLOT_CHANNEL_ID: ["$pokemon", "$p", "$pokedex", "$pd", "$sortpkm", "$ps", "$shinyhunt", "$sh", "$release", "$r", "$autorelease", "$arl", "$pokelike", "$pl", "$pokelikelist", "$togglepokelike", "$pokeprofile", "$pokerank", "$pokeserv", "$pokemode", "$pr", "$profile", "$help"],
-            MULTI_GAMES_CHANNEL_ID: ["$blacktea", "$greentea", "$redtea", "$yellowtea", "$mixtea", "$quiz", "$jankenpon", "$pokeduel", "/bingo", "/chifumi", "/colormind", "/jeux", "/morpion", "/pendu", "/puissance4", "$42ball", "$mm", "$pr", "$profile", "$ima", "$im", "$search", "$changeimg", "$fate", "$quotimage", "$beam", "$blacktea", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$al", "$alias", "$a2", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$skills", "$embedcolor", "$help", "$divorce", "$skillsgm", "$vsgm", "$dsgm", "$favarenagm", "$bonus"],
-            MUDAE_MODO_CHANNEL_ID: [],
-            LOG_CHANNEL_ID: []
-        }
 
-        for accomplishment_channel_id in ACCOMPLISSEMENT_CHANNEL_ID:
-            self.allowed_commands[accomplishment_channel_id] = []
+        # Définir le chemin absolu vers le dossier où se trouvent les fichiers JSON
+        path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\commands_config.json"
 
+        # Charger les configurations à partir du fichier JSON
+        with open(path, 'r') as f:  # Utilisez la variable 'path' ici
+            config = json.load(f)
+
+        # Charger les derniers messages à partir du fichier JSON
+        try:
+            last_messages_path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\last_messages.json"  # Définir le chemin absolu pour last_messages.json
+            with open(last_messages_path, 'r') as f:  # Utilisez last_messages_path ici
+                self.last_message_id = json.load(f)
+        except FileNotFoundError:
+            self.last_message_id = {}
+            
+        print(os.getcwd())  # pour afficher le répertoire de travail actuel
+
+
+        self.specific_commands = config['specific_commands']
+        self.allowed_commands = config['allowed_commands']
+
+        self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID].extend(self.specific_commands)
+        self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID].extend(self.specific_commands)
+
+        self.forbidden_commands = config['forbidden_commands']
+        
         self.mod_commands = []
         for channel_id, commands in self.allowed_commands.items():
-            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID:
-                self.allowed_commands[MUDAE_MODO_CHANNEL_ID].extend(commands)
-                self.allowed_commands[LOG_CHANNEL_ID].extend(commands)
-                self.allowed_commands[MUDAE_CONTROL_CHANNEL_ID].extend(commands)
-                for accomplishment_channel_id in ACCOMPLISSEMENT_CHANNEL_ID:
-                    self.allowed_commands[accomplishment_channel_id].extend(commands)
-            self.mod_commands.extend(commands)
+            if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID, MUDAE_WAIFUS_CHANNEL_2_ID, MUDAE_SETTINGS_CHANNEL_2_ID]:
+                self.mod_commands.extend(commands)
 
-        self.forbidden_commands = ["$lang", "$skiptuto", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul", "$setpermission", "$ic", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls"]
+        all_commands_except_poke_and_waifus = set(self.mod_commands) - set(self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]) - set(self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID])
+        self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID] = list(all_commands_except_poke_and_waifus)
+
+        self.post_allowed_commands.start()
+        self.message_counts = {}  # Nouveau dictionnaire pour suivre le nombre de messages par salon
+        self.last_message_id = {}  # Nouveau dictionnaire pour suivre le dernier message posté par le bot par salon
+        self.minimum_messages = 5  # Nombre minimum de messages pour conserver le message du bot
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -38,36 +54,111 @@ class CommandCheck(commands.Cog):
             return
 
         split_message = message.content.split()
-        if split_message:
-            command = split_message[0]
-        else:
-            command = ""
+        command = split_message[0] if split_message else ""
 
         if command in self.forbidden_commands:
-            if any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID, MUDAE_CONTROL_CHANNEL_ID] for role in message.author.roles):
-                return
-            await message.delete()
-            await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande admin `{command}`. Cette commande est réservée à l'administrateur et aux modérateurs. Je vous prie de ne pas l'utiliser.")
+            if not any(role.id in [CHEF_SINGE_ROLE_ID, MUDAE_MODO_ROLE_ID] for role in message.author.roles):
+                await message.delete()
+                await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}`. Cette commande est interdite. Je vous prie de ne plus l'envoyer.")
             return
+
+        if message.channel.id == MUDAE_WAIFUS_CHANNEL_2_ID or message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
+            if command in self.specific_commands:
+                return
 
         if command.startswith('$') or command.startswith('/'):
             if command not in self.mod_commands:
                 return
-            if command in self.mod_commands and (message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] or message.channel.id in ACCOMPLISSEMENT_CHANNEL_ID):
+
+            if message.channel.id in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID]:
                 return
-            allowed_channels = []
-            for channel_id, commands in self.allowed_commands.items():
-                if command in commands:
-                    allowed_channels.append(channel_id)
-            if message.channel.id not in allowed_channels:
-                content = message.content
-                await message.delete()
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels if channel_id not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID] + ACCOMPLISSEMENT_CHANNEL_ID])
-                if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
-                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}. Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon.")
+
+            if message.channel.id == MUDAE_WAIFUS_CHANNEL_2_ID:
+                if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID]:
+                    await message.delete()
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{MUDAE_POKESLOT_CHANNEL_ID}>.")
+                    return
+                if command not in self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID]:
+                    await message.delete()
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{MUDAE_SETTINGS_CHANNEL_2_ID}>.")
+                    return
+
+            if message.channel.id == MUDAE_SETTINGS_CHANNEL_2_ID:
+                if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID] or command in self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID] or command in self.forbidden_commands:
+                    await message.delete()
+                    target_channel = MUDAE_POKESLOT_CHANNEL_ID if command in self.allowed_commands[MUDAE_POKESLOT_CHANNEL_ID] else MUDAE_WAIFUS_CHANNEL_2_ID
+                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{target_channel}>.")
+                    return
                 else:
-                    await message.channel.send(f"{message.author.mention} Vous avez envoyé la commande `{content}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : {allowed_channels_str}.")
-                return
+                    return
+
+            allowed_channels = [channel_id for channel_id, commands in self.allowed_commands.items() if command in commands]
+            allowed_channels = list(filter(lambda x: x not in [MUDAE_MODO_CHANNEL_ID, LOG_CHANNEL_ID, MUDAE_CONTROL_CHANNEL_ID, MUDAE_SETTINGS_CHANNEL_2_ID], allowed_channels))
+            allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
+
+            if message.channel.id not in allowed_channels:
+                await message.delete()
+                wrong_channel_msg = f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon."
+                
+                # Ajout pour voir MUDAE_SETTINGS_CHANNEL_2_ID
+                if message.channel.id in [MUDAE_TRADE_CHANNEL_ID, MUDAE_WISH_CHANNEL_ID, MUDAE_KAKERA_CHANNEL_ID, MULTI_GAMES_CHANNEL_ID]:
+                    allowed_channels.append(MUDAE_SETTINGS_CHANNEL_2_ID)
+                
+                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
+                wrong_channel_msg += f" Veuillez l'envoyer dans le bon salon : {allowed_channels_str}."
+                
+                if message.channel.id == MUDAE_TUTORIAL_CHANNEL_ID:
+                    wrong_channel_msg += " Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon."
+                    
+                await message.channel.send(wrong_channel_msg)
+
+        # Mettre à jour le compte de messages pour le salon
+        if message.channel.id in self.message_counts:
+            self.message_counts[message.channel.id] += 1
+        else:
+            self.message_counts[message.channel.id] = 1
+            
+    @tasks.loop(hours=1)
+    async def post_allowed_commands(self):
+        for channel_id, commands_list in self.allowed_commands.items():
+            if commands_list:
+                channel = self.bot.get_channel(channel_id)
+                if channel:
+                    # Supprimer le dernier message si le compte de messages est inférieur au minimum
+                    if channel_id in self.message_counts and self.message_counts[channel_id] < self.minimum_messages:
+                        if channel_id in self.last_message_id:
+                            try:
+                                message_to_delete = await channel.fetch_message(self.last_message_id[channel_id])
+                                await message_to_delete.delete()
+                            except:  # Attraper toutes les exceptions, comme le message déjà supprimé
+                                pass
+
+                    # Réinitialiser le compteur de messages pour ce salon
+                    self.message_counts[channel_id] = 0
+
+                    # Envoyer le nouveau message et mettre à jour le dernier message_id
+                    sorted_commands = sorted(commands_list)
+                    sent_message = await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
+                    self.last_message_id[channel_id] = sent_message.id
+        # Mettre à jour le dernier message_id et sauvegarder dans le fichier JSON
+        self.last_message_id[channel_id] = sent_message.id
+        with open('last_messages.json', 'w') as f:
+            json.dump(self.last_message_id, f)
+
+    @post_allowed_commands.before_loop
+    async def before_post_allowed_commands(self):
+        now = datetime.now()
+        next_run_time = now.replace(minute=0, second=0, microsecond=0)
+
+        if now.minute > 0 or now.second > 0 or now.microsecond > 0:
+            next_run_time = next_run_time + timedelta(hours=1)
+
+        sleep_time = (next_run_time - now).total_seconds()
+        await asyncio.sleep(sleep_time)
+
+    def cog_unload(self):
+        self.post_allowed_commands.cancel()
+
 
 async def setup(bot):
     await bot.add_cog(CommandCheck(bot))
