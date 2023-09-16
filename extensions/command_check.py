@@ -13,15 +13,12 @@ class CommandCheck(commands.Cog):
         json_folder_path = 'C:/Users/Gstar/Desktop/Bot GSTAR/extensions/'
 
         # Charger les configurations à partir du fichier JSON
-        with open(os.path.join(json_folder_path, 'commands_config.json'), 'r') as f:
+        with open('./commands_config.json', 'r') as f:
             config = json.load(f)
-
-        self.forbidden_commands = config['forbidden_commands']
-        self.allowed_commands = config['allowed_commands']
 
         # Charger les derniers messages à partir du fichier JSON
         try:
-            with open(os.path.join(json_folder_path, 'last_messages.json'), 'r') as f:
+            with open('./last_messages.json', 'r') as f:
                 self.last_message_id = json.load(f)
         except FileNotFoundError:
             self.last_message_id = {}
