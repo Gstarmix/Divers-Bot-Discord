@@ -1,11 +1,26 @@
 from datetime import datetime, timedelta
 import asyncio
 from discord.ext import commands, tasks
+import json
 from constants import *
 
 class CommandCheck(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        # Charger les configurations à partir du fichier JSON
+        with open('commands_config.json', 'r') as f:
+            config = json.load(f)
+
+        self.forbidden_commands = config['forbidden_commands']
+        self.allowed_commands = config['allowed_commands']
+
+        # Charger les derniers messages à partir du fichier JSON
+        try:
+            with open('last_messages.json', 'r') as f:
+                self.last_message_id = json.load(f)
+        except FileNotFoundError:
+            self.last_message_id = {}
+
         self.specific_commands = ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$rollsup", "$ru", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim", "$usestack", "us"]
         self.allowed_commands = {
             MUDAE_CONTROL_CHANNEL_ID: [],
@@ -37,6 +52,9 @@ class CommandCheck(commands.Cog):
         self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID] = list(all_commands_except_poke_and_waifus)
 
         self.post_allowed_commands.start()
+        self.message_counts = {}  # Nouveau dictionnaire pour suivre le nombre de messages par salon
+        self.last_message_id = {}  # Nouveau dictionnaire pour suivre le dernier message posté par le bot par salon
+        self.minimum_messages = 5  # Nombre minimum de messages pour conserver le message du bot
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -102,14 +120,38 @@ class CommandCheck(commands.Cog):
                     
                 await message.channel.send(wrong_channel_msg)
 
+        # Mettre à jour le compte de messages pour le salon
+        if message.channel.id in self.message_counts:
+            self.message_counts[message.channel.id] += 1
+        else:
+            self.message_counts[message.channel.id] = 1
+            
     @tasks.loop(hours=1)
     async def post_allowed_commands(self):
         for channel_id, commands_list in self.allowed_commands.items():
             if commands_list:
                 channel = self.bot.get_channel(channel_id)
                 if channel:
+                    # Supprimer le dernier message si le compte de messages est inférieur au minimum
+                    if channel_id in self.message_counts and self.message_counts[channel_id] < self.minimum_messages:
+                        if channel_id in self.last_message_id:
+                            try:
+                                message_to_delete = await channel.fetch_message(self.last_message_id[channel_id])
+                                await message_to_delete.delete()
+                            except:  # Attraper toutes les exceptions, comme le message déjà supprimé
+                                pass
+
+                    # Réinitialiser le compteur de messages pour ce salon
+                    self.message_counts[channel_id] = 0
+
+                    # Envoyer le nouveau message et mettre à jour le dernier message_id
                     sorted_commands = sorted(commands_list)
-                    await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
+                    sent_message = await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
+                    self.last_message_id[channel_id] = sent_message.id
+        # Mettre à jour le dernier message_id et sauvegarder dans le fichier JSON
+        self.last_message_id[channel_id] = sent_message.id
+        with open('last_messages.json', 'w') as f:
+            json.dump(self.last_message_id, f)
 
     @post_allowed_commands.before_loop
     async def before_post_allowed_commands(self):
