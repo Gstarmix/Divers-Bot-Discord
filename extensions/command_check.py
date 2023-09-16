@@ -21,27 +21,13 @@ class CommandCheck(commands.Cog):
         except FileNotFoundError:
             self.last_message_id = {}
 
-        self.specific_commands = ["$tu", "$timersup", "$mu", "$marryup", "$ku", "$kakeraup", "$rollsup", "$ru", "$vote", "$daily", "$rolls", "$dk", "$dailykakera", "$rt", "$resetclaimtimer", "$fc", "$freeclaim", "$usestack", "us"]
-        self.allowed_commands = {
-            MUDAE_CONTROL_CHANNEL_ID: [],
-            MUDAE_TUTORIAL_CHANNEL_ID: ["$tuto", "$chall"],
-            MUDAE_WAIFUS_CHANNEL_ID: ["$w", "$h", "$m", "$wa", "$wg", "$ha", "$hg", "$ma", "$mg", "$dk", "$dailykakera", "$mu", "$ku", "$tu", "$rt", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls", "$vote", "$daily", "$rolls", "$usestack", "$rollsleft", "$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$rollsup", "$setrolls", "$rdmimg", "$overview", "$mm", "$ima", "$im", "$ru", "$fc", "$search", "$changeimg", "$fn", "$sm", "$firstmarry", "$fm", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$rc", "$setfooter", "$embedcolor", "$help", "$divorce", "$bonus", "$boostwish", "$bw", "$boostkakera", "$bk", "$usestack", "us"],
-            MUDAE_TRADE_CHANNEL_ID: ["$trade", "$marryexchange", "$pinexchange", "$give", "$givekakera", "$givepin", "$mm", "$givek", "$givekakera", "$ima", "$im", "$search", "$changeimg", "$fn", "$sm", "$firstmarry", "$fm", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$givecustom", "$embedcolor", "$help", "$divorce", "$bonus"],
-            MUDAE_WISH_CHANNEL_ID: ["$wl", "$wr", "$wp", "$wishdm", "$wish", "$wishremove", "$wishlist", "$wishremoveall", "$wishd", "$wishk", "$wishl", "$boostwish", "$wishdm", "$wishsort", "$wishpurge", "$firstwish", "$fw", "$wishseries", "$wishserieslist", "$clearwishes", "$qs", "$ql", "$qw", "$disable", "$disablelist", "$serverdisable", "$dl", "$sd", "$mm", "$antidisablelist", "$ad", "$antidisable", "$adl", "$enable", "$antienableall", "$antienable", "$add", "$wishk", "$ima", "$im", "$search", "$changeimg", "$note", "$fn", "$sm", "$firstmarry", "$fm", "$like", "$likelist", "$likeremove", "$lr", "$ll", "$l", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$ae", "$togglewestern", "$embedcolor", "$help", "$divorce", "$bonus", "$boostwish", "$bw", "$al", "$alias", "$a2", "$alias2", "$ai", "$addimg", "selfreset", "$rc"],
-            MUDAE_KAKERA_CHANNEL_ID: ["$k", "$dk", "$kl", "$kt", "$lk", "$givek", "$kakera", "$kakerareward", "$togglekakerarolls", "$infokl", "$kakeraloot", "$kakeratower", "$dailykakera", "$wishk", "$kakeradm", "$givekakera", "$badgevalue", "$togglekakerasnipe", "$kakerareact", "$kakerarefund", "$kakeraremove", "$cleankakera", "$kakerarefundall", "$kakeraremoveall", "$kakerascrap", "$givescrap", "$mm", "$ima", "$im", "$ku", "$tu", "$search", "$changeimg", "$fn", "$sm", "$firstmarry", "$fm", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$badge", "$badges", "$bronze", "$silver", "$gold", "$sapphire", "$ruby", "$emerald", "$quantity", "$quality", "$myid", "$avatar", "$build", "$destroy", "$embedcolor", "$help", "$divorce", "$bonus", "$boostkakera", "$bk"],
-            MUDAE_POKESLOT_CHANNEL_ID: ["$pokemon", "$p", "$pokedex", "$pd", "$sortpkm", "$ps", "$shinyhunt", "$sh", "$release", "$r", "$autorelease", "$arl", "$pokelike", "$pl", "$pokelikelist", "$togglepokelike", "$pokeprofile", "$pokerank", "$pokeserv", "$pokemode"],
-            MULTI_GAMES_CHANNEL_ID: ["$blacktea", "$greentea", "$redtea", "$yellowtea", "$mixtea", "$quiz", "$jankenpon", "$pokeduel", "/bingo", "/chifumi", "/colormind", "/jeux", "/morpion", "/pendu", "/puissance4", "$42ball", "$mm", "$ima", "$im", "$search", "$changeimg", "$fate", "$quotimage", "$beam", "$blacktea", "$fn", "$sm", "$firstmarry", "$fm", "$top", "$topo", "$topl", "$topserv", "$topservk", "$tsk", "$left", "$myid", "$avatar", "$skills", "$embedcolor", "$help", "$skillsgm", "$vsgm", "$dsgm", "$favarenagm"],
-            MUDAE_MODO_CHANNEL_ID: [],
-            LOG_CHANNEL_ID: [],
-            MUDAE_CONTROL_CHANNEL_ID: [],
-            MUDAE_WAIFUS_CHANNEL_2_ID: ["$waifu", "$waifua", "$waifug", "$waifub", "$husbando", "$husbandoa", "$husbandog", "$husbandob", "$marry", "$marrya", "$marryg", "$marryb", "$w", "$h", "$m", "$wa", "$ha", "$ma", "$wg", "$hg", "$mg", "$us", "$usestack"],
-            MUDAE_SETTINGS_CHANNEL_2_ID: []
-        }
+        self.specific_commands = config['specific_commands']
+        self.allowed_commands = config['allowed_commands']
 
         self.allowed_commands[MUDAE_WAIFUS_CHANNEL_2_ID].extend(self.specific_commands)
         self.allowed_commands[MUDAE_SETTINGS_CHANNEL_2_ID].extend(self.specific_commands)
 
-        self.forbidden_commands = ["$lang", "$skiptuto", "$settings", "$setrare", "$settimer", "$setrolls", "$setclaim", "$shifthour", "$setinterval", "$haremlimit", "$togglereact", "$channelinstance", "$gamemode", "$servlimroul", "$togglebuttons", "$toggleclaimrolls", "$togglelikerolls", "$togglekakerarolls", "$togglehentai", "$toggledisturbing", "$toggleclaimrank", "$togglelikerank", "$serverdisable", "$togglesnipe", "$togglekakerasnipe", "$leftusers", "$restorelist", "$restore", "$channeldeny", "$channelrestrict", "$setchannel", "$restrict", "$deny", "$setpermission", "$togglesilent", "$givecustom", "$forcedivorce", "$cleanuser", "$userdivorce", "$thanos", "$thanosall", "$bitesthedust", "$clearnotes", "$clearwishes", "$resetalias2", "$fullreset", "$mk", "$togglekakera", "$badgevalue", "$cleankakera", "$givescrap", "$kakerascrap", "$addimg", "$addcustom", "$claimreact", "$kakerareact", "$wishseries", "$haremcopy", "$kakeracopy", "$limroul", "$setpermission", "$ic", "$togglekakerarolls", "$toggleclaimrolls", "$togglelikerolls"]
+        self.forbidden_commands = config['forbidden_commands']
         
         self.mod_commands = []
         for channel_id, commands in self.allowed_commands.items():
