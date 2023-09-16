@@ -13,7 +13,7 @@ class CommandCheck(commands.Cog):
         path = "C:\\Users\\user\\Desktop\\Bot GSTAR\\commands_config.json"
 
         # Charger les configurations à partir du fichier JSON
-        with open(path, 'r') as f:  # Utilisez la variable path ici
+        with open(path, 'r') as f:  # Utilisez la variable 'path' ici
             config = json.load(f)
 
         # Charger les derniers messages à partir du fichier JSON
@@ -23,6 +23,9 @@ class CommandCheck(commands.Cog):
                 self.last_message_id = json.load(f)
         except FileNotFoundError:
             self.last_message_id = {}
+            
+        print(os.getcwd())  # pour afficher le répertoire de travail actuel
+
 
         self.specific_commands = config['specific_commands']
         self.allowed_commands = config['allowed_commands']
