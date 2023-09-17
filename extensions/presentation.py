@@ -29,7 +29,7 @@ class Presentation(commands.Cog):
         return (
             f":white_small_square: - Félicitations {thread.owner.mention} ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. "
             f"N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <#1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n"
-            f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela a supprimé ton deuxième pseudo, ajoute-le toi-même séparé par un `|` afin que nous puissions reconnaître tous tes personnages facilement."
+            f":white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela a supprimé tes autres pseudos, ajoute-les toi-même séparé par un `|` afin que nous puissions reconnaître tous tes personnages facilement.\n"
             f":white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle <@&{recruitment_role_id}> ici.\n"
             f":white_small_square: - Nous souhaitons que tout se déroule dans ta présentation. N'envoie donc pas de messages privés et ne nous mentionne nulle part ailleurs que <a:tention:1093967837992849468> **DANS TA PRÉSENTATION** <a:tention:1093967837992849468> si tu souhaites être recruté."
         )
