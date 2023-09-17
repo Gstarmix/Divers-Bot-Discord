@@ -13,7 +13,7 @@ class MudaeInfoScheduler(commands.Cog):
         self.delay_minutes = 60
 
 
-        with open('extensions/mudae_info_scheduler.json', 'r') as f:
+        with open('extensions/mudae_info_scheduler.json', 'r', encoding='utf-8') as f:
             self.shuffled_messages = json.load(f)
 
         shuffle(self.shuffled_messages)
