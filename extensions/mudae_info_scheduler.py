@@ -10,7 +10,7 @@ class MudaeInfoScheduler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.last_message_index = None
-        self.delay_minutes = 60
+        self.delay_minutes = 45
 
 
         with open('extensions/mudae_info_scheduler.json', 'r', encoding='utf-8') as f:

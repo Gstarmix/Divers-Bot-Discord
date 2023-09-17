@@ -13,20 +13,25 @@
     },
     {
         "title": "Quel est l'ordre optimal pour obtenir les badges ?",
-        "description": "- Pour économiser plus de 10 000 kakeras, l'ordre recommandé pour obtenir les badges est : Bronze 2, Silver 2, Gold 2 (dans l'ordre que vous préférez), suivi de Ruby 4, puis ce que vous voulez ensuite.",
+        "description": "- Pour économiser plus de 10 000 kakeras, l'ordre recommandé pour obtenir les badges est : Bronze II, Silver II, Gold II (dans l'ordre que vous préférez), suivi de Ruby IV, puis ce que vous voulez ensuite.",
         "emoji": ":camera_with_flash:",
         "command_desc": "[Ordre recommandé pour obtenir les badges](https://www.zupimages.net/up/23/37/3ch5.png)"
     },
     {
+        "title": "Les badges sont-ils importants ?",
+        "description": "- Oui, les badges vous donnent des bonus qui augmentent exponentiellement le nombre de vos kakeras accumulés (et non dépensés), visibles avec la commande `$tsk`. Après l'achat de tous vos badges IV, faites la Kakera Tower ou la Kakera Loots.",
+        "command_desc": ":camera_with_flash: [Informations sur les badges avec la commande `$kr`](https://www.zupimages.net/up/23/37/lpkl.png)\n:camera_with_flash: [Informations sur la Kakera Tower avec la commande `$kt`](https://www.zupimages.net/up/23/37/zhqv.png)\n:camera_with_flash: [Informations sur la Kakera Loots avec la commande `$infokl`](https://www.zupimages.net/up/23/37/fy3o.png)"
+    },    
+    {
         "title": "Comment obtenir le kakera arc-en-ciel ?",
         "description": "- Le **kakera arc-en-ciel** <:kakera_rainbow:1146568126465577020> apparaît aléatoirement lors des tirages de certains personnages déjà mariés. La probabilité est de 0.044%.",
-        "command_desc": ":camera_with_flash: [Apparition et récupération d'un kakera arc-en-ciel](https://image.noelshack.com/fichiers/2023/35/7/1693706863-kakeraarcenciel.png)\n:camera_with_flash: [Tableau des probabilités d'apparition des kakeras](https://image.noelshack.com/fichiers/2023/35/7/1693707489-dropratekakera.png)"
+        "command_desc": ":camera_with_flash: [Apparition et récupération d'un kakera arc-en-ciel](https://www.zupimages.net/up/23/35/yssr.png)\n:camera_with_flash: [Tableau des probabilités d'apparition des kakeras](https://www.zupimages.net/up/23/35/hzxj.png)"
     },    
     {
         "title": "Que faire si j'obtiens un kakera arc-en-ciel ?",
         "description": "- Cliquez sur le kakera pour le récupérer. Vous recevrez un montant en kakera et une image du kakera apparaîtra sur votre profil. Ensuite, envoyez-moi un message privé pour que je vous récompense en or ou €.",
         "emoji": ":camera_with_flash:",
-        "command_desc": "[Utilisation de la commande `$profile` ou `pr` avec un kakera arc-en-ciel de visible](https://image.noelshack.com/fichiers/2023/35/7/1693706863-profile.png)"
+        "command_desc": "[Utilisation de la commande `$profile` ou `pr` avec un kakera arc-en-ciel de visible](https://www.zupimages.net/up/23/37/sy76.png)"
     },
     {
         "title": "Comment optimiser mes gains de récompenses en or ou € ?",
