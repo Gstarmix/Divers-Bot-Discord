@@ -3,7 +3,7 @@
         "title": "Comment fonctionne ce concours Mudae ?",
         "description": "- Le concours est basé sur la collecte de kakeras. Plus vous avez de kakeras, plus grande sera votre récompense.",
         "emoji": ":camera_with_flash:",
-        "command_desc": "[Utilisation de la commande `$tsk`](https://image.noelshack.com/fichiers/2023/35/7/1693706903-tsk.png)"
+        "command_desc": "[Utilisation de la commande `$tsk`](https://www.zupimages.net/up/23/37/hlt9.png)"
     },
     {
         "title": "Qu'est-ce que le kakera ?",
@@ -19,8 +19,8 @@
     },
     {
         "title": "Les badges sont-ils importants ?",
-        "description": "- Oui, les badges vous donnent des bonus qui augmentent exponentiellement le nombre de vos kakeras accumulés (et non dépensés), visibles avec la commande `$tsk`. Après l'achat de tous vos badges IV, faites la Kakera Tower ou la Kakera Loots.",
-        "command_desc": ":camera_with_flash: [Informations sur les badges avec la commande `$kr`](https://www.zupimages.net/up/23/37/lpkl.png)\n:camera_with_flash: [Informations sur la Kakera Tower avec la commande `$kt`](https://www.zupimages.net/up/23/37/zhqv.png)\n:camera_with_flash: [Informations sur la Kakera Loots avec la commande `$infokl`](https://www.zupimages.net/up/23/37/fy3o.png)"
+        "description": "- Oui, les badges vous offrent des bonus qui contribuent à une augmentation exponentielle du nombre de vos kakeras accumulés, visibles via la commande `$tsk`. Notez que l'achat de badges et d'autres éléments ne réduit pas votre `$tsk`. Après avoir acquis tous les badges de niveau IV, vous pouvez vous lancer dans la Kakera Tower ou les Kakera Loots.",
+        "command_desc": ":camera_with_flash: [Informations sur les badges avec la commande `$kr`](https://www.zupimages.net/up/23/37/lpkl.png)\n:camera_with_flash: [Informations sur la Kakera Tower avec la commande `$kt`](https://www.zupimages.net/up/23/37/zhqv.png)\n:camera_with_flash: [Informations sur les Kakera Loots avec la commande `$infokl`](https://www.zupimages.net/up/23/37/fy3o.png)"
     },    
     {
         "title": "Comment obtenir le kakera arc-en-ciel ?",
@@ -36,17 +36,17 @@
     {
         "title": "Comment optimiser mes gains de récompenses en or ou € ?",
         "description": "- Pour recevoir la totalité de la récompense, soit 300m ou 30€, vous devez cumuler au moins 300 000 kakeras accumulés. Vous pouvez vérifier votre total de kakeras accumulés avec la commande `$tsk`.",
-        "command_desc": ":camera_with_flash: [Répartition des gains selon le total de kakeras accumulés en or](https://image.noelshack.com/fichiers/2023/36/1/1693847731-kakera-cumule.png)"
+        "command_desc": ":camera_with_flash: [Répartition des gains selon le total de kakeras accumulés en or](https://www.zupimages.net/up/23/37/pdya.png)\n:camera_with_flash: [Répartition des gains selon le total de kakeras accumulés en € et $](https://www.zupimages.net/up/23/37/sjk2.png)"
     },
     {
         "title": "Où sont annoncés les gagnants et peuvent-ils gagner plusieurs fois ?",
         "description": "- Les noms des gagnants sont publiés dans le salon <#1146566186012778556>. Un même joueur peut y apparaître plusieurs fois s'il a remporté plusieurs victoires, c'est-à-dire qu'il a fait apparaître et a récupéré le **kakera arc-en-ciel** <:kakera_rainbow:1146568126465577020> à plusieurs reprises.",
-        "command_desc": ":camera_with_flash: [Salon des accomplissements](https://image.noelshack.com/fichiers/2023/35/7/1693706863-accomplissement.png)"
+        "command_desc": ":camera_with_flash: [Salon des accomplissements](https://www.zupimages.net/up/23/35/6cja.png)"
     },
     {
         "title": "Pourquoi créer une deuxième instance ?",
         "description": "- Tandis que l'Instance 1 se focalise sur la collecte de personnages, l'Instance 2 est focalisé sur le divorce de personnages afin de récupérer des kakeras et maximiser la récompense en or ou €. Les kakeras accumulés dans l'Instance 2 seront transférés vers l'Instance 1 à la fin du concours.",
-        "command_desc": ":camera_with_flash: [Salons de l'instance 1 et 2](https://image.noelshack.com/fichiers/2023/35/7/1693708002-instance1-2.png)"
+        "command_desc": ":camera_with_flash: [Salons de l'instance 1 et 2](https://www.zupimages.net/up/23/37/4m81.png)"
     },
     {
         "title": "Comment débuter avec Mudae ?",
