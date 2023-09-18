@@ -125,7 +125,7 @@ class CommandCheck(commands.Cog):
             else:
                 self.message_counts[channel.id] = 1
             
-    @tasks.loop(hours=6)
+    @tasks.loop(hours=3)
     async def post_allowed_commands(self):
         for channel_name, commands_list in self.allowed_commands.items():
             channel_id = const.CHANNELS_NAME_TO_ID[channel_name]
