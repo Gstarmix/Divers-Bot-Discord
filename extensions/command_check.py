@@ -94,10 +94,6 @@ class CommandCheck(commands.Cog):
                     await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{target_channel}>.")
                 return
 
-            # allowed_channels = [channel_name for channel_name, commands in self.allowed_commands.items() if command in commands]
-            # allowed_channels = list(filter(lambda x: x not in [const.MUDAE_MODO_CHANNEL_ID, const.LOG_CHANNEL_ID, const.MUDAE_CONTROL_CHANNEL_ID, const.MUDAE_SETTINGS_CHANNEL_2_ID], allowed_channels))
-            # allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
-
             allowed_channels: set[int] = {const.CHANNELS_NAME_TO_ID[channel_name] for channel_name, commands_list in self.allowed_commands.items() if command in commands_list and channel_name not in {"MUDAE_MODO_CHANNEL_ID", "LOG_CHANNEL_ID", "MUDAE_CONTROL_CHANNEL_ID", "MUDAE_SETTINGS_CHANNEL_2_ID"}}
 
             if channel.id not in allowed_channels:
@@ -129,7 +125,7 @@ class CommandCheck(commands.Cog):
             else:
                 self.message_counts[channel.id] = 1
             
-    @tasks.loop(hours=1)
+    @tasks.loop(hours=6)
     async def post_allowed_commands(self):
         for channel_name, commands_list in self.allowed_commands.items():
             channel_id = const.CHANNELS_NAME_TO_ID[channel_name]
