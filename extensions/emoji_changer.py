@@ -1,5 +1,5 @@
 from discord.ext import commands, tasks
-from constants import ANGE_DEMON_CHANNEL_ID
+# from constants import ANGE_DEMON_CHANNEL_ID
 
 
 class EmojiChanger(commands.Cog):
@@ -12,15 +12,15 @@ class EmojiChanger(commands.Cog):
 
     @tasks.loop(minutes=10)
     async def change_emoji(self):
-        channel = self.bot.get_channel(ANGE_DEMON_CHANNEL_ID)
+        channel = self.bot.get_channel(1152606429400805476)
         if not channel:
-            print(f"Canal avec l'ID {ANGE_DEMON_CHANNEL_ID} introuvable.")
+            print(f"Canal avec l'ID {1152606429400805476} introuvable.")
             return
 
-        if "🔵" in channel.name:
-            new_name = channel.name.replace("🔵", "🔴")
+        if "🧊" in channel.name:
+            new_name = channel.name.replace("🧊", "🔥")
         else:
-            new_name = channel.name.replace("🔴", "🔵")
+            new_name = channel.name.replace("🔥", "🧊")
 
         await channel.edit(name=new_name)
 
