@@ -17,10 +17,10 @@ class EmojiChanger(commands.Cog):
             print(f"Canal avec l'ID {ANGE_DEMON_CHANNEL_ID} introuvable.")
             return
 
-        if "👼" in channel.name:
-            new_name = channel.name.replace("👼", "😈")
+        if "🔵" in channel.name:
+            new_name = channel.name.replace("🔵", "🔴")
         else:
-            new_name = channel.name.replace("😈", "👼")
+            new_name = channel.name.replace("🔴", "🔵")
 
         await channel.edit(name=new_name)
 
