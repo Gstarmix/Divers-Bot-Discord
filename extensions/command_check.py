@@ -155,7 +155,7 @@ class CommandCheck(commands.Cog):
         next_run_time = now.replace(minute=0, second=0, microsecond=0)
 
         if now.minute > 0 or now.second > 0 or now.microsecond > 0:
-            next_run_time = next_run_time + timedelta(hours=1)
+            next_run_time = next_run_time + timedelta(hours=3)
 
         sleep_time = (next_run_time - now).total_seconds()
         await asyncio.sleep(sleep_time)
