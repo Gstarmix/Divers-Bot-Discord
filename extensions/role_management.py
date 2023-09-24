@@ -38,6 +38,6 @@ class RoleManagement(commands.Cog):
         await ctx.send("RoleManagement Cog is working!")
 
 async def setup(bot):
-    bot.add_cog(RoleManagement(bot))
+    await bot.add_cog(RoleManagement(bot))
     print("RoleManagement Cog loaded")
 
