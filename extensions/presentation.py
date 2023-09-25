@@ -2,8 +2,7 @@ import json
 import os
 import asyncio
 from json import JSONDecodeError
-from discord import AllowedMentions, Forbidden
-from discord.channel import ThreadType
+from discord import AllowedMentions, Forbidden, ChannelType
 from discord.ext import commands
 from discord.errors import NotFound
 from constants import *
@@ -202,7 +201,7 @@ class Presentation(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        if message.channel.type == ThreadType.public and message.channel.id in self.threads and message.author.id == self.threads[message.channel.id]:
+        if message.channel.type is ChannelType.public_thread and message.channel.id in self.threads and message.author.id == self.threads[message.channel.id]:
             try:
                 await message.author.remove_roles(self.bot.get_guild(GUILD_ID_FAFA).get_role(ROLE1_ID_FAFA))
                 await message.channel.delete()
