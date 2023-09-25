@@ -17,8 +17,6 @@ class ThreadCreator(commands.Cog):
             MEMES_CHANNEL_ID: "Meme",
             VDO_VDM_CHANNEL_ID: "Anecdote",
             RECHERCHE_KELKIN_CHANNEL_ID: "Recherche",
-            COMMERCES_INT4_CHANNEL_ID: "Commerce",
-            ACTIVITES_INT4_CHANNEL_ID: "Activité",
             MUDAE_IDEAS_CHANNEL_ID: "Idée Mudae"
         }
         self.channel_delays = {
@@ -28,8 +26,6 @@ class ThreadCreator(commands.Cog):
             VIDEO_CHANNEL_ID: 600,
             VDO_VDM_CHANNEL_ID: 600,
             RECHERCHE_KELKIN_CHANNEL_ID: 600,
-            COMMERCES_INT4_CHANNEL_ID: 600,
-            ACTIVITES_INT4_CHANNEL_ID: 600,
             MUDAE_IDEAS_CHANNEL_ID: 600
         }
 
