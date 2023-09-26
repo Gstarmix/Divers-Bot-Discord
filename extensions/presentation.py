@@ -120,21 +120,22 @@ class Presentation(commands.Cog):
             return
 
         new_name = thread.name
-        if response.content.lower() == 'non':
-            while True:
+        while True:
+            if response.content.lower() == 'non' or len(new_name) > 32:
                 if len(new_name) > 32:
                     await thread.send(f"{thread.owner.mention} {self.data['messages']['long_pseudo']}")
-                else:
-                    response = await self.ask_question(thread, 'pseudo_in_game', check, yes_no_question=False)
+                response = await self.ask_question(thread, 'pseudo_in_game', check, yes_no_question=False)
+                if response is None:
+                    return
+                new_name = response.content
+                if len(new_name) <= 32:
+                    response = await self.ask_question(thread, 'confirm_pseudo', check, new_name=new_name)
                     if response is None:
                         return
-                    new_name = response.content
-                    if len(new_name) <= 32:
-                        response = await self.ask_question(thread, 'confirm_pseudo', check, new_name=new_name)
-                        if response is None:
-                            return
-                        if response.content.lower() == 'oui':
-                            break
+                    if response.content.lower() == 'oui':
+                        break
+                    else:
+                        new_name = ""
 
         try:
             await thread.owner.edit(nick=new_name)
