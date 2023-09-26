@@ -1,15 +1,19 @@
 {
     "questions": {
-        "pseudo_correct": "Est-ce que votre pseudo en jeu est correctement affiché dans le titre ? Répondez par `Oui` ou `Non`.",
+        "pseudo_correct": "Est-ce que le pseudo `{thread_name}` est le pseudo que vous voulez utiliser pour vous renommer ? Répondez par `Oui` ou `Non`.",
+        "confirm_pseudo": "Voulez-vous confirmer le pseudo `{thread_name}` ? Répondez par `Oui` ou `Non`.",
         "pseudo_in_game": "Veuillez entrer votre pseudo en jeu.",
         "send_screenshot": "Avez-vous inclus une capture d'écran de votre fiche personnage, arme principale, arme secondaire, armure, SP et résistances ? Répondez par `Oui` ou `Non`.",
         "additional_screenshot": "Voulez-vous envoyer d'autres captures d'écran pour compléter votre réponse précédente ? Répondez par `Non` ou envoyez une nouvelle `capture d'écran`.",
+        "more_screenshots": "Veuillez continuer à envoyer des captures d'écran si vous en avez d'autres, sinon répondez par `Non`.",
         "choose_family": "Quel est le nom de la famille où vous voulez être recruté ? Répondez par `Yertirand` ou `-GANG-`.",
-        "invalid_family": "Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`.",
-        "confirm_pseudo": "Voulez-vous confirmer ce pseudo ? Répondez par `Oui` ou `Non`."
+        "invalid_family": "Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`."
     },
     "messages": {
         "long_pseudo": "Votre pseudo est trop long (plus de 32 caractères). Veuillez le changer.",
+        "invalid_yes_no_response": "Je n'ai pas compris votre réponse. Veuillez répondre par `Oui` ou `Non`.",
+        "invalid_screenshot_response": "Je n'ai pas compris votre réponse. Veuillez répondre par `Non` ou envoyez une nouvelle `capture d'écran`.",
+        "timeout_response": "Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.",
         "generate_message": ":white_small_square: - Félicitations {owner_mention} ! Tu as désormais le rôle <@&{role_id}>, ce qui te donne accès à tous les salons du serveur. N'oublie pas de te rendre dans le salon <#1031609454527000616> pour consulter les règles et le salon <#1056343806196318248> pour choisir tes rôles. De cette façon, tu pourras réserver un créneau pour LoL et participer aux discussions dans les salons dédiés au LoL.\n:white_small_square: - Ton pseudo Discord a été mis à jour pour correspondre à celui indiqué dans ta présentation. Si cela a supprimé tes autres pseudos, ajoute-les toi-même séparé par un `|` afin que nous puissions reconnaître tous tes personnages facilement.\n:white_small_square: - Lorsque tu seras prêt à être recruté, mentionne le rôle <@&{recruitment_role_id}> ici.\n:white_small_square: - Nous souhaitons que tout se déroule dans ta présentation. N'envoie donc pas de messages privés et ne nous mentionne nulle part ailleurs que <a:tention:1093967837992849468> **DANS TA PRÉSENTATION** <a:tention:1093967837992849468> si tu souhaites être recruté."
     }
 }

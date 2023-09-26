@@ -15,7 +15,6 @@ class Presentation(commands.Cog):
         self.delete_messages = {}
         self.families = ["yertirand", "-gang-"]
 
-        # Vérifiez et chargez les fichiers JSON
         self.load_json_files()
 
     def load_json_files(self):
@@ -39,27 +38,14 @@ class Presentation(commands.Cog):
                         previous_presentations = data
                     elif file_path.endswith('saved_presentations.json'):
                         saved_presentations = data
-            except FileNotFoundError:
-                print(f"Erreur: Fichier {file_path} non trouvé.")
+            except (FileNotFoundError, JSONDecodeError):
                 if file_path.endswith('presentation_messages.json'):
                     self.data = {}
                 elif file_path.endswith('previous_presentations.json'):
                     previous_presentations = {}
                 elif file_path.endswith('saved_presentations.json'):
                     saved_presentations = {}
-            except JSONDecodeError:
-                print(f"Erreur: Le fichier {file_path} est mal formé.")
-                # Initialisez les variables en fonction du fichier JSON mal formé
-                if file_path.endswith('presentation_messages.json'):
-                    self.data = {}
-                elif file_path.endswith('previous_presentations.json'):
-                    previous_presentations = {}
-                elif file_path.endswith('saved_presentations.json'):
-                    saved_presentations = {}
-            except Exception as e:
-                print(f"Erreur inattendue lors de la lecture de {file_path}: {e}")
 
-        # Mettez à jour et écrivez dans saved_presentations.json
         try:
             saved_presentations.update(previous_presentations)
             with open('extensions/saved_presentations.json', 'w', encoding='utf-8') as f:
@@ -80,43 +66,39 @@ class Presentation(commands.Cog):
                     print(f"Could not remove role {role.name}")
 
         await thread.owner.add_roles(*new_roles)
-
-        # Utilisation du message généré à partir du fichier JSON
         return self.data['messages']['generate_message'].format(owner_mention=thread.owner.mention, role_id=role_id, recruitment_role_id=recruitment_role_id)
 
-    async def ask_question(self, thread, question_key, check, yes_no_question=True, image_allowed=False):
-        message = self.data['questions'][question_key]
-        first_time = True
+    async def ask_question(self, thread, question_key, check, new_name=None, yes_no_question=True, image_allowed=False):
+        message_template = self.data['questions'][question_key]
+        thread_name = thread.name if question_key not in ['confirm_pseudo'] else new_name
+        message = message_template.format(thread_name=thread_name)
+        
+        attachments_urls = []
         while True:
-            if first_time:
-                user_message_sent = False
-                async for msg in thread.history(limit=5):
-                    if msg.author == thread.owner:
-                        user_message_sent = True
-                        break
-
-                if not user_message_sent:
-                    await asyncio.sleep(5)
-                    continue
-
-                await thread.send(f"{thread.owner.mention} {message}")
-                first_time = False
+            await thread.send(f"{thread.owner.mention} {message}")
             try:
                 response = await self.bot.wait_for('message', check=check, timeout=600)
                 if yes_no_question:
                     if response.content.lower() in ['oui', 'non']:
                         return response
                     else:
-                        message = "Je n'ai pas compris votre réponse. Veuillez répondre par `Oui` ou `Non`."
-                elif image_allowed and response.attachments:
-                    return response
+                        message = self.data['messages']['invalid_yes_no_response']
+                elif image_allowed:
+                    if response.attachments and any(att.content_type.startswith('image/') for att in response.attachments):
+                        attachments_urls.extend(attachment.url for attachment in response.attachments)
+                        message = self.data['questions']['more_screenshots']
+                    elif "http" in response.content:
+                        attachments_urls.append(response.content)
+                        message = self.data['questions']['more_screenshots']
+                    else:
+                        message = self.data['messages']['invalid_screenshot_response']
+
                 else:
                     return response
             except asyncio.TimeoutError:
-                await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+                await thread.owner.send(self.data['messages']['timeout_response'])
                 await thread.delete()
                 return None
-            await thread.send(f"{thread.owner.mention} {message}")
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -133,44 +115,43 @@ class Presentation(commands.Cog):
         def check(m):
             return m.channel == thread and m.author == thread.owner
 
-        # Utilisation des questions à partir du fichier JSON
         response = await self.ask_question(thread, 'pseudo_correct', check)
         if response is None:
             return
-        new_name = thread.name
-        while response.content.lower() == 'non':
-            response = await self.ask_question(thread, 'pseudo_in_game', check, yes_no_question=False)
-            if response is None:
-                return
-            new_name = response.content
-            if len(new_name) <= 32:
-                response = await self.ask_question(thread, 'confirm_pseudo', check)
-                if response is None:
-                    return
-                if response.content.lower() == 'oui':
-                    try:
-                        await thread.owner.edit(nick=new_name)
-                        await thread.edit(name=new_name)
-                    except Exception as e:
-                        print(f"Erreur lors de la modification du pseudo Discord ou du titre du fil : {e}")
-            else:
-                await thread.send(f"{thread.owner.mention} {self.data['messages']['long_pseudo']}")
-                return
 
-        response = await self.ask_question(thread, 'send_screenshot', check)
-        if response is None:
-            return
+        new_name = thread.name
+        if response.content.lower() == 'non':
+            while True:
+                if len(new_name) > 32:
+                    await thread.send(f"{thread.owner.mention} {self.data['messages']['long_pseudo']}")
+                else:
+                    response = await self.ask_question(thread, 'pseudo_in_game', check, yes_no_question=False)
+                    if response is None:
+                        return
+                    new_name = response.content
+                    if len(new_name) <= 32:
+                        response = await self.ask_question(thread, 'confirm_pseudo', check, new_name=new_name)
+                        if response is None:
+                            return
+                        if response.content.lower() == 'oui':
+                            break
+
+        try:
+            await thread.owner.edit(nick=new_name)
+            await thread.edit(name=new_name)
+        except Exception as e:
+            print(f"Erreur lors de la modification du pseudo Discord ou du titre du fil : {e}")
 
         screenshots = []
+        response = await self.ask_question(thread, 'send_screenshot', check, yes_no_question=True, image_allowed=True)
         while response.content.lower() == 'non' or response.attachments:
             if response.attachments:
                 screenshots.extend(attachment.url for attachment in response.attachments)
-            # Demandez à l'utilisateur s'il souhaite envoyer d'autres captures d'écran
             response = await self.ask_question(thread, 'additional_screenshot', check, yes_no_question=True, image_allowed=True)
             if response is None:
                 return
             if response.content.lower() == 'non':
-                break  # Sortez de la boucle si l'utilisateur ne souhaite pas envoyer d'autres captures d'écran
+                break
 
         family_name = ""
         while family_name not in self.families:
@@ -183,7 +164,6 @@ class Presentation(commands.Cog):
         allowed_mentions = AllowedMentions(everyone=False, users=True, roles=False)
         await thread.send(message, allowed_mentions=allowed_mentions)
 
-        # Sauvegarde de la présentation dans le fichier JSON
         with open('extensions/saved_presentations.json', 'r') as f:
             presentations = json.load(f)
 
@@ -207,7 +187,7 @@ class Presentation(commands.Cog):
                 await message.channel.delete()
                 await message.author.send("Votre fil a été supprimé car un message a été supprimé. Vous devez recommencer votre présentation pour avoir accès aux salons.")
             except Forbidden:
-                pass  # Handle permission error if necessary
+                pass
 
 
 async def setup(bot):
