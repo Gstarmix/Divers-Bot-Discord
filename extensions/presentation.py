@@ -69,32 +69,17 @@ class Presentation(commands.Cog):
         return self.data['messages']['generate_message'].format(owner_mention=thread.owner.mention, role_id=role_id, recruitment_role_id=recruitment_role_id)
 
     async def ask_question(self, thread, question_key, check, new_name=None, yes_no_question=True, image_allowed=False):
-        message_template = self.data['questions'][question_key]
-        thread_name = thread.name if question_key not in ['confirm_pseudo'] else new_name
-        message = message_template.format(thread_name=thread_name)
-        
-        attachments_urls = []
+        message = self.data['questions'][question_key].format(thread_name=thread.name if new_name is None else new_name)
         while True:
             await thread.send(f"{thread.owner.mention} {message}")
             try:
                 response = await self.bot.wait_for('message', check=check, timeout=600)
-                if yes_no_question:
-                    if response.content.lower() in ['oui', 'non']:
-                        return response
-                    else:
-                        message = self.data['messages']['invalid_yes_no_response']
-                elif image_allowed:
-                    if response.attachments and any(att.content_type.startswith('image/') for att in response.attachments):
-                        attachments_urls.extend(attachment.url for attachment in response.attachments)
-                        message = self.data['questions']['more_screenshots']
-                    elif "http" in response.content:
-                        attachments_urls.append(response.content)
-                        message = self.data['questions']['more_screenshots']
-                    else:
-                        message = self.data['messages']['invalid_screenshot_response']
-
-                else:
+                if yes_no_question and response.content.lower() in ['oui', 'non']:
                     return response
+                elif not yes_no_question and (not image_allowed or (image_allowed and response.attachments)):
+                    return response
+                else:
+                    message = self.data['messages']['invalid_' + ('yes_no_response' if yes_no_question else 'screenshot_response')]
             except asyncio.TimeoutError:
                 await thread.owner.send(self.data['messages']['timeout_response'])
                 await thread.delete()
@@ -118,42 +103,39 @@ class Presentation(commands.Cog):
         response = await self.ask_question(thread, 'pseudo_correct', check)
         if response is None:
             return
-
-        new_name = thread.name
+                
         while True:
-            if response.content.lower() == 'non' or len(new_name) > 32:
-                if len(new_name) > 32:
-                    await thread.send(f"{thread.owner.mention} {self.data['messages']['long_pseudo']}")
-                response = await self.ask_question(thread, 'pseudo_in_game', check, yes_no_question=False)
+            if len(thread.name) > 32:
+                await thread.send(f"{thread.owner.mention} {self.data['messages']['long_pseudo']}")
+                continue  # Continue to the next iteration of the loop, skipping the lines below
+            response = await self.ask_question(thread, 'pseudo_in_game', check, yes_no_question=False)
+            if response is None:
+                return
+            new_name = response.content
+            if len(new_name) <= 32:
+                response = await self.ask_question(thread, 'long_pseudo', check, new_name=new_name)
                 if response is None:
                     return
-                new_name = response.content
-                if len(new_name) <= 32:
-                    response = await self.ask_question(thread, 'confirm_pseudo', check, new_name=new_name)
-                    if response is None:
-                        return
-                    if response.content.lower() == 'oui':
-                        break
-                    else:
-                        new_name = ""
+                if response.content.lower() == 'oui':
+                    try:
+                        await thread.owner.edit(nick=new_name)
+                        await thread.edit(name=new_name)
+                        break  # Exit the loop if the username is confirmed and valid
+                    except Exception as e:
+                        print(f"Erreur lors de la modification du pseudo Discord ou du titre du fil : {e}")
 
-        try:
-            await thread.owner.edit(nick=new_name)
-            await thread.edit(name=new_name)
-        except Exception as e:
-            print(f"Erreur lors de la modification du pseudo Discord ou du titre du fil : {e}")
-
+        # Envoi des captures d'écran
         screenshots = []
-        response = await self.ask_question(thread, 'send_screenshot', check, yes_no_question=True, image_allowed=True)
-        while response.content.lower() == 'non' or response.attachments:
-            if response.attachments:
-                screenshots.extend(attachment.url for attachment in response.attachments)
-            response = await self.ask_question(thread, 'additional_screenshot', check, yes_no_question=True, image_allowed=True)
+        while True:
+            response = await self.ask_question(thread, 'additional_screenshot' if screenshots else 'send_screenshot', check, yes_no_question=True, image_allowed=True)
             if response is None:
                 return
             if response.content.lower() == 'non':
                 break
+            if response.attachments:
+                screenshots.extend(att.url for att in response.attachments)
 
+        # Choix de la famille
         family_name = ""
         while family_name not in self.families:
             response = await self.ask_question(thread, 'choose_family', check, yes_no_question=False)
@@ -161,6 +143,7 @@ class Presentation(commands.Cog):
                 return
             family_name = response.content.lower()
 
+        # Envoi du message final et sauvegarde des informations
         message = await self.generate_message(thread, family_name)
         allowed_mentions = AllowedMentions(everyone=False, users=True, roles=False)
         await thread.send(message, allowed_mentions=allowed_mentions)
