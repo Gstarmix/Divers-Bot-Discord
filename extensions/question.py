@@ -20,7 +20,7 @@ class Question(commands.Cog):
             return "first_word_not_capitalized"
         
         if not any(first_word.startswith(word) for word in self.interrogative_words):
-            if not any(ending in first_word for ending in ["-t-", "-je", "-tu", "-il", "-elle", "-iel", "-nous", "-vous", "-ils", "-elles", "-iels", "-iell·es"]):
+            if not any(ending in first_word for ending in ["-t-", "-je", "-tu", "-il", "-elle", "-on", "-nous", "-vous", "-ils", "-elles"]):
                 return "starts_with_interrogative_word"
         
         # Les autres vérifications
@@ -36,7 +36,7 @@ class Question(commands.Cog):
         if error_type == "first_word_not_capitalized":
             return f"{thread.owner.mention} Le premier mot de votre titre doit commencer par une majuscule. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "starts_with_interrogative_word":
-            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif ou une expression interrogative. Il doit commencer par un mot ou une expression comme `qui`, `que`, `quoi`, `qu'`, `quel`, `quelle`, `quels`, `quelles`, `lequel`, `laquelle`, `lesquels`, `lesquelles`, `où`, `d'où`, `quand`, `pourquoi`, `comment`, `est-ce`, `combien`, `depuis`, `jusqu'`, `à`, `de`, `en`, ou tout mot se terminant par `-t-`, `-je`, `-tu`, `-il`, `-elle`, `-iel`, `-nous`, `-vous`, `-ils`, `-elles`, `-iels`, `-iell·es`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
+            return f"{thread.owner.mention} Votre titre ne commence pas par un mot interrogatif ou une expression interrogative. Il doit commencer par un mot ou une expression comme `qui`, `que`, `quoi`, `qu'`, `quel`, `quelle`, `quels`, `quelles`, `lequel`, `laquelle`, `lesquels`, `lesquelles`, `où`, `d'où`, `quand`, `pourquoi`, `comment`, `est-ce`, `combien`, `depuis`, `jusqu'`, `à`, `de`, `en`, ou tout mot se terminant par `-t-`, `-je`, `-tu`, `-il`, `-elle`, `-on`, `-nous`, `-vous`, `-ils`, `-elles`. Veuillez le changer et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_short":
             return f"{thread.owner.mention} Votre titre est trop court. Il doit contenir au moins 20 caractères. Veuillez l'étendre et écrire votre nouveau titre à la suite de ce message."
         elif error_type == "length_too_long":
