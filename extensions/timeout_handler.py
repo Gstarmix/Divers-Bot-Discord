@@ -22,7 +22,7 @@ class GestionnaireMute(commands.Cog):
         channel = message.channel
         created_at = message.created_at
         
-        if channel.id not in {MUDAE_WAIFUS_CHANNEL_ID, MUDAE_WAIFUS_CHANNEL_3_ID}:
+        if channel.id not in {MUDAE_WAIFUS_CHANNEL_ID, MUDAE_WAIFUS_CHANNEL_2_ID}:
             return
             
         if author.bot and not message.interaction:
