@@ -35,15 +35,15 @@ async def on_ready():
     
     await bot.load_extension("extensions.mudae_info_scheduler")
     print("Mudae Info Scheduler extension loaded")
-    
-    await bot.load_extension("extensions.role_management")
-    print("Role Management extension loaded")
-    
-    await bot.load_extension("extensions.emoji_changer")
-    print("Emoji Changer extension loaded")
 
     await bot.load_extension("extensions.timeout_handler")
     print("Timeout Handler extension loaded")
+
+    # await bot.load_extension("extensions.role_management")
+    # print("Role Management extension loaded")
+    
+    # await bot.load_extension("extensions.emoji_changer")
+    # print("Emoji Changer extension loaded")
     
     # Uncomment the following lines as needed for other extensions
     # await bot.load_extension("extensions.faq_mudae_1")
