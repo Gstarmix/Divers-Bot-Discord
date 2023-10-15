@@ -11,58 +11,72 @@ class GestionnaireMute(commands.Cog):
         self.bot = bot
         self.user_last_command_time = {}
         self.active_user = {}
+        self.embed_countdown = {}
 
     @commands.Cog.listener()
     async def on_ready(self):
         print(f"GestionnaireMute est prêt !")
 
     @commands.Cog.listener()
+    async def on_interaction(self, interaction: discord.Interaction):
+        print("Interaction détectée")
+        if interaction.type == discord.InteractionType.application_command:
+            print("C'est une commande slash")
+            await self.process_command_logic(interaction.message, interaction.user, interaction.channel, interaction.created_at, interaction.data['name'])
+
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        author = message.author
-        channel = message.channel
-        created_at = message.created_at
-        
+        print("Message détecté")
+        await self.process_command_logic(message, message.author, message.channel, message.created_at, message.content.split()[0] if message.content else None)
+
+    async def process_command_logic(self, message, author, channel, created_at, command_name):
+        print(f"Traitement du message/interaction de {author.name}: {command_name}")
         if channel.id not in {MUDAE_WAIFUS_CHANNEL_ID, MUDAE_WAIFUS_CHANNEL_2_ID}:
             return
-            
-        if author.bot and not message.interaction:
-            return
-            
-        command_name = None
         
-        if message.content:
-            command_name = message.content.split()[0]
-        
-        if message.interaction:
-            author = message.interaction.user
-            command_name = message.interaction.name
-            if not message.embeds:
+        if author.bot:
+            if "la roulette est limitée à" in message.content:
+                print("Message 'la roulette est limitée à' détecté")
                 return
-        
+
+            if message.embeds:
+                for embed in message.embeds:
+                    if embed.footer and "⚠️ 2 ROLLS RESTANTS ⚠️" in embed.footer.text:
+                        self.embed_countdown[author.id] = 2
+                        return
+                    elif author.id in self.embed_countdown:
+                        self.embed_countdown[author.id] -= 1
+                        if self.embed_countdown[author.id] == 0:
+                            self.active_user[channel.id] = None
+                            await channel.send("script arrêté")
+                            del self.embed_countdown[author.id]
+                        return
+            return
+
+        if not command_name:
+            return
+
         is_command_A = command_name in SLASH_COMMANDS or command_name in TEXT_COMMANDS
-        is_command_B = message.content.startswith("$") or message.interaction is not None
+        is_command_B = command_name.startswith("$") or command_name in SLASH_COMMANDS
 
         active_user_channel = self.active_user.get(channel.id)
 
         if active_user_channel and active_user_channel != author.id and (created_at.timestamp() - self.user_last_command_time.get((active_user_channel, channel.id), 0)) < 3:
             if is_command_B:
-                # Mute logic for user B
-                print(f"Condition de mute atteinte pour l'utilisateur {author.name}.")
                 overwrites = channel.overwrites_for(author)
                 overwrites.send_messages = False
                 elapsed_time = created_at.timestamp() - self.user_last_command_time.get((active_user_channel, channel.id), 0)
                 try:
                     await channel.set_permissions(author, overwrite=overwrites)
-                    mute_message = await channel.send(f"{author.mention} Tu as interrompu {self.bot.get_user(active_user_channel).mention} qui était en train de faire ses rolls, et ce, en moins de {elapsed_time:.2f} secondes (la limite autorisée est de 3 secondes). En conséquence, tu as été mis en sourdine dans ce salon pour une durée de 60 secondes. Il te reste 60 secondes de sourdine.")
+                    mute_message = await channel.send(f"{author.mention}, tu as interrompu {self.bot.get_user(active_user_channel).mention} qui était en train de faire ses rolls, et ce, en moins de {elapsed_time:.2f} secondes. Tu as été mis en sourdine pour 60 secondes. Il te reste 60 secondes de sourdine.")
                     
-                    # Compte à rebours et mise à jour du message
                     for i in range(59, 0, -1):
-                        await mute_message.edit(content=f"{author.mention} Tu as interrompu {self.bot.get_user(active_user_channel).mention} qui était en train de faire ses rolls, et ce, en moins de {elapsed_time:.2f} secondes (la limite autorisée est de 3 secondes). En conséquence, tu as été mis en sourdine dans ce salon pour une durée de 60 secondes. Il te reste {i} secondes de sourdine.")
+                        await mute_message.edit(content=f"{author.mention}, tu as interrompu {self.bot.get_user(active_user_channel).mention} qui était en train de faire ses rolls, et ce, en moins de {elapsed_time:.2f} secondes. Tu as été mis en sourdine pour 60 secondes. Il te reste {i} secondes de sourdine.")
                         await asyncio.sleep(1)
                     
                     overwrites.send_messages = True
                     await channel.set_permissions(author, overwrite=overwrites)
-                    await mute_message.edit(content=f"{author.mention} Ta mise en sourdine a été levée.")
+                    await mute_message.edit(content=f"{author.mention}, ta mise en sourdine a été levée.")
                 except discord.Forbidden:
                     print(f"Erreur de permission lors de la tentative de mute de {author.name}.")
                 except discord.HTTPException as e:
