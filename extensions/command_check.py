@@ -27,7 +27,7 @@ class CommandCheck(commands.Cog):
         self.allowed_commands["MUDAE_SETTINGS_CHANNEL_2_ID"].extend(self.specific_commands)
 
         self.forbidden_commands = config['forbidden_commands']
-        
+
         self.mod_commands = []
         for channel_name, commands_list in self.allowed_commands.items():
             if channel_name not in ["MUDAE_MODO_CHANNEL_ID", "LOG_CHANNEL_ID", "MUDAE_CONTROL_CHANNEL_ID", "MUDAE_WAIFUS_CHANNEL_2_ID", "MUDAE_SETTINGS_CHANNEL_2_ID", "MUDAE_IDEAS_CHANNEL_ID", "MUDAE_HELP_CHANNEL_ID"]:
@@ -113,18 +113,14 @@ class CommandCheck(commands.Cog):
                 
                 wrong_channel_msg += f" Veuillez l'envoyer dans l'un des salons suivants : {allowed_channels_str}."
                 
-                if channel.id == const.MUDAE_TUTORIAL_CHANNEL_ID:
-                    wrong_channel_msg += " Une fois cela effectué, veuillez rafraîchir le tutoriel en tapant à nouveau `$tuto` dans ce salon."
-                
                 await channel.send(wrong_channel_msg)
-
 
             # Mettre à jour le compte de messages pour le salon
             if channel.id in self.message_counts:
                 self.message_counts[channel.id] += 1
             else:
                 self.message_counts[channel.id] = 1
-            
+
     @tasks.loop(hours=3)
     async def post_allowed_commands(self):
         for channel_name, commands_list in self.allowed_commands.items():
@@ -144,7 +140,7 @@ class CommandCheck(commands.Cog):
                     sorted_commands = sorted(commands_list)
                     sent_message = await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
                     self.last_message_id[str(channel_id)] = sent_message.id
-        
+
                     # Sauvegarder le dernier message_id dans le fichier JSON
                     with open(LAST_MESSAGE_PATH, 'w') as f:
                         json.dump(self.last_message_id, f)
