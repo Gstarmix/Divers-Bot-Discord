@@ -30,14 +30,14 @@ async def on_ready():
     await bot.load_extension("extensions.command_check")
     print("Command Check extension loaded")
     
-    await bot.load_extension("extensions.watch")
-    print("Watch extension loaded")
+    # await bot.load_extension("extensions.watch")
+    # print("Watch extension loaded")
     
     await bot.load_extension("extensions.mudae_info_scheduler")
     print("Mudae Info Scheduler extension loaded")
 
-    await bot.load_extension("extensions.timeout_handler")
-    print("Timeout Handler extension loaded")
+    # await bot.load_extension("extensions.timeout_handler")
+    # print("Timeout Handler extension loaded")
 
     # await bot.load_extension("extensions.role_management")
     # print("Role Management extension loaded")

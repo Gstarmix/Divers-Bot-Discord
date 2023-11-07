@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import asyncio
-
 import discord
 from discord.ext import commands, tasks
 import json
@@ -27,7 +26,7 @@ class CommandCheck(commands.Cog):
         self.allowed_commands["MUDAE_SETTINGS_CHANNEL_2_ID"].extend(self.specific_commands)
 
         self.forbidden_commands = config['forbidden_commands']
-
+        
         self.mod_commands = []
         for channel_name, commands_list in self.allowed_commands.items():
             if channel_name not in ["MUDAE_MODO_CHANNEL_ID", "LOG_CHANNEL_ID", "MUDAE_CONTROL_CHANNEL_ID", "MUDAE_WAIFUS_CHANNEL_2_ID", "MUDAE_SETTINGS_CHANNEL_2_ID", "MUDAE_IDEAS_CHANNEL_ID", "MUDAE_HELP_CHANNEL_ID"]:
@@ -52,75 +51,29 @@ class CommandCheck(commands.Cog):
         if message.author.bot:
             return
 
+        command = message.content.split()[0] if message.content else ""
         channel = message.channel
-        parent_channel_id = channel.parent_id if isinstance(channel, discord.Thread) else None
-
-        split_message = message.clean_content.split()
-        command = split_message[0] if split_message else ""
+        channel_name = channel.name
 
         if command in self.forbidden_commands:
-            if not any(role.id in {const.CHEF_SINGE_ROLE_ID, const.MUDAE_MODO_ROLE_ID} for role in message.author.roles):
-                await message.delete()
-                await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}`. Cette commande est interdite. Je vous prie de ne plus l'envoyer.")
-        if parent_channel_id in {const.MUDAE_IDEAS_CHANNEL_ID, const.MUDAE_HELP_CHANNEL_ID}:
-            # Allow all commands in these threads
-            return
-
-        if channel.id in {const.MUDAE_WAIFUS_CHANNEL_2_ID, const.MUDAE_SETTINGS_CHANNEL_2_ID}:
-            if command in self.specific_commands:
-                return
-
-        if command.startswith('$') or command.startswith('/'):
-            if command not in self.mod_commands:
-                return
-
-            if channel.id in {const.MUDAE_MODO_CHANNEL_ID, const.LOG_CHANNEL_ID, const.MUDAE_CONTROL_CHANNEL_ID}:
-                return
-
-            if channel.id == const.MUDAE_WAIFUS_CHANNEL_2_ID:
-                if command in self.allowed_commands["MUDAE_POKESLOT_CHANNEL_ID"]:
-                    await message.delete()
-                    await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{const.MUDAE_POKESLOT_CHANNEL_ID}>.")
-                    return
-                if command not in self.allowed_commands["MUDAE_WAIFUS_CHANNEL_2_ID"]:
-                    await message.delete()
-                    await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{const.MUDAE_SETTINGS_CHANNEL_2_ID}>.")  # FIXME: ce message là fait pas beaucoup de sens à mes yeux
-                    return
-
-            if channel.id == const.MUDAE_SETTINGS_CHANNEL_2_ID:
-                if command in self.allowed_commands["MUDAE_POKESLOT_CHANNEL_ID"] or command in self.allowed_commands["MUDAE_WAIFUS_CHANNEL_2_ID"] or command in self.forbidden_commands:
-                    await message.delete()
-                    target_channel = const.MUDAE_POKESLOT_CHANNEL_ID if command in self.allowed_commands["MUDAE_POKESLOT_CHANNEL_ID"] else const.MUDAE_WAIFUS_CHANNEL_2_ID
-                    await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans le bon salon : <#{target_channel}>.")
-                return
-
-            allowed_channels: set[int] = {const.CHANNELS_NAME_TO_ID[channel_name] for channel_name, commands_list in self.allowed_commands.items() if command in commands_list and channel_name not in {"MUDAE_MODO_CHANNEL_ID", "LOG_CHANNEL_ID", "MUDAE_CONTROL_CHANNEL_ID", "MUDAE_SETTINGS_CHANNEL_2_ID"}}
-
-            if channel.id not in allowed_channels:
-                await message.delete()
-                
-                # Initialisation par défaut de wrong_channel_msg
-                wrong_channel_msg = f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon."
-                
-                # Ajout de MUDAE_SETTINGS_CHANNEL_2_ID pour tous les salons, sauf pour les commandes spécifiques à MUDAE_POKESLOT_CHANNEL_ID
-                if command not in self.allowed_commands["MUDAE_POKESLOT_CHANNEL_ID"]:
-                    allowed_channels.add(const.MUDAE_SETTINGS_CHANNEL_2_ID)
-                
-                # Triez les salons ici si nécessaire
-                allowed_channels = sorted(allowed_channels)
-                
-                allowed_channels_str = ', '.join([f"<#{channel_id}>" for channel_id in allowed_channels])
-                
-                wrong_channel_msg += f" Veuillez l'envoyer dans l'un des salons suivants : {allowed_channels_str}."
-                
-                await channel.send(wrong_channel_msg)
-
-            # Mettre à jour le compte de messages pour le salon
-            if channel.id in self.message_counts:
-                self.message_counts[channel.id] += 1
+            if channel_name in ["MUDAE_WAIFUS_CHANNEL_ID", "MUDAE_WAIFUS_CHANNEL_2_ID"]:
+                correct_channel_id = "MUDAE_SETTINGS_CHANNEL_ID" if channel_name == "MUDAE_WAIFUS_CHANNEL_ID" else "MUDAE_SETTINGS_CHANNEL_2_ID"
+            elif channel_name in ["MUDAE_SETTINGS_CHANNEL_ID", "MUDAE_SETTINGS_CHANNEL_2_ID"]:
+                correct_channel_id = "MUDAE_WAIFUS_CHANNEL_ID" if channel_name == "MUDAE_SETTINGS_CHANNEL_ID" else "MUDAE_WAIFUS_CHANNEL_2_ID"
+            elif channel_name == "MUDAE_POKESLOT_CHANNEL_ID":
+                correct_channel_id = "MUDAE_POKESLOT_CHANNEL_ID"
             else:
-                self.message_counts[channel.id] = 1
+                correct_channel_id = None
 
+            if correct_channel_id:
+                await message.delete()
+                await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}` dans le mauvais salon. Veuillez l'envoyer dans <#{correct_channel_id}>.")
+                return
+
+        if command in self.forbidden_commands and not any(role.id in {const.CHEF_SINGE_ROLE_ID, const.MUDAE_MODO_ROLE_ID} for role in message.author.roles):
+            await message.delete()
+            await channel.send(f"{message.author.mention} Vous avez envoyé la commande `{command}`. Cette commande est interdite. Je vous prie de ne plus l'envoyer.")
+            
     @tasks.loop(hours=3)
     async def post_allowed_commands(self):
         for channel_name, commands_list in self.allowed_commands.items():
@@ -140,7 +93,7 @@ class CommandCheck(commands.Cog):
                     sorted_commands = sorted(commands_list)
                     sent_message = await channel.send(f"Voici toutes les commandes autorisées dans ce salon : {' '.join([f'`{cmd}`' for cmd in sorted_commands])}")
                     self.last_message_id[str(channel_id)] = sent_message.id
-
+        
                     # Sauvegarder le dernier message_id dans le fichier JSON
                     with open(LAST_MESSAGE_PATH, 'w') as f:
                         json.dump(self.last_message_id, f)
