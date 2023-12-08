@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.ui import Button, View, Modal, TextInput
 from constants import *
 import time
+import asyncio
 
 class PseudoModal(Modal):
     def __init__(self, bot, user_id, thread):
@@ -13,6 +14,9 @@ class PseudoModal(Modal):
         self.add_item(TextInput(label="Pseudo", placeholder="Ton pseudo ici", min_length=4, max_length=32))
 
     async def on_submit(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("Vous n'êtes pas autorisé à changer ce pseudo.", ephemeral=True)
+            return
         nickname = self.children[0].value.strip()
         current_time = time.time()
         last_changed = self.bot.last_pseudo_change.get(self.user_id, 0)
@@ -44,23 +48,31 @@ class PlayerSetup(commands.Cog):
         self.bot.last_pseudo_change = {}
         self.first_author_message = {}
         self.used_buttons = set()
+        self.last_interaction_time = {}
+        self.last_nickname_change_time = {}
+        self.thread_initial_message_pending = set()
+        self.family_selections = {}
+        self.thread_authors = {}
+        self.command_initiators = {}
+
+    async def set_nickname_callback(self, interaction):
+        thread_id = interaction.channel_id
+        if interaction.user.id != self.thread_authors.get(thread_id):
+            await interaction.response.send_message("Vous n'êtes pas autorisé à définir ce pseudo.", ephemeral=True)
+        else:
+            thread = self.bot.get_channel(thread_id)
+            await interaction.response.send_modal(PseudoModal(self.bot, interaction.user.id, thread))
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
         if thread.parent_id != PRESENTATION_CHANNEL_ID:
             return
-        embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
-        view = View()
-        button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
-        button.callback = lambda interaction: interaction.response.send_modal(PseudoModal(self.bot, interaction.user.id, thread))
-        view.add_item(button)
-        await thread.send(embed=embed, view=view)
+        self.thread_initial_message_pending.add(thread.id)
+        self.thread_authors[thread.id] = thread.owner_id
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if not message.guild or not message.author or message.author.bot:
-            return
-        if message.channel.type == discord.ChannelType.private:
             return
         if isinstance(message.channel, discord.Thread):
             thread_id = message.channel.id
@@ -69,46 +81,124 @@ class PlayerSetup(commands.Cog):
             return
         if parent_id != PRESENTATION_CHANNEL_ID:
             return
-        if thread_id not in self.first_author_message:
+        if thread_id in self.thread_initial_message_pending and not self.first_author_message.get(thread_id):
+            embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
+            view = View()
+            if message.author.id == self.thread_authors.get(thread_id):
+                button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
+                button.callback = self.set_nickname_callback
+                view.add_item(button)
+            await message.channel.send(embed=embed, view=view)
+            self.thread_initial_message_pending.remove(thread_id)
             self.first_author_message[thread_id] = message.id
-        allowed_roles = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
-        is_author_first_message = message.id == self.first_author_message[thread_id]
-        has_allowed_role = any(role.id in allowed_roles for role in message.author.roles)
-        if not (is_author_first_message or has_allowed_role):
-            await message.delete()
-            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
         if interaction.type == discord.InteractionType.component:
             custom_id = interaction.data.get('custom_id')
-            if custom_id in ["yertirand", "gang"]:
-                if "yertirand_gang_used" not in self.used_buttons:
-                    self.used_buttons.add("yertirand_gang_used")
-                    role_id = "<@&1036402538620129351>" if custom_id == "yertirand" else "<@&923190695190233138>"
-                    await interaction.response.send_message(role_id, ephemeral=False)
-                    for component in interaction.message.components:
-                        for item in component.children:
-                            if item.custom_id in ["yertirand", "gang"]:
-                                item.disabled = True
-                    await interaction.response.send_message(role_id, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
+            thread_id = interaction.channel_id
+            author_id = self.thread_authors.get(thread_id)
+            current_time = time.time()
 
-    @commands.command(name="c")
-    async def change_channel_message(self, ctx, canal_number: int):
-        user_mention = ctx.author.mention
-        embed = discord.Embed(
-            title="Instructions pour rejoindre une famille",
-            description=(
-                f":one: — Rejoins le Canal {canal_number}.\n"
-                ":two: — Lance un <:hautparleur:1044376345456677005> `Haut-parleur` pour annoncer le nom de la famille que tu souhaites rejoindre.\n"
-                f":three: — Après avoir annoncé le nom de la famille, clique sur le bouton ci-dessous pour mentionner {user_mention}.\n"
-                ":four: — Si tu n'as pas reçu d'invitation après un certain temps, mentionne à nouveau le rôle gardien dans ta présentation."
-            ),
-            color=0x5865f2
-        )
+            if custom_id in ["yertirand", "gang", "mention_for_invite"]:
+                if interaction.user.id != author_id:
+                    if interaction.response.is_done():
+                        await interaction.followup.send("Vous n'êtes pas autorisé à utiliser ce bouton.", ephemeral=True)
+                    else:
+                        await interaction.response.send_message("Vous n'êtes pas autorisé à utiliser ce bouton.", ephemeral=True)
+                    return
+
+            if custom_id in ["yertirand", "gang"]:
+                last_time = self.last_interaction_time.get(author_id, 0)
+                if current_time - last_time < 300:
+                    if interaction.response.is_done():
+                        await interaction.followup.send("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
+                    else:
+                        await interaction.response.send_message("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
+                    return
+                else:
+                    self.last_interaction_time[author_id] = current_time
+                    role_id = "<@&1036402538620129351>" if custom_id == "yertirand" else "<@&923190695190233138>"
+                    if interaction.response.is_done():
+                        await interaction.followup.send(role_id, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
+                    else:
+                        await interaction.response.send_message(role_id, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
+
+            elif custom_id == "mention_for_invite":
+                command_initiator_id = self.command_initiators.get(thread_id)
+                if command_initiator_id:
+                    user_mention = f"<@{command_initiator_id}>"
+                    if interaction.response.is_done():
+                        await interaction.followup.send(user_mention, ephemeral=False)
+                    else:
+                        await interaction.response.send_message(user_mention, ephemeral=False)
+
+    @commands.command(name="c", aliases=["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"])
+    async def change_channel_message(self, ctx):
+        command_full = ctx.invoked_with
+        if command_full.startswith("c") and command_full[1:].isdigit():
+            canal_number = int(command_full[1:])
+            user_mention = ctx.author.mention
+            family_choice = self.family_selections.get(ctx.author.id)
+            button_family = "Yertirand" if family_choice == "yertirand" else "Gang"
+            role_gardien = "<@&1036402538620129351>" if family_choice == "yertirand" else "<@&923190695190233138>"
+            self.command_initiators[ctx.channel.id] = ctx.author.id
+            embed = discord.Embed(
+                title="Instructions pour rejoindre une famille",
+                description=(
+                    f":one: — Rejoins le canal {canal_number}.\n"
+                    ":two: — Lance un <:hautparleur:1044376345456677005> `Haut-parleur` pour annoncer le nom de la famille que tu souhaites rejoindre.\n"
+                    f":three: — Après avoir annoncé le nom de la famille, clique sur le bouton ci-dessous pour mentionner {user_mention}.\n"
+                    f":four: — Si tu n'as pas reçu d'invitation après un certain temps, clique à nouveau sur le bouton {button_family} pour mentionner le rôle {role_gardien}."
+                ),
+                color=0x5865f2
+            )
+            view = View()
+            view.add_item(Button(label="Mentionner pour invitation", style=discord.ButtonStyle.primary, custom_id="mention_for_invite"))
+            await ctx.send(embed=embed, view=view, allowed_mentions=discord.AllowedMentions.all())
+        else:
+            await ctx.send("Format de commande incorrect. Utilisez `!c<number>` (par exemple, `!c1`).")
+
+    @commands.command(name="start")
+    async def start_bot(self, ctx, author: discord.Member = None):
+        if not ctx.author.guild_permissions.administrator:
+            await ctx.send("Vous n'avez pas l'autorisation d'exécuter cette commande.")
+            return
+        if author is None:
+            await ctx.send("Veuillez mentionner un utilisateur valide.")
+            return
+
+        self.bot.last_pseudo_change = {}
+        self.first_author_message = {}
+        self.used_buttons = set()
+        self.last_interaction_time = {}
+        self.last_nickname_change_time = {}
+        self.thread_initial_message_pending = set()
+        self.family_selections = {}
+        self.command_initiators = {}
+        self.thread_authors[ctx.channel.id] = author.id
+
+        thread = ctx.channel
+        if isinstance(thread, discord.Thread):
+            async for message in thread.history(oldest_first=True, limit=None):
+                if len(message.attachments) > 0:
+                    continue
+                try:
+                    await message.delete()
+                    await asyncio.sleep(0.5)
+                except discord.Forbidden:
+                    continue
+
+        embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
         view = View()
-        view.add_item(Button(label="Mentionner pour invitation", style=discord.ButtonStyle.primary, custom_id="mention_for_invite"))
-        await ctx.send(embed=embed, view=view, allowed_mentions=discord.AllowedMentions.all())
+        button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
+        button.callback = self.set_nickname_callback
+        view.add_item(button)
+        await thread.send(embed=embed, view=view)
+        self.thread_initial_message_pending.add(thread.id)
+        self.first_author_message[thread.id] = ctx.message.id
+
+        await ctx.send(f"Le bot a été redémarré avec succès pour {author.mention}.")
 
 def generate_message(author_name):
     embed = discord.Embed(
