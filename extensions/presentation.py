@@ -159,7 +159,7 @@ class PlayerSetup(commands.Cog):
         else:
             await ctx.send("Format de commande incorrect. Utilisez `!c<number>` (par exemple, `!c1`).")
 
-    @commands.command(name="start")
+    @commands.command(name="restart")
     async def start_bot(self, ctx, author: discord.Member = None):
         if not ctx.author.guild_permissions.administrator:
             await ctx.send("Vous n'avez pas l'autorisation d'exécuter cette commande.")
