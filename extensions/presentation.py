@@ -1,194 +1,126 @@
-import asyncio
+import discord
 from discord.ext import commands
+from discord.ui import Button, View, Modal, TextInput
 from constants import *
+import time
 
-class Presentation(commands.Cog):
+class PseudoModal(Modal):
+    def __init__(self, bot, user_id, thread):
+        super().__init__(title="Entrez votre pseudo")
+        self.bot = bot
+        self.user_id = user_id
+        self.thread = thread
+        self.add_item(TextInput(label="Pseudo", placeholder="Ton pseudo ici", min_length=4, max_length=32))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        nickname = self.children[0].value.strip()
+        current_time = time.time()
+        last_changed = self.bot.last_pseudo_change.get(self.user_id, 0)
+        if current_time - last_changed < 60:
+            await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois par minute.", ephemeral=True)
+            return
+        self.bot.last_pseudo_change[self.user_id] = current_time
+        if not (4 <= len(nickname) <= 32):
+            await interaction.response.send_message("Pseudo invalide. Il doit contenir entre 4 et 32 caractères.", ephemeral=True)
+            return
+        await self.thread.edit(name=f"Présentation de {nickname}")
+        member = self.thread.guild.get_member(interaction.user.id)
+        if member:
+            await member.edit(nick=nickname)
+            role = member.guild.get_role(ROLE1_ID_FAFA)
+            if role:
+                await member.add_roles(role)
+        author_name = member.display_name if member else nickname
+        embed = generate_message(author_name)
+        view = View()
+        view.add_item(Button(label="Yertirand", style=discord.ButtonStyle.primary, custom_id="yertirand"))
+        view.add_item(Button(label="-GANG-", style=discord.ButtonStyle.primary, custom_id="gang"))
+        view.add_item(Button(label="Visite Tutoriel LoL", style=discord.ButtonStyle.secondary, url="https://www.nostar.fr/lol"))
+        await interaction.response.send_message(embed=embed, view=view)
+
+class PlayerSetup(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.threads = {}
-        self.delete_messages = {}
-
-    async def ask_question(self, thread, question, check, yes_no_question=True):
-        first_time = True
-        while True:
-            if first_time:
-                user_message_sent = False
-                async for msg in thread.history(limit=5):
-                    if msg.author == thread.owner:
-                        user_message_sent = True
-                        break
-
-                if not user_message_sent:
-                    await asyncio.sleep(5)
-                    continue
-
-                await thread.send(f"{thread.owner.mention} {question}")
-                first_time = False
-
-            try:
-                response = await self.bot.wait_for('message', check=check, timeout=600)
-                return response
-            except asyncio.TimeoutError:
-                await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-                await thread.delete()
-                return None
+        self.bot.last_pseudo_change = {}
+        self.first_author_message = {}
+        self.used_buttons = set()
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
-        if thread.parent.id != PRESENTATION_CHANNEL_ID:
+        if thread.parent_id != PRESENTATION_CHANNEL_ID:
             return
+        embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
+        view = View()
+        button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
+        button.callback = lambda interaction: interaction.response.send_modal(PseudoModal(self.bot, interaction.user.id, thread))
+        view.add_item(button)
+        await thread.send(embed=embed, view=view)
 
-        # Définition des nouveaux rôles
-        role_id = ROLE1_ID_FAFA
-        new_roles = [self.bot.get_guild(GUILD_ID_FAFA).get_role(role_id) for role_id in [ROLE1_ID_FAFA, ROLE2_ID_FAFA, ROLE3_ID_FAFA, ROLE4_ID_FAFA, ROLE5_ID_FAFA]]
-
-        self.threads[thread.id] = thread.owner.id
-        self.delete_messages[thread.id] = True
-
-        async for message in thread.history(limit=1):
-            await message.pin()
-            break
-
-        def check(m):
-            return m.channel == thread and m.author == thread.owner
-
-        # Liste des questions et des réponses attendues
-        questions_capture = [
-            {
-                "question": "Possédez-vous un pseudo en jeu correctement affiché dans le titre ? Répondez par `Oui` ou `Non`. Par exemple, 'PseudoEnJeu123' est correctement affiché dans le titre.",
-                "reponse": "Oui ou Non",
-                "exemple": "Si vous répondez 'Non', veuillez choisir un nouveau pseudo en jeu et écrivez-le dans le fil."
-            },
-            {
-                "question": "Possédez-vous des Stuffs héroïques adaptés à votre niveau ? Répondez par `Oui` ou `Non`. Par exemple, si vous êtes de niveau +65, vous devez avoir un stuff +65 ou +60.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous au moins 10% de dégâts relatifs ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez 12% de dégâts relatifs, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous un minimum de 7% d'attaque runique ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez 8% d'attaque runique, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous au moins 100 points d'attaque et 60 points d'élément ou 60 points d'attaque et 100 points d'élément dans les statistiques SP ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :escri:+:archer:+:am: + :regard_perant: Position attaque, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous un minimum de 25 points d'attaque et 25 points d'élément en perfectionnements SP ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez 30 points d'attaque et 25 points d'élément en perfectionnements SP, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous au moins 110% de résistances globales ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez 120% de résistances globales, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous une fée avec au moins 80% d'efficacité, sans le Renforcement féérique ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :elfe: Archère elfe sylvestre Forga [SSS], vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous un set de costumes orienté DPS avec au moins 8% d'attaque au minimum ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :dino1: :dino2: :dino3: Ensemble de dino 10% atq, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous une aile orientée DPS ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :arborescente: Arborescentes, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous un tatouage orienté DPS en +5 au minimum ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :escri:+:archer:+:am:: :regard_perant: Regard perçant + :pa: Position attaque, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous un titre orienté DPS ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :titre: Éternel, vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            },
-            {
-                "question": "Possédez-vous un partenaire orienté DPS ? Répondez par `Oui` ou `Non`. Par exemple, si vous avez :elfe: Archère elfe sylvestre Forga [SSS], vous répondez 'oui'.",
-                "reponse": "Oui ou Non"
-            }
-        ]
-
-        # Pose des questions et traitement des réponses
-        for question in questions_capture:
-            response = await self.ask_question(thread, question["question"], check)
-            if response is None:
-                return
-
-            if response.content.lower() == 'oui':
-                justification_message = f"{thread.owner.mention} Veuillez envoyer une capture d'écran pour justifier votre réponse. Une fois que vous avez envoyé la capture d'écran, écrivez 'Justifié' pour passer à la question suivante."
-                await thread.send(justification_message)
-                while True:
-                    justif_response = await self.ask_question(thread, "", check, yes_no_question=False)
-                    if justif_response is None:
-                        return
-                    if justif_response.content.lower() == 'justifié':
-                        break
-                    else:
-                        await thread.send(f"{thread.owner.mention} Pour passer à la question suivante, veuillez écrire 'Justifié'.")
-
-            elif response.content.lower() == 'non':
-                if "Capture d'écran" in question["question"]:
-                    justification_message = f"{thread.owner.mention} Veuillez envoyer une capture d'écran pour justifier votre réponse. Une fois que vous avez envoyé la capture d'écran, écrivez `Justifié` pour passer à la question suivante."
-                    await thread.send(justification_message)
-                    while True:
-                        justif_response = await self.ask_question(thread, "", check, yes_no_question=False)
-                        if justif_response is None:
-                            return
-                        if justif_response.content.lower() == 'justifié':
-                            break
-                        else:
-                            await thread.send(f"{thread.owner.mention} Pour passer à la question suivante, veuillez écrire 'Justifié'.")
-                continue
-
-            if "Capture d'écran" in question["question"]:
-                reponse_question = "Oui"
-            else:
-                reponse_question = "Non"
-
-            while True:
-                reponse = await self.ask_question(thread, f"Vous avez choisi la réponse : {reponse_question}. Est-ce correct ?", check)
-                if reponse is None:
-                    return
-                if reponse.content.lower() == 'oui' and "Capture d'écran" in question["question"]:
-                    break
-                elif reponse.content.lower() == 'non' and "Capture d'écran" not in question["question"]:
-                    break
-                else:
-                    await thread.send(f"{thread.owner.mention} Votre réponse n'a pas été prise en compte. Veuillez répondre avec 'Oui' si c'est le cas, sinon répondez avec 'Non'.")
-
-        # Question sur le choix de la famille
-        response = await self.ask_question(thread, "Quel est le nom de la famille où vous voulez être recruté (Yertirand ou -GANG-)", check)
-        if response is None:
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if not message.guild or not message.author or message.author.bot:
             return
+        if message.channel.type == discord.ChannelType.private:
+            return
+        if isinstance(message.channel, discord.Thread):
+            thread_id = message.channel.id
+            parent_id = message.channel.parent_id
+        else:
+            return
+        if parent_id != PRESENTATION_CHANNEL_ID:
+            return
+        if thread_id not in self.first_author_message:
+            self.first_author_message[thread_id] = message.id
+        allowed_roles = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
+        is_author_first_message = message.id == self.first_author_message[thread_id]
+        has_allowed_role = any(role.id in allowed_roles for role in message.author.roles)
+        if not (is_author_first_message or has_allowed_role):
+            await message.delete()
+            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
 
-        family_name = response.content.lower()
-        while family_name not in ["yertirand", "-gang-"]:
-            response = await self.ask_question(thread, "Le nom de la famille que vous avez fourni n'est pas valide. Veuillez fournir un nom de famille valide, soit `Yertirand` ou `-GANG-`.", check)
-            if response is None:
-                return
+    @commands.Cog.listener()
+    async def on_interaction(self, interaction):
+        if interaction.type == discord.InteractionType.component:
+            custom_id = interaction.data.get('custom_id')
+            if custom_id in ["yertirand", "gang"]:
+                if "yertirand_gang_used" not in self.used_buttons:
+                    self.used_buttons.add("yertirand_gang_used")
+                    role_id = "<@&1036402538620129351>" if custom_id == "yertirand" else "<@&923190695190233138>"
+                    await interaction.response.send_message(role_id, ephemeral=False)
+                    for component in interaction.message.components:
+                        for item in component.children:
+                            if item.custom_id in ["yertirand", "gang"]:
+                                item.disabled = True
+                    await interaction.message.edit(view=View.from_message(interaction.message))
 
-        recruitment_role_id = GARDIEN_YERTI_ROLE_ID if family_name == "yertirand" else GARDIEN_GANG_ROLE_ID
-
-        # Retirer les anciens rôles et attribuer les nouveaux
-        for role in thread.owner.roles:
-            if role not in new_roles:
-                try:
-                    await thread.owner.remove_roles(role)
-                except Exception as e:
-                    print(f"Could not remove role {role.name}")
-
-        await thread.owner.add_roles(*new_roles)
-
-        message = (
-            f":white_small_square: - Félicitations {thread.owner.mention} ! Vous avez désormais le rôle <@&{recruitment_role_id}>, ce qui vous donne accès à tous les salons du serveur. "
-            f"N'oubliez pas de consulter les règles dans le salon <#1031609454527000616> et de choisir vos rôles dans <#1056343806196318248> pour participer aux discussions dans les salons dédiés au LoL.\n"
-            f":white_small_square: - Votre pseudo Discord a été mis à jour pour correspondre à celui indiqué dans votre présentation. Si cela a supprimé vos autres pseudos, ajoutez-les vous-même séparés par un `|` pour que nous puissions reconnaître tous vos personnages facilement.\n"
-            f":white_small_square: - Lorsque vous serez prêt à être recruté, mentionnez le rôle <@&{recruitment_role_id}> ici.\n"
-            f":white_small_square: - Assurez-vous que toute communication se fasse dans cette présentation. N'envoyez pas de messages privés et ne nous mentionnez nulle part ailleurs que <a:tention:1093967837992849468> **DANS VOTRE PRÉSENTATION** <a:tention:1093967837992849468> si vous souhaitez être recruté."
+    @commands.command(name="c")
+    async def change_channel_message(self, ctx, canal_number: int):
+        user_mention = ctx.author.mention
+        embed = discord.Embed(
+            title="Instructions pour rejoindre une famille",
+            description=(
+                f":one: — Rejoins le Canal {canal_number}.\n"
+                ":two: — Lance un <:hautparleur:1044376345456677005> `Haut-parleur` pour annoncer le nom de la famille que tu souhaites rejoindre.\n"
+                f":three: — Après avoir annoncé le nom de la famille, clique sur le bouton ci-dessous pour mentionner {user_mention}.\n"
+                ":four: — Si tu n'as pas reçu d'invitation après un certain temps, mentionne à nouveau le rôle gardien dans ta présentation."
+            ),
+            color=0x5865f2
         )
+        view = View()
+        view.add_item(Button(label="Mentionner pour invitation", style=discord.ButtonStyle.primary, custom_id="mention_for_invite"))
+        await ctx.send(embed=embed, view=view)
 
-        await thread.send(message)
+def generate_message(author_name):
+    embed = discord.Embed(
+        title=f"Bienvenue, {author_name} !",
+        description=(
+            "- Tu as maintenant le rôle <@&923002565602467840>, qui te donne accès à tous nos salons.\n"
+            "- Ton pseudo Discord a été mis à jour pour correspondre à celui de ta présentation.\n"
+            "- Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
+        ),
+        color=0x5865f2
+    )
+    return embed
 
 async def setup(bot):
-    await bot.add_cog(Presentation(bot))
+    await bot.add_cog(PlayerSetup(bot))

@@ -15,9 +15,6 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
     
-    await bot.load_extension("extensions.inscription")
-    print("Inscription extension loaded")
-    
     await bot.load_extension("extensions.thread_creator")
     print("Thread Creator extension loaded")
     
@@ -26,15 +23,18 @@ async def on_ready():
     
     await bot.load_extension("extensions.question")
     print("Question extension loaded")
+
+    # await bot.load_extension("extensions.inscription")
+    # print("Inscription extension loaded")
     
-    await bot.load_extension("extensions.command_check")
-    print("Command Check extension loaded")
+    # await bot.load_extension("extensions.command_check")
+    # print("Command Check extension loaded")
     
     # await bot.load_extension("extensions.watch")
     # print("Watch extension loaded")
     
-    await bot.load_extension("extensions.mudae_info_scheduler")
-    print("Mudae Info Scheduler extension loaded")
+    # await bot.load_extension("extensions.mudae_info_scheduler")
+    # print("Mudae Info Scheduler extension loaded")
 
     # await bot.load_extension("extensions.timeout_handler")
     # print("Timeout Handler extension loaded")
