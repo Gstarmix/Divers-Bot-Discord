@@ -91,7 +91,7 @@ class PlayerSetup(commands.Cog):
                         for item in component.children:
                             if item.custom_id in ["yertirand", "gang"]:
                                 item.disabled = True
-                    await interaction.message.edit(view=View.from_message(interaction.message))
+                    await interaction.response.send_message(role_id, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
 
     @commands.command(name="c")
     async def change_channel_message(self, ctx, canal_number: int):
@@ -108,7 +108,7 @@ class PlayerSetup(commands.Cog):
         )
         view = View()
         view.add_item(Button(label="Mentionner pour invitation", style=discord.ButtonStyle.primary, custom_id="mention_for_invite"))
-        await ctx.send(embed=embed, view=view)
+        await ctx.send(embed=embed, view=view, allowed_mentions=discord.AllowedMentions.all())
 
 def generate_message(author_name):
     embed = discord.Embed(
