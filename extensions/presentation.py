@@ -99,6 +99,7 @@ class PlayerSetup(commands.Cog):
     def save_family_choices(self):
         with open(FAMILY_CHOICES_PATH, 'w') as f:
             json.dump(self.author_family_choices, f)
+        print(f"family_choices.json mis à jour : ", self.author_family_choices)
 
     async def check_thread_activity(self, thread_id):
         await asyncio.sleep(600)
@@ -164,23 +165,39 @@ class PlayerSetup(commands.Cog):
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
         if interaction.type != discord.InteractionType.component:
+            print("Interaction reçue: type différent de Component")
             return
+
         custom_id = interaction.data.get('custom_id')
         thread_id = interaction.channel_id
         author_id = str(interaction.user.id)
+        print(f"Interaction reçue: custom_id={custom_id}, thread_id={thread_id}, author_id={author_id}")
+
+        # Charger les données à chaque interaction
+        self.author_family_choices = self.load_family_choices()
+        print("family_choices.json chargé: ", self.author_family_choices)
+
         if custom_id in ["yertirand", "gang"]:
             last_time = self.last_interaction_time.get(author_id, 0)
             if current_time() - last_time < 300:
+                print("Moins de 5 minutes depuis la dernière interaction pour l'utilisateur ", author_id)
                 await interaction.response.send_message("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
                 return
+
             self.author_family_choices[author_id]['family_choice'] = custom_id.capitalize()
+            print(f"Mise à jour de family_choice pour l'utilisateur {author_id} : {custom_id.capitalize()}")
             self.save_family_choices()
             self.last_interaction_time[author_id] = current_time()
+            print(f"Mise à jour du last_interaction_time pour l'utilisateur {author_id}")
+
         elif custom_id == "mention_for_invite":
             command_initiator_id = self.command_initiators.get(thread_id)
             if command_initiator_id:
+                print(f"Envoi d'une mention pour {command_initiator_id} dans le thread {thread_id}")
                 await interaction.response.send_message(f"<@{command_initiator_id}>", ephemeral=False)
+
         self.last_author_interaction[interaction.channel.id] = current_time()
+        print(f"Mise à jour du last_author_interaction pour le thread {thread_id}")
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
