@@ -8,6 +8,28 @@ import asyncio
 
 FAMILY_CHOICES_PATH = "extensions/family_choices.json"
 
+def current_time():
+    return time.time()
+
+def create_button(label, style, custom_id, url=None):
+    return Button(label=label, style=style, custom_id=custom_id, url=url)
+
+def create_embed(title, description, color=0x5865f2):
+    return discord.Embed(title=title, description=description, color=color)
+
+def generate_message(author_name):
+    return discord.Embed(
+        title=f"Bienvenue, {author_name} !",
+        description=(
+            f"- Tu as reçu le rôle <@&{ROLE1_ID_FAFA}>, te donnant accès à tous les salons.\n"
+            "- Si tu as plusieurs personnages à LoL, modifie ton pseudo pour les inclure.\n"
+            "- __Première étape__ : Lis les règles dans le salon <#1031609454527000616>.\n"
+            "- __Deuxième étape__ : Choisis tes rôles dans le salon <#1056343806196318248>.\n"
+            "- __Troisième étape__ : Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
+        ),
+        color=0x5865f2
+    )
+
 class PseudoModal(Modal):
     def __init__(self, player_setup, user_id, thread):
         super().__init__(title="Entrez votre pseudo")
@@ -20,30 +42,43 @@ class PseudoModal(Modal):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("Vous n'êtes pas autorisé à changer ce pseudo.", ephemeral=True)
             return
+
         nickname = self.children[0].value.strip()
         current_time = time.time()
         last_changed = self.player_setup.bot.last_pseudo_change.get(self.user_id, 0)
+
         if current_time - last_changed < 300:
             await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois toutes les 5 minutes.", ephemeral=True)
             return
+
         if not (4 <= len(nickname) <= 32):
             await interaction.response.send_message("Pseudo invalide. Il doit contenir entre 4 et 32 caractères.", ephemeral=True)
             return
+
         self.player_setup.bot.last_pseudo_change[self.user_id] = current_time
+
+        user_data = self.player_setup.author_family_choices.get(self.user_id, {
+            "pseudo": None,
+            "message_content": None,
+            "family_choice": None
+        })
+        user_data['pseudo'] = nickname
+        self.player_setup.author_family_choices[self.user_id] = user_data
+        self.player_setup.save_family_choices()
+
         member = self.thread.guild.get_member(interaction.user.id)
         if member:
             await member.edit(nick=nickname)
             role = member.guild.get_role(ROLE1_ID_FAFA)
             if role:
                 await member.add_roles(role)
-        self.player_setup.author_family_choices[self.user_id]['pseudo'] = nickname
-        self.player_setup.save_family_choices()
+
         author_name = member.display_name if member else nickname
         embed = generate_message(author_name)
         view = View()
-        view.add_item(Button(label="Yertirand", style=discord.ButtonStyle.primary, custom_id="yertirand"))
-        view.add_item(Button(label="-GANG-", style=discord.ButtonStyle.primary, custom_id="gang"))
-        view.add_item(Button(label="Tutoriel LoL", style=discord.ButtonStyle.secondary, url="https://www.nostar.fr/lol"))
+        view.add_item(create_button("Yertirand", discord.ButtonStyle.primary, "yertirand"))
+        view.add_item(create_button("-GANG-", discord.ButtonStyle.primary, "gang"))
+        view.add_item(create_button("Tutoriel LoL", discord.ButtonStyle.secondary, "https://www.nostar.fr/lol"))
         await interaction.response.send_message(embed=embed, view=view)
 
 class PlayerSetup(commands.Cog):
@@ -145,45 +180,42 @@ class PlayerSetup(commands.Cog):
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
-        if interaction.type == discord.InteractionType.component:
-            custom_id = interaction.data.get('custom_id')
-            thread_id = interaction.channel_id
-            author_id = str(interaction.user.id)
+        if interaction.type != discord.InteractionType.component:
+            return
 
-            print(f"Interaction received: {custom_id}, Thread ID: {thread_id}, Author ID: {author_id}")
-            print(f"Checking author in author_family_choices: {self.author_family_choices.get(author_id)}")
+        custom_id = interaction.data.get('custom_id')
+        thread_id = interaction.channel_id
+        author_id = str(interaction.user.id)
+        current_time = time.time()
 
-            if not author_id or author_id not in self.author_family_choices:
-                print(f"Author not found or not in author_family_choices: Author ID: {author_id}")
+        self.author_family_choices = self.load_family_choices()
+
+        if author_id not in self.author_family_choices:
+            self.author_family_choices[author_id] = {
+                "pseudo": None,
+                "message_content": None,
+                "family_choice": None
+            }
+
+        if custom_id in ["yertirand", "gang"]:
+            last_time = self.last_interaction_time.get(author_id, 0)
+            if current_time - last_time < 300:
+                response_message = "Veuillez attendre 5 minutes avant de réessayer."
+                await interaction.response.send_message(response_message, ephemeral=True)
                 return
-            current_time = time.time()
-            if custom_id in ["yertirand", "gang"]:
-                print(f"Processing family choice: {custom_id}")
-                self.active_threads.add(thread_id)
-                last_time = self.last_interaction_time.get(author_id, 0)
-                if current_time - last_time < 300:
-                    print("Less than 5 minutes since the last interaction.")
-                    response_message = "Veuillez attendre 5 minutes avant de réessayer."
-                    await (interaction.followup.send(response_message, ephemeral=True) if interaction.response.is_done() else interaction.response.send_message(response_message, ephemeral=True))
-                    return
-                self.last_interaction_time[author_id] = current_time
-                family_choice = custom_id.capitalize()
-                self.author_family_choices[author_id]['family_choice'] = family_choice
-                self.save_family_choices()
-                print(f"Family choice recorded for {author_id}: {family_choice}")
-                role_id = GARDIEN_YERTI_ROLE_ID if custom_id == "yertirand" else GARDIEN_GANG_ROLE_ID
-                role_mention = f"<@&{role_id}>"
-                await (interaction.followup.send(role_mention, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False) if interaction.response.is_done() else interaction.response.send_message(role_mention, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False))
 
-            elif custom_id == "mention_for_invite":
-                command_initiator_id = self.command_initiators.get(thread_id)
-                if command_initiator_id:
-                    user_mention = f"<@{command_initiator_id}>"
-                    if interaction.response.is_done():
-                        await interaction.followup.send(user_mention, ephemeral=False)
-                    else:
-                        await interaction.response.send_message(user_mention, ephemeral=False)
-            self.last_author_interaction[interaction.channel.id] = time.time()
+            family_choice = custom_id.capitalize()
+            self.author_family_choices[author_id]['family_choice'] = family_choice
+            self.save_family_choices()
+            self.last_interaction_time[author_id] = current_time
+
+        elif custom_id == "mention_for_invite":
+            command_initiator_id = self.command_initiators.get(thread_id)
+            if command_initiator_id:
+                user_mention = f"<@{command_initiator_id}>"
+                await interaction.response.send_message(user_mention, ephemeral=False)
+
+        self.last_author_interaction[interaction.channel.id] = current_time
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
@@ -295,20 +327,6 @@ class PlayerSetup(commands.Cog):
         self.thread_initial_message_pending.add(thread.id)
         self.first_author_message[thread.id] = ctx.message.id
         await ctx.send(f"Le bot a été redémarré avec succès pour {author.mention}.")
-
-def generate_message(author_name):
-    embed = discord.Embed(
-        title=f"Bienvenue, {author_name} !",
-        description=(
-            f"- Tu as reçu le rôle <@&{ROLE1_ID_FAFA}>, te donnant accès à tous les salons.\n"
-            "- Si tu as plusieurs personnages à LoL, modifie ton pseudo pour les inclure.\n"
-            "- __Première étape__ : Lis les règles dans le salon <#1031609454527000616>.\n"
-            "- __Deuxième étape__ : Choisis tes rôles dans le salon <#1056343806196318248>.\n"
-            "- __Troisième étape__ : Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
-        ),
-        color=0x5865f2
-    )
-    return embed
 
 async def setup(bot):
     await bot.add_cog(PlayerSetup(bot))
