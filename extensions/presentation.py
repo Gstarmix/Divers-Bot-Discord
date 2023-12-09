@@ -20,8 +20,8 @@ class PseudoModal(Modal):
         nickname = self.children[0].value.strip()
         current_time = time.time()
         last_changed = self.bot.last_pseudo_change.get(self.user_id, 0)
-        if current_time - last_changed < 60:
-            await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois par minute.", ephemeral=True)
+        if current_time - last_changed < 300:
+            await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois toutes les 5 minutes.", ephemeral=True)
             return
         self.bot.last_pseudo_change[self.user_id] = current_time
         if not (4 <= len(nickname) <= 32):
@@ -39,7 +39,7 @@ class PseudoModal(Modal):
         view = View()
         view.add_item(Button(label="Yertirand", style=discord.ButtonStyle.primary, custom_id="yertirand"))
         view.add_item(Button(label="-GANG-", style=discord.ButtonStyle.primary, custom_id="gang"))
-        view.add_item(Button(label="Visite Tutoriel LoL", style=discord.ButtonStyle.secondary, url="https://www.nostar.fr/lol"))
+        view.add_item(Button(label="Tutoriel LoL", style=discord.ButtonStyle.secondary, url="https://www.nostar.fr/lol"))
         await interaction.response.send_message(embed=embed, view=view)
 
 class PlayerSetup(commands.Cog):
@@ -58,29 +58,35 @@ class PlayerSetup(commands.Cog):
     async def set_nickname_callback(self, interaction):
         thread_id = interaction.channel_id
         if interaction.user.id != self.thread_authors.get(thread_id):
-            await interaction.response.send_message("Vous n'êtes pas autorisé à définir ce pseudo.", ephemeral=True)
+            await interaction.response.send_message("Vous n'êtes pas autorisé à utiliser ce bouton.", ephemeral=True)
         else:
             thread = self.bot.get_channel(thread_id)
             await interaction.response.send_modal(PseudoModal(self.bot, interaction.user.id, thread))
 
     @commands.Cog.listener()
-    async def on_thread_create(self, thread):
-        if thread.parent_id != PRESENTATION_CHANNEL_ID:
-            return
-        self.thread_initial_message_pending.add(thread.id)
-        self.thread_authors[thread.id] = thread.owner_id
-
-    @commands.Cog.listener()
     async def on_message(self, message):
-        if not message.guild or not message.author or message.author.bot:
+        if not message.guild or not message.author:
             return
+
+        if message.author.bot:
+            return
+
         if isinstance(message.channel, discord.Thread):
             thread_id = message.channel.id
             parent_id = message.channel.parent_id
         else:
             return
+
         if parent_id != PRESENTATION_CHANNEL_ID:
             return
+
+        author_roles = [role.id for role in message.author.roles]
+        allowed_roles = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
+
+        if message.author != self.bot.user and not any(role_id in author_roles for role_id in allowed_roles):
+            await message.delete()
+            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
+
         if thread_id in self.thread_initial_message_pending and not self.first_author_message.get(thread_id):
             embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
             view = View()
@@ -140,7 +146,7 @@ class PlayerSetup(commands.Cog):
             canal_number = int(command_full[1:])
             user_mention = ctx.author.mention
             family_choice = self.family_selections.get(ctx.author.id)
-            button_family = "Yertirand" if family_choice == "yertirand" else "Gang"
+            button_family = "Yertirand" if family_choice == "Yertirand" else "-GANG-"
             role_gardien = "<@&1036402538620129351>" if family_choice == "yertirand" else "<@&923190695190233138>"
             self.command_initiators[ctx.channel.id] = ctx.author.id
             embed = discord.Embed(
@@ -204,9 +210,11 @@ def generate_message(author_name):
     embed = discord.Embed(
         title=f"Bienvenue, {author_name} !",
         description=(
-            "- Tu as maintenant le rôle <@&923002565602467840>, qui te donne accès à tous nos salons.\n"
-            "- Ton pseudo Discord a été mis à jour pour correspondre à celui de ta présentation.\n"
-            "- Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
+            "- Tu as reçu le rôle <@&923002565602467840>, te donnant accès à tous les salons.\n"
+            "- Si tu as plusieurs personnages à LoL, modifie ton pseudo pour les inclure.\n"
+            "- __Première étape__ : Lis les règles dans le salon <#1031609454527000616>.\n"
+            "- __Deuxième étape__ : Choisis tes rôles dans le salon <#1056343806196318248>.\n"
+            "- __Troisième étape__ : Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
         ),
         color=0x5865f2
     )
