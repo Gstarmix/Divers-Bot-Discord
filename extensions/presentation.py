@@ -58,6 +58,7 @@ class PlayerSetup(commands.Cog):
         self.command_initiators = {}
         self.last_author_interaction = {}
         self.active_threads = set()
+        self.author_family_choices = {}
 
     async def check_thread_activity(self, thread_id):
         await asyncio.sleep(600)
@@ -168,9 +169,16 @@ class PlayerSetup(commands.Cog):
         if command_full.startswith("c") and command_full[1:].isdigit():
             canal_number = int(command_full[1:])
             user_mention = ctx.author.mention
-            family_choice = self.family_selections.get(ctx.author.id)
-            button_family = "Yertirand" if family_choice == "Yertirand" else "-GANG-"
-            role_gardien = "<@&1036402538620129351>" if family_choice == "yertirand" else "<@&923190695190233138>"
+            family_choice = self.author_family_choices.get(ctx.author.id, "")  
+            if family_choice == "Yertirand":
+                button_family = "Yertirand"
+                role_gardien = "<@&1036402538620129351>"
+            elif family_choice == "-GANG-":
+                button_family = "-GANG-"
+                role_gardien = "<@&923190695190233138>"
+            else:
+                button_family = "Yertirand"
+                role_gardien = "<@&1036402538620129351>"
             self.command_initiators[ctx.channel.id] = ctx.author.id
             embed = discord.Embed(
                 title="Instructions pour rejoindre une famille",
@@ -178,7 +186,7 @@ class PlayerSetup(commands.Cog):
                     f":one: — Rejoins le canal {canal_number}.\n"
                     ":two: — Lance un <:hautparleur:1044376345456677005> `Haut-parleur` pour annoncer le nom de la famille que tu souhaites rejoindre.\n"
                     f":three: — Après avoir annoncé le nom de la famille, clique sur le bouton ci-dessous pour mentionner {user_mention}.\n"
-                    f":four: — Si tu n'as pas reçu d'invitation après un certain temps, clique à nouveau sur le bouton {button_family} pour mentionner le rôle {role_gardien}."
+                    f":four: — Si tu n'as pas reçu d'invitation après un certain temps, clique à nouveau sur le bouton `{button_family}` pour mentionner le rôle {role_gardien}."
                 ),
                 color=0x5865f2
             )
