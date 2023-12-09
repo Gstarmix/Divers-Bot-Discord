@@ -21,11 +21,11 @@ def generate_message(author_name):
     return discord.Embed(
         title=f"Bienvenue, {author_name} !",
         description=(
-            f"- Tu as reçu le rôle <@&{ROLE1_ID_FAFA}>, te donnant accès à tous les salons.\n"
+            "- Tu as reçu le rôle <@&ROLE1_ID_FAFA>, te donnant accès à tous les salons.\n"
             "- Si tu as plusieurs personnages à LoL, modifie ton pseudo pour les inclure.\n"
-            "- __Première étape__ : Lis les règles dans le salon <#1031609454527000616>.\n"
-            "- __Deuxième étape__ : Choisis tes rôles dans le salon <#1056343806196318248>.\n"
-            "- __Troisième étape__ : Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
+            "- Première étape : Lis les règles dans le salon <#1031609454527000616>.\n"
+            "- Deuxième étape : Choisis tes rôles dans le salon <#1056343806196318248>.\n"
+            "- Troisième étape : Choisis ta famille en cliquant sur l'un des boutons ci-dessous."
         ),
         color=0x5865f2
     )
@@ -42,21 +42,14 @@ class PseudoModal(Modal):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("Vous n'êtes pas autorisé à changer ce pseudo.", ephemeral=True)
             return
-
         nickname = self.children[0].value.strip()
-        current_time = time.time()
-        last_changed = self.player_setup.bot.last_pseudo_change.get(self.user_id, 0)
-
-        if current_time - last_changed < 300:
-            await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois toutes les 5 minutes.", ephemeral=True)
-            return
-
         if not (4 <= len(nickname) <= 32):
             await interaction.response.send_message("Pseudo invalide. Il doit contenir entre 4 et 32 caractères.", ephemeral=True)
             return
-
-        self.player_setup.bot.last_pseudo_change[self.user_id] = current_time
-
+        if current_time() - self.player_setup.bot.last_pseudo_change.get(self.user_id, 0) < 300:
+            await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois toutes les 5 minutes.", ephemeral=True)
+            return
+        self.player_setup.bot.last_pseudo_change[self.user_id] = current_time()
         user_data = self.player_setup.author_family_choices.get(self.user_id, {
             "pseudo": None,
             "message_content": None,
@@ -65,14 +58,12 @@ class PseudoModal(Modal):
         user_data['pseudo'] = nickname
         self.player_setup.author_family_choices[self.user_id] = user_data
         self.player_setup.save_family_choices()
-
         member = self.thread.guild.get_member(interaction.user.id)
         if member:
             await member.edit(nick=nickname)
             role = member.guild.get_role(ROLE1_ID_FAFA)
             if role:
                 await member.add_roles(role)
-
         author_name = member.display_name if member else nickname
         embed = generate_message(author_name)
         view = View()
@@ -113,8 +104,7 @@ class PlayerSetup(commands.Cog):
         await asyncio.sleep(600)
         if thread_id in self.active_threads:
             return
-        current_time = time.time()
-        if current_time - self.last_author_interaction.get(thread_id, 0) > 600:
+        if current_time() - self.last_author_interaction.get(thread_id, 0) > 600:
             thread = self.bot.get_channel(thread_id)
             if thread:
                 author = thread.guild.get_member(self.thread_authors.get(thread_id))
@@ -157,65 +147,40 @@ class PlayerSetup(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if not message.guild or not message.author or message.author.bot:
+        if not message.guild or message.author.bot:
             return
-        if isinstance(message.channel, discord.Thread):
-            thread_id = message.channel.id
-            if message.channel.parent_id == PRESENTATION_CHANNEL_ID:
-                if thread_id not in self.first_author_message:
-                    self.first_author_message[thread_id] = message.id
-                allowed_roles = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
-                if message.id != self.first_author_message[thread_id] and not any(role.id in allowed_roles for role in message.author.roles):
-                    await message.delete()
-                    await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
-                if thread_id in self.thread_initial_message_pending and not self.first_author_message.get(thread_id):
-                    self.thread_initial_message_pending.remove(thread_id)
-                    self.first_author_message[thread_id] = message.id
-                author_id = self.thread_authors.get(thread_id)
-                if author_id and message.author.id == author_id:
-                    if 'message_content' not in self.author_family_choices[author_id] or not self.author_family_choices[author_id]['message_content']:
-                        self.author_family_choices[author_id]['message_content'] = message.content
-                        self.save_family_choices()
-                self.last_author_interaction[message.channel.id] = time.time()
+        if isinstance(message.channel, discord.Thread) and message.channel.parent_id == PRESENTATION_CHANNEL_ID:
+            author_id = str(message.author.id)
+            user_data = self.author_family_choices.get(author_id, {
+                "pseudo": None,
+                "message_content": None,
+                "family_choice": None
+            })
+            user_data['message_content'] = message.content
+            self.author_family_choices[author_id] = user_data
+            self.save_family_choices()
+            self.last_author_interaction[message.channel.id] = current_time()
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
         if interaction.type != discord.InteractionType.component:
             return
-
         custom_id = interaction.data.get('custom_id')
         thread_id = interaction.channel_id
         author_id = str(interaction.user.id)
-        current_time = time.time()
-
-        self.author_family_choices = self.load_family_choices()
-
-        if author_id not in self.author_family_choices:
-            self.author_family_choices[author_id] = {
-                "pseudo": None,
-                "message_content": None,
-                "family_choice": None
-            }
-
         if custom_id in ["yertirand", "gang"]:
             last_time = self.last_interaction_time.get(author_id, 0)
-            if current_time - last_time < 300:
-                response_message = "Veuillez attendre 5 minutes avant de réessayer."
-                await interaction.response.send_message(response_message, ephemeral=True)
+            if current_time() - last_time < 300:
+                await interaction.response.send_message("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
                 return
-
-            family_choice = custom_id.capitalize()
-            self.author_family_choices[author_id]['family_choice'] = family_choice
+            self.author_family_choices[author_id]['family_choice'] = custom_id.capitalize()
             self.save_family_choices()
-            self.last_interaction_time[author_id] = current_time
-
+            self.last_interaction_time[author_id] = current_time()
         elif custom_id == "mention_for_invite":
             command_initiator_id = self.command_initiators.get(thread_id)
             if command_initiator_id:
-                user_mention = f"<@{command_initiator_id}>"
-                await interaction.response.send_message(user_mention, ephemeral=False)
-
-        self.last_author_interaction[interaction.channel.id] = current_time
+                await interaction.response.send_message(f"<@{command_initiator_id}>", ephemeral=False)
+        self.last_author_interaction[interaction.channel.id] = current_time()
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
@@ -265,7 +230,7 @@ class PlayerSetup(commands.Cog):
         if command_full == "c" or (command_full.startswith("c") and command_full[1:].isdigit()):
             canal_number = int(command_full[1:]) if command_full != "c" else 1
             user_mention = ctx.author.mention
-            family_choice = self.author_family_choices.get(ctx.author.id, "Yertirand")
+            family_choice = self.author_family_choices.get(ctx.author.id, {}).get("family_choice", "Yertirand")
             if family_choice == "Yertirand":
                 button_family = "Yertirand"
                 role_gardien = f"<@&{GARDIEN_YERTI_ROLE_ID}>"
