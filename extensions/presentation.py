@@ -43,6 +43,8 @@ class PseudoModal(Modal):
         await interaction.response.send_message(embed=embed, view=view)
 
 class PlayerSetup(commands.Cog):
+    AUTHORIZED_ROLES = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
+
     def __init__(self, bot):
         self.bot = bot
         self.bot.last_pseudo_change = {}
@@ -54,6 +56,24 @@ class PlayerSetup(commands.Cog):
         self.family_selections = {}
         self.thread_authors = {}
         self.command_initiators = {}
+        self.last_author_interaction = {}
+        self.active_threads = set()
+
+    async def check_thread_activity(self, thread_id):
+        await asyncio.sleep(600)
+        if thread_id in self.active_threads:
+            return
+        current_time = time.time()
+        if current_time - self.last_author_interaction.get(thread_id, 0) > 600:
+            thread = self.bot.get_channel(thread_id)
+            if thread:
+                author = thread.guild.get_member(self.thread_authors.get(thread_id))
+                if author:
+                    try:
+                        await author.send("Votre thread a été supprimé en raison de l'inactivité.")
+                    except discord.errors.Forbidden:
+                        pass
+                await thread.delete()
 
     async def set_nickname_callback(self, interaction):
         thread_id = interaction.channel_id
@@ -64,39 +84,43 @@ class PlayerSetup(commands.Cog):
             await interaction.response.send_modal(PseudoModal(self.bot, interaction.user.id, thread))
 
     @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        if thread.parent_id != PRESENTATION_CHANNEL_ID:
+            return
+        self.thread_authors[thread.id] = thread.owner_id
+        embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
+        view = View()
+        button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
+        button.callback = self.set_nickname_callback
+        view.add_item(button)
+        await thread.send(embed=embed, view=view)
+        self.last_author_interaction[thread.id] = time.time()
+        asyncio.create_task(self.check_thread_activity(thread.id))
+
+    @commands.Cog.listener()
     async def on_message(self, message):
-        if not message.guild or not message.author:
+        if not message.guild or not message.author or message.author.bot:
             return
-
-        if message.author.bot:
-            return
-
         if isinstance(message.channel, discord.Thread):
             thread_id = message.channel.id
-            parent_id = message.channel.parent_id
-        else:
-            return
-
-        if parent_id != PRESENTATION_CHANNEL_ID:
-            return
-
-        author_roles = [role.id for role in message.author.roles]
-        allowed_roles = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
-
-        if message.author != self.bot.user and not any(role_id in author_roles for role_id in allowed_roles):
-            await message.delete()
-            await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
-
-        if thread_id in self.thread_initial_message_pending and not self.first_author_message.get(thread_id):
-            embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
-            view = View()
-            if message.author.id == self.thread_authors.get(thread_id):
-                button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
-                button.callback = self.set_nickname_callback
-                view.add_item(button)
-            await message.channel.send(embed=embed, view=view)
-            self.thread_initial_message_pending.remove(thread_id)
-            self.first_author_message[thread_id] = message.id
+            if message.channel.parent_id == PRESENTATION_CHANNEL_ID:
+                if thread_id not in self.first_author_message:
+                    self.first_author_message[thread_id] = message.id
+                allowed_roles = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
+                if message.id != self.first_author_message[thread_id] and not any(role.id in allowed_roles for role in message.author.roles):
+                    await message.delete()
+                    await message.author.send("Vous n'êtes pas autorisé à écrire dans ce fil.")
+            if thread_id in self.thread_initial_message_pending and not self.first_author_message.get(thread_id):
+                embed = discord.Embed(title="Quel est ton pseudo de joueur ?", color=0x5865f2)
+                view = View()
+                if message.author.id == self.thread_authors.get(thread_id):
+                    button = Button(label="Définir le pseudo", style=discord.ButtonStyle.primary, custom_id="set_nickname")
+                    button.callback = self.set_nickname_callback
+                    view.add_item(button)
+                await message.channel.send(embed=embed, view=view)
+                self.thread_initial_message_pending.remove(thread_id)
+                self.first_author_message[thread_id] = message.id
+            self.last_author_interaction[message.channel.id] = time.time()
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
@@ -105,7 +129,6 @@ class PlayerSetup(commands.Cog):
             thread_id = interaction.channel_id
             author_id = self.thread_authors.get(thread_id)
             current_time = time.time()
-
             if custom_id in ["yertirand", "gang", "mention_for_invite"]:
                 if interaction.user.id != author_id:
                     if interaction.response.is_done():
@@ -113,8 +136,8 @@ class PlayerSetup(commands.Cog):
                     else:
                         await interaction.response.send_message("Vous n'êtes pas autorisé à utiliser ce bouton.", ephemeral=True)
                     return
-
             if custom_id in ["yertirand", "gang"]:
+                self.active_threads.add(interaction.channel_id)
                 last_time = self.last_interaction_time.get(author_id, 0)
                 if current_time - last_time < 300:
                     if interaction.response.is_done():
@@ -129,7 +152,6 @@ class PlayerSetup(commands.Cog):
                         await interaction.followup.send(role_id, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
                     else:
                         await interaction.response.send_message(role_id, allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
-
             elif custom_id == "mention_for_invite":
                 command_initiator_id = self.command_initiators.get(thread_id)
                 if command_initiator_id:
@@ -138,6 +160,7 @@ class PlayerSetup(commands.Cog):
                         await interaction.followup.send(user_mention, ephemeral=False)
                     else:
                         await interaction.response.send_message(user_mention, ephemeral=False)
+            self.last_author_interaction[interaction.channel.id] = time.time()
 
     @commands.command(name="c", aliases=["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8"])
     async def change_channel_message(self, ctx):
