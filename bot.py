@@ -18,11 +18,14 @@ async def on_ready():
     await bot.load_extension("extensions.thread_creator")
     print("Thread Creator extension loaded")
     
-    await bot.load_extension("extensions.presentation")
-    print("Presentation extension loaded")
-    
     await bot.load_extension("extensions.question")
     print("Question extension loaded")
+
+    await bot.load_extension("extensions.image_forwarder")
+    print("Image Forwarder extension loaded")
+
+    # await bot.load_extension("extensions.presentation")
+    # print("Presentation extension loaded")
 
     # await bot.load_extension("extensions.inscription")
     # print("Inscription extension loaded")

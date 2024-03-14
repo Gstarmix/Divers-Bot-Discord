@@ -15,17 +15,17 @@ class PseudoModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("Vous n'êtes pas autorisé à changer ce pseudo.", ephemeral=True)
+            await interaction.user.send("Vous n'êtes pas autorisé à changer ce pseudo.")
             return
         nickname = self.children[0].value.strip()
         current_time = time.time()
         last_changed = self.bot.last_pseudo_change.get(self.user_id, 0)
         if current_time - last_changed < 300:
-            await interaction.response.send_message("Vous ne pouvez changer votre pseudo qu'une fois toutes les 5 minutes.", ephemeral=True)
+            await interaction.user.send("Vous ne pouvez changer votre pseudo qu'une fois toutes les 5 minutes.")
             return
         self.bot.last_pseudo_change[self.user_id] = current_time
         if not (4 <= len(nickname) <= 32):
-            await interaction.response.send_message("Pseudo invalide. Il doit contenir entre 4 et 32 caractères.", ephemeral=True)
+            await interaction.user.send("Pseudo invalide. Il doit contenir entre 4 et 32 caractères.")
             return
         await self.thread.edit(name=f"Présentation de {nickname}")
         member = self.thread.guild.get_member(interaction.user.id)
@@ -43,7 +43,6 @@ class PseudoModal(Modal):
         await interaction.response.send_message(embed=embed, view=view)
 
 class PlayerSetup(commands.Cog):
-    AUTHORIZED_ROLES = [CHEF_SINGE_ROLE_ID, GARDIEN_YERTI_ROLE_ID, GARDIEN_GANG_ROLE_ID]
 
     def __init__(self, bot):
         self.bot = bot
@@ -71,7 +70,7 @@ class PlayerSetup(commands.Cog):
                 author = thread.guild.get_member(self.thread_authors.get(thread_id))
                 if author:
                     try:
-                        await author.send("Votre post de présentation a été supprimé en raison de ton inactivité.")
+                        await author.send("Votre post de présentation a été supprimé en raison de votre inactivité.")
                     except discord.errors.Forbidden:
                         pass
                 await thread.delete()
@@ -79,7 +78,7 @@ class PlayerSetup(commands.Cog):
     async def set_nickname_callback(self, interaction):
         thread_id = interaction.channel_id
         if interaction.user.id != self.thread_authors.get(thread_id):
-            await interaction.response.send_message("Seul l'auteur du sujet est autorisé à utiliser ce bouton.", ephemeral=True)
+            await interaction.user.send("Seul l'auteur du sujet est autorisé à utiliser ce bouton.")
         else:
             thread = self.bot.get_channel(thread_id)
             await interaction.response.send_modal(PseudoModal(self.bot, interaction.user.id, thread))
@@ -135,45 +134,45 @@ class PlayerSetup(commands.Cog):
 
         if custom_id in ["yertirand", "gang"]:
             if interaction.user.id != author_id:
-                if interaction.response.is_done():
-                    await interaction.followup.send("Seul l'auteur du sujet est autorisé à utiliser ce bouton.", ephemeral=True)
-                else:
-                    await interaction.response.send_message("Seul l'auteur du sujet est autorisé à utiliser ce bouton.", ephemeral=True)
+                await interaction.response.send_message("Seul l'auteur du sujet est autorisé à utiliser ce bouton.", ephemeral=True)
                 return
 
             self.active_threads.add(interaction.channel_id)
             last_time = self.last_interaction_time.get(author_id, 0)
             if current_time - last_time < 300:
-                if interaction.response.is_done():
-                    await interaction.followup.send("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
-                else:
-                    await interaction.response.send_message("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
+                await interaction.response.send_message("Veuillez attendre 5 minutes avant de réessayer.", ephemeral=True)
                 return
             else:
                 self.last_interaction_time[author_id] = current_time
                 role_id = GARDIEN_YERTI_ROLE_ID if custom_id == "yertirand" else GARDIEN_GANG_ROLE_ID
-                if interaction.response.is_done():
-                    await interaction.followup.send(f"<@&{role_id}>", allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
-                else:
-                    await interaction.response.send_message(f"<@&{role_id}>", allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
+                await interaction.response.send_message(f"<@&{role_id}>", allowed_mentions=discord.AllowedMentions.all(), ephemeral=False)
 
         elif custom_id == "mention_for_invite":
             if interaction.user.id != author_id:
-                await interaction.response.send_message("Seul l'auteur du sujet est autorisé à utiliser ce bouton.", ephemeral=True)
+                await interaction.response.defer()
+                try:
+                    await interaction.user.send("Seul l'auteur du sujet est autorisé à utiliser ce bouton.")
+                except discord.errors.Forbidden:
+                    pass
                 return
 
             if self.last_mention_invite.get(author_id, 0) + 300 > current_time:
-                await interaction.response.send_message("Vous devez attendre 5 minutes avant de pouvoir utiliser à nouveau ce bouton.", ephemeral=True)
+                await interaction.response.defer()
+                try:
+                    await interaction.user.send("Vous devez attendre 5 minutes avant de pouvoir utiliser à nouveau ce bouton.")
+                except discord.errors.Forbidden:
+                    pass
                 return
             else:
                 self.last_mention_invite[author_id] = current_time
                 command_initiator_id = self.command_initiators.get(thread_id)
                 if command_initiator_id:
                     user_mention = f"<@{command_initiator_id}>"
-                    if interaction.response.is_done():
-                        await interaction.followup.send(user_mention, ephemeral=False)
-                    else:
-                        await interaction.response.send_message(user_mention, ephemeral=False)
+                    await interaction.response.defer()
+                    try:
+                        await interaction.user.send(user_mention)
+                    except discord.errors.Forbidden:
+                        pass
 
     @commands.command(name="g", aliases=["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"])
     async def change_channel_message_gang(self, ctx):
