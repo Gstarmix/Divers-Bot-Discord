@@ -3,7 +3,6 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-bot.py
 extensions/channel_visibility_manager.py
 extensions/command_check.py
 extensions/commands_config.json
