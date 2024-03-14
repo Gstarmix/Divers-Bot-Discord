@@ -22,13 +22,12 @@ class ActionsView(discord.ui.View):
 
     @discord.ui.button(label="Supprimer", style=discord.ButtonStyle.danger, custom_id="delete_button_v1")
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
-        author = interaction.user
-        thread_owner_id = interaction.guild.get_thread(self.target_thread_id).owner.id
-        if author.id not in {GSTAR_USER_ID, thread_owner_id}:
-            await interaction.response.defer(thinking=False)
-            return
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        await interaction.edit_original_response(view=DeleteView(self.target_thread_id, interaction))
+        thread = await interaction.client.fetch_channel(self.target_thread_id)
+        if interaction.user.id not in {GSTAR_USER_ID, thread.owner.id}:
+            await interaction.response.send_message("Vous n'êtes pas autorisé à effectuer cette action.", ephemeral=True)
+        else:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            await interaction.edit_original_response(view=DeleteView(self.target_thread_id, interaction))
 
 
 class ReportModal(discord.ui.Modal):
@@ -52,7 +51,7 @@ class DeleteView(discord.ui.View):
         self.target_thread_id = target_thread_id
         self.target_interaction = target_interaction
 
-    @discord.ui.button(label="Supprimer", style=discord.ButtonStyle.success, custom_id="deletion_confirm")
+    @discord.ui.button(label="Confirmer la suppression", style=discord.ButtonStyle.danger, custom_id="confirm_delete")
     async def delete(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(thinking=False)
         try:
@@ -63,7 +62,7 @@ class DeleteView(discord.ui.View):
         await self.target_interaction.message.delete()
         await self.target_interaction.edit_original_response(content="Vente supprimée !", view=None)
 
-    @discord.ui.button(label="Annuler", style=discord.ButtonStyle.danger, custom_id="deletion_cancel")
+    @discord.ui.button(label="Annuler", style=discord.ButtonStyle.secondary, custom_id="cancel_delete")
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(thinking=False)
         await self.target_interaction.edit_original_response(content="Suppression annulée !", view=None)
