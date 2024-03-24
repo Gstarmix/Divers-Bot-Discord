@@ -26,8 +26,10 @@ VIDEO_CHANNEL_ID = 709653621393850438
 VDO_VDM_CHANNEL_ID = 775071451606155274
 
 COMMERCES_ID = 1219314731022684171
+
 VENTES_COSMOS_ID = 1217579779327397939
 ACHATS_COSMOS_ID = 1219026259351437465
+
 VENTES_NOSFIRE_ID = 1219026299637465234
 ACHATS_NOSFIRE_ID = 1219026360672981165
 
@@ -43,6 +45,104 @@ RAIDS_NOSFIRE_ID = 1219331769287966760
 LEVELING_NOSFIRE_ID = 1219332588318228622
 GROUPE_XP_NOSFIRE_ID = 1219333053139386389
 
+
+ACTIVITY_CHANNELS = {
+    "présentation-famille_cosmos": FAMILLES_COSMOS_ID,
+    "recherche-famille_cosmos": FAMILLES_COSMOS_ID,
+    "recherche-raid_cosmos": RAIDS_COSMOS_ID,
+    "recherche-leveling_cosmos": LEVELING_COSMOS_ID,
+    "recherche-groupe-xp_cosmos": GROUPE_XP_COSMOS_ID,
+    "présentation-famille_nosfire": FAMILLES_NOSFIRE_ID,
+    "recherche-famille_nosfire": FAMILLES_NOSFIRE_ID,
+    "recherche-raid_nosfire": RAIDS_NOSFIRE_ID,
+    "recherche-leveling_nosfire": LEVELING_NOSFIRE_ID,
+    "recherche-groupe-xp_nosfire": GROUPE_XP_NOSFIRE_ID,
+}
+
+TRADE_CHANNELS = {
+    "achat_cosmos": ACHATS_COSMOS_ID,
+    "vente_cosmos": VENTES_COSMOS_ID,
+    "achat_nosfire": ACHATS_NOSFIRE_ID,
+    "vente_nosfire": VENTES_NOSFIRE_ID,
+}
+
+LOCKED_CHANNELS = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
+
+
+RAID_ROLE_MAPPING = {
+    "Cosmos": {
+        "Evènement": "1220018085206032536",
+        "Namaju": "1220018085206032536",
+        "Poule": "1220018085206032536",
+        "Cuby": "1220018085206032536",
+        "Ginseng": "1220018085206032536",
+        "Castra": "1220018085206032536",
+        "Araignée": "1220018085206032536",
+        "Slade": "1220018085206032536",
+        "Fafnir": "1220018085206032536",
+        "Yertirand": "1220018085206032536",
+        "Draco": "1220018085206032536",
+        "Glacerus": "1220018085206032536",
+        "Laurena": "1220018085206032536",
+        "Ibrahim": "1220018085206032536",
+        "Kertos": "1220018085206032536",
+        "Valakus": "1220018085206032536",
+        "Greniga": "1220018085206032536",
+        "Zénas": "1220018085206032536",
+        "Erenia": "1220018085206032536",
+        "Fernon": "1220018085206032536",
+        "Kirollas": "1220018085206032536",
+        "Carno": "1220018085206032536",
+        "Bélial": "1220018085206032536",
+        "Paimon": "1220018085206032536",
+        "Paimon ressuscité": "1220018085206032536",
+        "Valehir": "1220018085206032536",
+        "Alzanor": "1220018085206032536",
+        "Asgobas": "1220018085206032536",
+        "Pollutus": "1220018085206032536",
+        "Arma": "1220018085206032536"
+    },
+    "NosFire": {
+        "Evènement": "1220018070685224980",
+        "Namaju": "1220018070685224980",
+        "Poule": "1220018070685224980",
+        "Cuby": "1220018070685224980",
+        "Ginseng": "1220018070685224980",
+        "Castra": "1220018070685224980",
+        "Araignée": "1220018070685224980",
+        "Slade": "1220018070685224980",
+        "Fafnir": "1220018070685224980",
+        "Yertirand": "1220018070685224980",
+        "Draco": "1220018070685224980",
+        "Glacerus": "1220018070685224980",
+        "Laurena": "1220018070685224980",
+        "Ibrahim": "1220018070685224980",
+        "Kertos": "1220018070685224980",
+        "Valakus": "1220018070685224980",
+        "Greniga": "1220018070685224980",
+        "Zénas": "1220018070685224980",
+        "Erenia": "1220018070685224980",
+        "Fernon": "1220018070685224980",
+        "Kirollas": "1220018070685224980",
+        "Carno": "1220018070685224980",
+        "Bélial": "1220018070685224980",
+        "Paimon": "1220018070685224980",
+        "Paimon ressuscité": "1220018070685224980",
+        "Valehir": "1220018070685224980",
+        "Alzanor": "1220018070685224980",
+        "Asgobas": "1220018070685224980",
+        "Pollutus": "1220018070685224980",
+        "Arma": "1220018070685224980",
+    }
+}
+
+
+RAIDS_LIST = [
+    "Evènement", "Namaju", "Poule", "Cuby", "Ginseng", "Castra", "Araignée", "Slade", "Fafnir", 
+    "Yertirand", "Draco", "Glacerus", "Laurena", "Ibrahim", "Kertos", "Valakus", "Greniga", "Zénas", 
+    "Erenia", "Fernon", "Kirollas", "Carno", "Bélial", "Paimon", "Paimon ressuscité", "Valehir", 
+    "Alzanor", "Asgobas", "Pollutus", "Arma"
+]
 
 CHANNELS_NAME_TO_ID = {
     "LOG_CHANNEL_ID": LOG_CHANNEL_ID,

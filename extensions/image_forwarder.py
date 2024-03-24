@@ -1,22 +1,17 @@
 import json
 from datetime import datetime, timedelta
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, Literal
 from functools import partial
+import logging
 
 import discord
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
 
-from constants import (
-    COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID,
-    SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, FAMILLES_COSMOS_ID, RAIDS_COSMOS_ID,
-    LEVELING_COSMOS_ID, GROUPE_XP_COSMOS_ID, FAMILLES_NOSFIRE_ID, RAIDS_NOSFIRE_ID,
-    LEVELING_NOSFIRE_ID, GROUPE_XP_NOSFIRE_ID
-)
+from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, \
+    LOCKED_CHANNELS, RAIDS_LIST, RAID_ROLE_MAPPING
 
 DATA_PATH = "datas/image_forwarder"
-user_choices: dict[int, dict[str, str]] = {}
-
 
 class ActionsView(discord.ui.View):
     def __init__(self, target_thread_id: int):
@@ -80,42 +75,88 @@ class DeleteView(discord.ui.View):
 
 
 class CommerceTypeView(View):
-    def __init__(self, message: discord.Message, callback: Callable[[], Awaitable[None]]):
+    def __init__(self, callback: Callable[[str], Awaitable[None]]):
         super().__init__(timeout=None)
-        self.message = message
         self.callback = callback
 
     @discord.ui.button(label="Achat", style=discord.ButtonStyle.green, custom_id="buy")
     async def buy(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user_choices[self.message.id] = {"type": "achat"}
-        await interaction.response.send_message("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(self.message, self.callback),
-                                                ephemeral=True)
+        new_callback = partial(self.callback, trade_type="achat")
+        await interaction.response.send_message("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback))
 
     @discord.ui.button(label="Vente", style=discord.ButtonStyle.blurple, custom_id="sell")
     async def sell(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user_choices[self.message.id] = {"type": "vente"}
-        await interaction.response.send_message("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(self.message, self.callback),
-                                                ephemeral=True)
+        new_callback = partial(self.callback, trade_type="vente")
+        await interaction.response.send_message("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback))
 
 
-class ServerChoiceView(View):
-    def __init__(self, message: discord.Message, callback: Callable[[], Awaitable[None]], context: str):
+class ServerChoiceView(discord.ui.View):
+    def __init__(self, repost_message_func):
+        super().__init__()
+        self.repost_message_func = repost_message_func
+
+    @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
+    async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        target_channel_id = await self.repost_message_func(server="cosmos")
+        await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
+
+    @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
+    async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        target_channel_id = await self.repost_message_func(server="nosfire")
+        await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
+
+
+class RaidSelectView(discord.ui.View):
+    def __init__(self, author_id, repost_message, *, page=0):
         super().__init__(timeout=None)
-        self.message = message
-        self.callback = callback
-        self.context = context
+        self.author_id = author_id
+        self.repost_message = repost_message
+        self.page = page
+        self.max_page = len(RAIDS_LIST) // 25 + (1 if len(RAIDS_LIST) % 25 > 0 else 0)
+        self.add_item(RaidSelect(author_id, self.repost_message, page=page))
+        if page > 0:
+            self.add_item(PageButton(author_id, -1))
+        if page < self.max_page - 1:
+            self.add_item(PageButton(author_id, 1))
 
-    @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="cosmos")
-    async def cosmos(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user_choices[self.message.id] = {"server": "cosmos", "context": self.context}
-        await self.callback()
-        await interaction.response.send_message("Votre annonce a été correctement redirigée.", ephemeral=True)
 
-    @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="nosfire")
-    async def nosfire(self, interaction: discord.Interaction, button: discord.ui.Button):
-        user_choices[self.message.id] = {"server": "nosfire", "context": self.context}
-        await self.callback()
-        await interaction.response.send_message("Votre annonce a été correctement redirigée.", ephemeral=True)
+class RaidSelect(discord.ui.Select[RaidSelectView]):
+    def __init__(self, author_id, repost_message, page=0):
+        self.author_id = author_id
+        self.repost_message = repost_message
+        options = [
+            discord.SelectOption(label=raid, value=raid)
+            for raid in RAIDS_LIST[page * 25:min((page + 1) * 25, len(RAIDS_LIST))]
+        ]
+        super().__init__(placeholder='Choisissez les raids', min_values=1, max_values=min(len(options), 25), options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
+            return
+        new_callback = partial(self.repost_message, selected_raids=self.values)
+        view = ServerChoiceView(repost_message_func=new_callback)
+        await interaction.response.send_message("Sur quel serveur souhaitez-vous publier votre annonce de raid ?", view=view)
+
+
+class PageButton(discord.ui.Button[RaidSelectView]):
+    def __init__(self, author_id, page_to_add: Literal[-1, 1]):
+        label = "Page précédente"
+        if page_to_add == 1:
+            label = "Page suivante"
+        super().__init__(style=discord.ButtonStyle.secondary, label=label)
+        self.author_id = author_id
+        self.page_to_add = page_to_add
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
+            return
+        view = self.view
+        view.clear_items()
+        new_view = RaidSelectView(self.author_id, self.view.repost_message, page=view.page + self.page_to_add)
+        await interaction.response.edit_message(view=new_view)
+
 
 class ImageForwarder(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -145,101 +186,58 @@ class ImageForwarder(commands.Cog):
         with open(self.message_to_thread_path, "w") as f:
             json.dump(self.message_to_thread, f)
 
+    def format_remaining_time(self, remaining_seconds):
+        """Prend en entrée le nombre de secondes restantes et retourne une chaîne formatée."""
+        days, remainder = divmod(remaining_seconds, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{int(days)}j {int(hours)}h {int(minutes)}min"
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
 
-        if message.channel.id in [COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID]:
+        if message.channel.id in LOCKED_CHANNELS:
             await message.delete()
             inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez utiliser le forum approprié <#{COMMERCES_ID}> pour créer votre annonce.\n"
             await message.author.send(inform_message)
             return
 
-        if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id == COMMERCES_ID:
+        if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
             await self.handle_post_logic(message)
 
-    async def handle_post_logic(self, message: discord.Message):
-        if message.author.bot or not message.channel.type == discord.ChannelType.public_thread:
-            return
+    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str, selected_raids: list | None = None,
+                             trade_type: str | None = None, activity_type: str | None = None) -> int:
+        target_channel_id = None
 
-        message_count = 0
-        async for _ in message.channel.history(limit=None):
-            message_count += 1
-        is_initial_post = message_count == 1
-
-        current_time = int(datetime.utcnow().timestamp())
-        last_post_time = self.first_post_time.get(str(message.channel.id), 0)
-        elapsed_time = current_time - last_post_time
-
-        if message.channel.parent_id == COMMERCES_ID:
-            if message.author == message.channel.owner:
-                if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
-                    self.first_post_time[str(message.channel.id)] = current_time
-                    self.save_datas()
-                    await message.reply("Quel type de transaction souhaitez-vous réaliser ?", view=ServerChoiceView(message, partial(self.repost_message, message, True), "commerce"))
-                else:
-                    remaining_time = timedelta(seconds=timedelta(hours=48).total_seconds() - elapsed_time)
-                    time_message = f"🕒 Il reste {self.format_remaining_time(remaining_time)} avant la prochaine actualisation possible de votre annonce."
-                    await message.reply(time_message, mention_author=True)
-        elif message.channel.parent_id == ACTIVITES_ID:
-            detected_tags = [tag.name for tag in message.tags]
-            if any(tag in detected_tags for tag in ['présentation-famille', 'recherche-famille', 'recherche-raid', 'recherche-leveling', 'recherche-groupe-xp']):
-                await message.reply("Sur quel serveur souhaitez-vous poster votre activité ?", view=ServerChoiceView(message, partial(self.repost_message, message, True), "activité"))
-                await message.reply(time_message, mention_author=True)
-
-    async def repost_message(self, msg: discord.Message, is_initial_post: bool):
-        choice = user_choices.get(msg.id)
-        if not choice:
-            print("Erreur : choix non trouvé.")
-            return
-
-        commerce_channel_map = {
-            "achat_cosmos": ACHATS_COSMOS_ID,
-            "vente_cosmos": VENTES_COSMOS_ID,
-            "achat_nosfire": ACHATS_NOSFIRE_ID,
-            "vente_nosfire": VENTES_NOSFIRE_ID,
-        }
-
-        activite_channel_map = {
-            "présentation-famille_cosmos": FAMILLES_COSMOS_ID,
-            "recherche-famille_cosmos": FAMILLES_COSMOS_ID,
-            "recherche-raid_cosmos": RAIDS_COSMOS_ID,
-            "recherche-leveling_cosmos": LEVELING_COSMOS_ID,
-            "recherche-groupe-xp_cosmos": GROUPE_XP_COSMOS_ID,
-            "présentation-famille_nosfire": FAMILLES_NOSFIRE_ID,
-            "recherche-famille_nosfire": FAMILLES_NOSFIRE_ID,
-            "recherche-raid_nosfire": RAIDS_NOSFIRE_ID,
-            "recherche-leveling_nosfire": LEVELING_NOSFIRE_ID,
-            "recherche-groupe-xp_nosfire": GROUPE_XP_NOSFIRE_ID,
-        }
-
-        if choice["context"] == "commerce":
-            target_channel_id = commerce_channel_map.get(f"{choice['type']}_{choice['server']}")
-        elif choice["context"] == "activité":
-            detected_tag = next((tag for tag in ['présentation-famille', 'recherche-famille', 'recherche-raid', 'recherche-leveling', 'recherche-groupe-xp'] if tag in msg.tags), None)
-            if detected_tag:
-                target_channel_id = activite_channel_map.get(f"{detected_tag}_{choice['server']}")
-            else:
-                print("Erreur : Aucun tag d'activité valide détecté.")
-                return
+        if msg_type == "commerce":
+            target_channel_id = TRADE_CHANNELS.get(f"{trade_type}_{server}", None)
+        if msg_type == "raid":
+            target_channel_id = RAIDS_COSMOS_ID if server == "Cosmos" else RAIDS_NOSFIRE_ID
+        if msg_type == "activité":
+            target_channel_id = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}", None)
 
         if not target_channel_id:
             print("Canal cible non trouvé.")
-            return
+            raise Exception(f"Le salon {target_channel_id} n'existe pas.")
 
         target_channel = self.bot.get_channel(target_channel_id)
         if not target_channel:
-            print("Erreur : Le canal cible n'a pas pu être récupéré.")
-            return
+            raise Exception(f"Le salon {target_channel_id} n'existe pas.")
 
         action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
         header = f"{action} par {msg.author.mention} dans {msg.channel.mention}.\n"
         title = f"**Titre :** {msg.channel.name}"
         tags_string = self.get_tags_string(msg.channel)
         content_formatted = "\n".join([f"> {line}" for line in msg.content.strip().split('\n')])
-        final_msg_content = "\n".join(part for part in [header, title, tags_string, content_formatted] if part)
 
+        if selected_raids and server in RAID_ROLE_MAPPING:
+            raid_mentions = [RAID_ROLE_MAPPING[server][raid] for raid in selected_raids if raid in RAID_ROLE_MAPPING[server]]
+            mentions_str = " ".join(raid_mentions)
+            content_formatted += f"\nRaids : {mentions_str}"
+
+        final_msg_content = "\n".join(part for part in [header, title, tags_string, content_formatted] if part)
         actions_view = ActionsView(msg.channel.id)
 
         try:
@@ -248,35 +246,51 @@ class ImageForwarder(commands.Cog):
                 files=[await attachment.to_file() for attachment in msg.attachments if 'image' in attachment.content_type],
                 view=actions_view
             )
-            del user_choices[msg.id]
         except Exception as e:
             print(f"Erreur lors de l'envoi du message: {e}")
 
         self.message_to_thread[str(msg.id)] = msg.channel.id
         self.save_datas()
 
-    def determine_target_channel(self, choices):
-        channel_map = {
-            "achat_cosmos": ACHATS_COSMOS_ID,
-            "vente_cosmos": VENTES_COSMOS_ID,
-            "achat_nosfire": ACHATS_NOSFIRE_ID,
-            "vente_nosfire": VENTES_NOSFIRE_ID,
-            "présentation-famille_cosmos": FAMILLES_COSMOS_ID,
-            "recherche-famille_cosmos": FAMILLES_COSMOS_ID,
-            "recherche-raid_cosmos": RAIDS_COSMOS_ID,
-            "recherche-leveling_cosmos": LEVELING_COSMOS_ID,
-            "recherche-groupe-xp_cosmos": GROUPE_XP_COSMOS_ID,
-            "présentation-famille_nosfire": FAMILLES_NOSFIRE_ID,
-            "recherche-famille_nosfire": FAMILLES_NOSFIRE_ID,
-            "recherche-raid_nosfire": RAIDS_NOSFIRE_ID,
-            "recherche-leveling_nosfire": LEVELING_NOSFIRE_ID,
-            "recherche-groupe-xp_nosfire": GROUPE_XP_NOSFIRE_ID,
-        }
+        return target_channel_id
 
-        if choices.get("context") == "commerce":
-            return channel_map.get(f"{choices.get('type')}_{choices.get('server')}")
-        elif choices.get("context") == "activité":
-            return channel_map.get(f"{choices.get('type')}_{choices.get('server')}")
+    async def handle_post_logic(self, message: discord.Message):
+        channel: discord.Thread = message.channel
+        if message.author.bot or not isinstance(message.channel, discord.Thread) or message.channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
+            return
+
+        is_initial_post = channel.id == message.id
+        current_time = datetime.utcnow().timestamp()
+        last_post_time = self.first_post_time.get(str(channel.id), 0)
+        elapsed_time = current_time - last_post_time
+        remaining_time = timedelta(hours=48).total_seconds() - elapsed_time
+
+        if channel.parent_id == COMMERCES_ID and (is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds()):
+            self.first_post_time[str(channel.id)] = current_time
+            self.save_datas()
+            await message.reply("Quel type de transaction souhaitez-vous réaliser ?",
+                                view=CommerceTypeView(partial(self.repost_message, msg=message, is_initial_post=True, msg_type="commerce")))
+            return
+
+        if channel.parent_id == ACTIVITES_ID and message.author == channel.owner:
+            if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
+                self.first_post_time[str(channel.id)] = current_time
+                self.save_datas()
+                detected_tags = {tag.name for tag in channel.applied_tags}
+                if "recherche-raid" in detected_tags:
+                    select_view = RaidSelectView(author_id=message.author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
+                    await message.reply("Sélectionnez les types de raids :", view=select_view)
+                if (target_tags := detected_tags & {'présentation-famille', 'recherche-famille', 'recherche-leveling', 'recherche-groupe-xp'}):
+                    await message.reply(
+                        "Sur quel serveur souhaitez-vous poster votre activité ?",
+                        view=ServerChoiceView(
+                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=target_tags.pop())
+                        )
+                    )
+            else:
+                if remaining_time > 0:
+                    await message.reply(f"🕒 Il reste {self.format_remaining_time(remaining_time)} avant la prochaine actualisation possible de votre annonce.",
+                                        mention_author=True)
 
     def get_tags_string(self, thread: discord.Thread) -> str:
         tags_list = thread.applied_tags
