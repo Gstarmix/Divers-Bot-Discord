@@ -69,7 +69,7 @@ class DeleteView(discord.ui.View):
         except discord.NotFound:
             pass
         await self.target_interaction.message.delete()
-        await self.target_interaction.edit_original_response(content="Vente supprimée !", view=None)
+        await self.target_interaction.edit_original_response(content="Annonce supprimée !", view=None)
 
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.secondary, custom_id="cancel_delete")
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -77,46 +77,72 @@ class DeleteView(discord.ui.View):
         await self.target_interaction.edit_original_response(content="Suppression annulée !", view=None)
 
 
-class CommerceTypeView(View):
-    def __init__(self, callback: Callable[[str], Awaitable[None]]):
+class CommerceTypeView(discord.ui.View):
+    def __init__(self, callback: Callable[[str], Awaitable[None]], author_id: int):
         super().__init__(timeout=None)
         self.callback = callback
+        self.author_id = author_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
+            return False
+        return True
 
     @discord.ui.button(label="Achat", style=discord.ButtonStyle.green, custom_id="buy")
     async def buy(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+        await interaction.response.edit_message(view=self)
         new_callback = partial(self.callback, trade_type="achat")
-        await interaction.response.send_message("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback))
+        await interaction.followup.send("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback, self.author_id))
 
     @discord.ui.button(label="Vente", style=discord.ButtonStyle.blurple, custom_id="sell")
     async def sell(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+        await interaction.response.edit_message(view=self)
         new_callback = partial(self.callback, trade_type="vente")
-        await interaction.response.send_message("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback))
+        await interaction.followup.send("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback, self.author_id))
+
 
 
 class ServerChoiceView(discord.ui.View):
-    def __init__(self, repost_message_func):
+    def __init__(self, repost_message_func, author_id: int):
         super().__init__()
         # self.msg = msg
         # self.selected_raids = selected_raids
         self.repost_message_func = repost_message_func
+        self.author_id = author_id
 
     # async def disable_buttons(self):
     #     for item in self.children:
     #         if isinstance(item, discord.ui.Button):
     #             item.disabled = True
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
+            return False
+        return True
+
     @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
     async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="cosmos")
-        # await self.disable_buttons()
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
         await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
 
     @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
     async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="nosfire")
-        # await self.disable_buttons()
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
         await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
-
 
 class RaidSelectView(discord.ui.View):
     def __init__(self, author_id, repost_message, *, page=0):
@@ -147,7 +173,7 @@ class RaidSelect(discord.ui.Select[RaidSelectView]):
             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
             return
         new_callback = partial(self.repost_message, selected_raids=self.values)
-        view = ServerChoiceView(repost_message_func=new_callback)
+        view = ServerChoiceView(repost_message_func=new_callback, author_id=self.author_id)
         await interaction.response.send_message("Sur quel serveur souhaitez-vous publier votre annonce de raid ?", view=view)
 
 
@@ -252,9 +278,9 @@ class ImageForwarder(commands.Cog):
 
         if msg_type == "commerce":
             target_channel_id = TRADE_CHANNELS.get(f"{trade_type}_{server}", None)
-        if msg_type == "raid":
-            target_channel_id = RAIDS_COSMOS_ID if server == "Cosmos" else RAIDS_NOSFIRE_ID
-        if msg_type == "activité":
+        elif msg_type == "raid":
+            target_channel_id = RAIDS_COSMOS_ID if server == "cosmos" else RAIDS_NOSFIRE_ID
+        elif msg_type == "activité":
             target_channel_id = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}", None)
 
         if not target_channel_id:
@@ -266,35 +292,24 @@ class ImageForwarder(commands.Cog):
             raise Exception(f"Le salon {target_channel_id} n'existe pas.")
 
         action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
-        header = f"{action} par {first_message.author.mention} dans {thread.mention}.\n"
-        title = f"**Titre :** {thread.name}"
-        tags_string = self.get_tags_string(thread)
-        content_formatted = "**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
+        header = f"{action} par {first_message.author.mention} dans {thread.mention}."
 
         server_key = "Cosmos" if server.lower() == "cosmos" else "NosFire" if server.lower() == "nosfire" else None
-
         if server_key is None:
             print(f"Serveur invalide: {server}")
             return
 
+        title = f"**Titre :** {thread.name}"
+        tags_string = self.get_tags_string(thread)
+
         raids_mentions = ""
         if selected_raids and msg_type == "raid":
-            raids_mentions = "**Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server_key].get(raid, '')}>" for raid in selected_raids])
-            raids_mentions = raids_mentions.strip(", ")
+            raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server_key].get(raid, '')}>" for raid in selected_raids])
+        
+        header_and_metadata = f"{header} [{title} | {tags_string}{raids_mentions}]".rstrip(" |")
+        content_formatted = "**__Contenu__ :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
+        final_msg_content = "\n".join([header_and_metadata, content_formatted])
 
-        if msg_type == "commerce":
-            target_channel_id = TRADE_CHANNELS.get(f"{trade_type}_{server}", None)
-        elif msg_type == "raid":
-            target_channel_id = RAIDS_COSMOS_ID if server == "Cosmos" else RAIDS_NOSFIRE_ID
-        elif msg_type == "activité":
-            target_channel_id = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}", None)
-
-        if not target_channel_id:
-            print("Canal cible non trouvé.")
-            return 
-
-        target_channel = self.bot.get_channel(target_channel_id)
-        final_msg_content = "\n".join(part for part in [header, title, tags_string, raids_mentions, content_formatted] if part)
         actions_view = ActionsView(thread.id)
 
         try:
@@ -329,32 +344,31 @@ class ImageForwarder(commands.Cog):
                 except discord.NotFound:
                     pass
                 except discord.Forbidden:
-                    print("Permission manquante pour supprimer le fil")
+                    Exception(f"Permission manquante pour supprimer le fil {channel.name} - {channel.id}")
+                return
 
         is_initial_post = channel.id == message.id
         current_time = datetime.utcnow().timestamp()
         last_post_time = self.first_post_time.get(str(channel.id), 0)
         elapsed_time = current_time - last_post_time
-        remaining_time = timedelta(hours=48).total_seconds() - elapsed_time
 
         presentation_famille_tag_present = 'présentation-famille' in {tag.name for tag in channel.applied_tags}
 
         timer_hours = 96 if presentation_famille_tag_present else 48
         remaining_time = timedelta(hours=timer_hours).total_seconds() - elapsed_time
-
-        if channel.parent_id == COMMERCES_ID and (is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds()):
-            self.first_post_time[str(channel.id)] = current_time
-            self.save_datas()
-            await message.reply("Quel type de transaction souhaitez-vous réaliser ?",
-                                view=CommerceTypeView(partial(self.repost_message, msg=message, is_initial_post=True, msg_type="commerce")))
-            return
         
         if message.channel.parent_id == COMMERCES_ID:
             if message.author == message.channel.owner:
                 if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
                     self.first_post_time[str(channel.id)] = current_time
                     self.save_datas()
-                    await message.reply("Quel type de transaction souhaitez-vous réaliser ?", view=CommerceTypeView(partial(self.repost_message, message, True, "commerce")))
+                    await message.reply(
+                        "Quel type de commerce souhaitez-vous réaliser ?",
+                        view=CommerceTypeView(
+                            partial(self.repost_message, message, True, "commerce"),
+                            author_id=message.author.id
+                        )
+                    )
                 else:
                     if remaining_time > 0:
                         user_id = message.author.id
@@ -393,7 +407,8 @@ class ImageForwarder(commands.Cog):
                     await message.reply(
                         "Sur quel serveur souhaitez-vous poster votre activité ?",
                         view=ServerChoiceView(
-                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=target_tags.pop())
+                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=target_tags.pop()),
+                            author_id=message.author.id 
                         )
                     )
             else:
