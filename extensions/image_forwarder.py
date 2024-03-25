@@ -131,6 +131,7 @@ class ServerChoiceView(discord.ui.View):
     @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
     async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="cosmos")
+        # print("Result from repost_message_func:", target_channel_id)
         for item in self.children:
             if isinstance(item, discord.ui.Button):
                 item.disabled = True
@@ -139,6 +140,7 @@ class ServerChoiceView(discord.ui.View):
     @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
     async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="nosfire")
+        # print("Result from repost_message_func:", target_channel_id)
         for item in self.children:
             if isinstance(item, discord.ui.Button):
                 item.disabled = True
@@ -277,19 +279,23 @@ class ImageForwarder(commands.Cog):
             first_message = msg
 
         if msg_type == "commerce":
-            target_channel_id = TRADE_CHANNELS.get(f"{trade_type}_{server}", None)
+            channel_info = TRADE_CHANNELS.get(f"{trade_type}_{server}")
+            if channel_info:
+                target_channel_id = channel_info["id"]
         elif msg_type == "raid":
             target_channel_id = RAIDS_COSMOS_ID if server == "cosmos" else RAIDS_NOSFIRE_ID
         elif msg_type == "activité":
-            target_channel_id = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}", None)
+            channel_info = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}")
+            if channel_info:
+                target_channel_id = channel_info["id"]
 
         if not target_channel_id:
             print("Canal cible non trouvé.")
-            raise Exception(f"Le salon {target_channel_id} n'existe pas.")
+            return None 
 
         target_channel = self.bot.get_channel(target_channel_id)
         if not target_channel:
-            raise Exception(f"Le salon {target_channel_id} n'existe pas.")
+            return {"id": target_channel_id}
 
         action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
         header = f"{action} par {first_message.author.mention} dans {thread.mention}."
@@ -306,109 +312,109 @@ class ImageForwarder(commands.Cog):
         if selected_raids and msg_type == "raid":
             raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server_key].get(raid, '')}>" for raid in selected_raids])
         
-        header_and_metadata = f"{header} [{title} | {tags_string}{raids_mentions}]".rstrip(" |")
-        content_formatted = "**__Contenu__ :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
+        header_and_metadata = f"{header} [{tags_string}{raids_mentions}]".rstrip(" |")
+        content_formatted = f"{title}\n**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
         final_msg_content = "\n".join([header_and_metadata, content_formatted])
 
         actions_view = ActionsView(thread.id)
 
         try:
+            webhooks = await target_channel.webhooks()
+            webhook = next((wh for wh in webhooks if wh.user == self.bot.user), None)
+            if webhook is None:
+                webhook = await target_channel.create_webhook(name="MonWebhook", reason="Pour reposter les messages")
+
+            if not webhook.is_partial():
+                await webhook.send(
+                    content=final_msg_content,
+                    username=msg.author.display_name,
+                    avatar_url=msg.author.avatar.url if msg.author.avatar else None,
+                    files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
+                    view=actions_view if not webhook.is_partial() else None
+                )
+            else:
+                raise Exception("Webhook partiel. Passage à l'envoi standard.")
+        except Exception as e:
+            print(f"Utilisation de l'envoi standard en raison d'une erreur avec le webhook: {e}")
             await target_channel.send(
                 content=final_msg_content,
                 files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
                 view=actions_view
             )
-        except Exception as e:
-            print(f"Erreur lors de l'envoi du message: {e}")
 
         self.message_to_thread[str(first_message.id)] = thread.id
         self.save_datas()
         return target_channel_id
 
     async def handle_post_logic(self, message: discord.Message):
-        channel: discord.Thread = message.channel
+        channel = message.channel
         if message.author.bot or not isinstance(channel, discord.Thread) or channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
             return
-
-        if channel.parent_id == ACTIVITES_ID:
-            if len(channel.applied_tags) > 1:
-                await message.author.send(
-                    "Votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. "
-                    "Veuillez utiliser un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
-                )
-
-                await asyncio.sleep(300)
-                
-                try:
-                    await channel.delete()
-                except discord.NotFound:
-                    pass
-                except discord.Forbidden:
-                    Exception(f"Permission manquante pour supprimer le fil {channel.name} - {channel.id}")
-                return
 
         is_initial_post = channel.id == message.id
         current_time = datetime.utcnow().timestamp()
         last_post_time = self.first_post_time.get(str(channel.id), 0)
         elapsed_time = current_time - last_post_time
 
-        presentation_famille_tag_present = 'présentation-famille' in {tag.name for tag in channel.applied_tags}
+        if channel.parent_id == ACTIVITES_ID:
+            detected_tags = {tag.name for tag in channel.applied_tags}
+            timer_hours = None
+            for detected_tag in detected_tags:
+                activity_key = next((key for key in ACTIVITY_CHANNELS if detected_tag in key), None)
+                if activity_key:
+                    timer_hours = ACTIVITY_CHANNELS[activity_key]["timer_hours"]
+                    break
+            if timer_hours is None:
+                print(f"Aucun timer trouvé pour les tags détectés: {detected_tags}")
+                return
+        else:
+            trade_type = "achat" if "achat" in channel.name else "vente"
+            server = "cosmos" if "cosmos" in channel.name else "nosfire"
+            trade_key = f"{trade_type}_{server}"
+            if trade_key in TRADE_CHANNELS:
+                timer_hours = TRADE_CHANNELS[trade_key]["timer_hours"]
+            else:
+                print(f"Aucun timer trouvé pour le type de commerce: {trade_type}, serveur: {server}")
+                return
 
-        timer_hours = 96 if presentation_famille_tag_present else 48
         remaining_time = timedelta(hours=timer_hours).total_seconds() - elapsed_time
-        
-        if message.channel.parent_id == COMMERCES_ID:
-            if message.author == message.channel.owner:
-                if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
-                    self.first_post_time[str(channel.id)] = current_time
-                    self.save_datas()
-                    await message.reply(
-                        "Quel type de commerce souhaitez-vous réaliser ?",
-                        view=CommerceTypeView(
-                            partial(self.repost_message, message, True, "commerce"),
-                            author_id=message.author.id
-                        )
-                    )
-                else:
-                    if remaining_time > 0:
-                        user_id = message.author.id
-                        thread_id = str(message.channel.id)
-                        current_time = datetime.utcnow()
-                        if user_id in self.last_notification_time:
-                            if thread_id in self.last_notification_time[user_id]:
-                                last_notification = self.last_notification_time[user_id][thread_id]
-                                if (current_time - last_notification) < timedelta(minutes=5):
-                                    return
-                            else:
-                                self.last_notification_time[user_id][thread_id] = current_time
-                        else:
-                            self.last_notification_time[user_id] = {thread_id: current_time}
 
-                        self.last_notification_time[user_id][thread_id] = current_time
-
-                        remaining_timedelta = timedelta(seconds=remaining_time)
-                        notification_message = f"🕒 Il reste {self.format_remaining_time(remaining_timedelta)} avant la prochaine actualisation possible de votre annonce."
-                        
-                        try:
-                            await message.author.send(notification_message)
-                        except Exception as e:
-                            print(f"Erreur lors de l'envoi du MP : {e}")
-
-
-        if channel.parent_id == ACTIVITES_ID and message.author == channel.owner:
-            if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
+        if message.channel.parent_id == COMMERCES_ID and message.author == message.channel.owner:
+            if is_initial_post or elapsed_time >= timedelta(hours=timer_hours).total_seconds():
                 self.first_post_time[str(channel.id)] = current_time
                 self.save_datas()
-                detected_tags = {tag.name for tag in channel.applied_tags}
+                await message.reply(
+                    "Quel type de commerce souhaitez-vous réaliser ?",
+                    view=CommerceTypeView(
+                        partial(self.repost_message, message, True, "commerce"),
+                        author_id=message.author.id
+                    )
+                )
+            else:
+                if remaining_time > 0:
+                    user_id = message.author.id
+                    thread_id = str(message.channel.id)
+                    current_time = datetime.utcnow()
+                    self.last_notification_time.setdefault(user_id, {})[thread_id] = current_time
+                    notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
+                    try:
+                        await message.author.send(notification_message)
+                    except Exception as e:
+                        print(f"Erreur lors de l'envoi du MP : {e}")
+
+        if channel.parent_id == ACTIVITES_ID and message.author == channel.owner:
+            if is_initial_post or elapsed_time >= timedelta(hours=timer_hours).total_seconds():
+                self.first_post_time[str(channel.id)] = current_time
+                self.save_datas()
                 if "recherche-raid" in detected_tags:
                     select_view = RaidSelectView(author_id=message.author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
                     await message.reply("Sélectionnez les types de raids :", view=select_view)
-                if (target_tags := detected_tags & {'présentation-famille', 'recherche-famille', 'recherche-leveling', 'recherche-groupe-xp'}):
+                else:
                     await message.reply(
                         "Sur quel serveur souhaitez-vous poster votre activité ?",
                         view=ServerChoiceView(
-                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=target_tags.pop()),
-                            author_id=message.author.id 
+                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
+                            author_id=message.author.id
                         )
                     )
             else:
@@ -416,21 +422,8 @@ class ImageForwarder(commands.Cog):
                     user_id = message.author.id
                     thread_id = str(message.channel.id)
                     current_time = datetime.utcnow()
-                    if user_id in self.last_notification_time:
-                        if thread_id in self.last_notification_time[user_id]:
-                            last_notification = self.last_notification_time[user_id][thread_id]
-                            if (current_time - last_notification) < timedelta(minutes=5):
-                                return
-                        else:
-                            self.last_notification_time[user_id][thread_id] = current_time
-                    else:
-                        self.last_notification_time[user_id] = {thread_id: current_time}
-
-                    self.last_notification_time[user_id][thread_id] = current_time
-
-                    remaining_timedelta = timedelta(seconds=remaining_time)
-                    notification_message = f"🕒 Il reste {self.format_remaining_time(remaining_timedelta)} avant la prochaine actualisation possible de votre annonce."
-                    
+                    self.last_notification_time.setdefault(user_id, {})[thread_id] = current_time
+                    notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
                     try:
                         await message.author.send(notification_message)
                     except Exception as e:
