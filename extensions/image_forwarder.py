@@ -3,15 +3,18 @@ from datetime import datetime, timedelta
 from typing import Callable, Awaitable, Literal
 from functools import partial
 import logging
+import asyncio
 
 import discord
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
 
-from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, \
-    LOCKED_CHANNELS, RAIDS_LIST, RAID_ROLE_MAPPING
+from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING
 
 DATA_PATH = "datas/image_forwarder"
+
+
+# user_choices: dict[int, dict[str, str]] = {}
 
 class ActionsView(discord.ui.View):
     def __init__(self, target_thread_id: int):
@@ -93,16 +96,25 @@ class CommerceTypeView(View):
 class ServerChoiceView(discord.ui.View):
     def __init__(self, repost_message_func):
         super().__init__()
+        # self.msg = msg
+        # self.selected_raids = selected_raids
         self.repost_message_func = repost_message_func
+
+    # async def disable_buttons(self):
+    #     for item in self.children:
+    #         if isinstance(item, discord.ui.Button):
+    #             item.disabled = True
 
     @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
     async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="cosmos")
+        # await self.disable_buttons()
         await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
 
     @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
     async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="nosfire")
+        # await self.disable_buttons()
         await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
 
 
@@ -158,12 +170,28 @@ class PageButton(discord.ui.Button[RaidSelectView]):
         await interaction.response.edit_message(view=new_view)
 
 
+# class NextPageButton(discord.ui.Button):
+#     def __init__(self, author_id):
+#         super().__init__(style=discord.ButtonStyle.secondary, label="Page suivante")
+#         self.author_id = author_id
+#
+#     async def callback(self, interaction: discord.Interaction):
+#         if interaction.user.id != self.author_id:
+#             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
+#             return
+#         view = self.view
+#         view.clear_items()
+#         new_view = RaidSelectView(self.author_id, page=view.page + 1)
+#         await interaction.response.edit_message(view=new_view)
+
+
 class ImageForwarder(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.first_post_time_path = f"{DATA_PATH}/first_post_time.json"
         self.message_to_thread_path = f"{DATA_PATH}/message_to_thread.json"
         self.first_post_time, self.message_to_thread = self.load_datas()
+        self.last_notification_time = {}
 
     def load_datas(self):
         first_post_time = {}
@@ -198,9 +226,15 @@ class ImageForwarder(commands.Cog):
         if message.author.bot:
             return
 
-        if message.channel.id in LOCKED_CHANNELS:
+        if message.channel.id in LOCKED_CHANNELS_1:
             await message.delete()
-            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez utiliser le forum approprié <#{COMMERCES_ID}> pour créer votre annonce.\n"
+            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{COMMERCES_ID}> et cliquer sur le bouton \"Nouveau post\".\n https://www.zupimages.net/up/24/11/siro.png"
+            await message.author.send(inform_message)
+            return
+
+        if message.channel.id in LOCKED_CHANNELS_2:
+            await message.delete()
+            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{ACTIVITES_ID}> et cliquer sur le bouton \"Nouveau post\".\n https://www.zupimages.net/up/24/11/siro.png"
             await message.author.send(inform_message)
             return
 
@@ -256,14 +290,35 @@ class ImageForwarder(commands.Cog):
 
     async def handle_post_logic(self, message: discord.Message):
         channel: discord.Thread = message.channel
-        if message.author.bot or not isinstance(message.channel, discord.Thread) or message.channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
+        if message.author.bot or not isinstance(channel, discord.Thread) or channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
             return
+
+        if channel.parent_id == ACTIVITES_ID:
+            if len(channel.applied_tags) > 1:
+                await message.author.send(
+                    "Votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. "
+                    "Veuillez utiliser un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
+                )
+
+                await asyncio.sleep(300)
+                
+                try:
+                    await channel.delete(reason="Utilisation de plusieurs tags")
+                except discord.NotFound:
+                    pass
+                except discord.Forbidden:
+                    print("Permission manquante pour supprimer le fil")
 
         is_initial_post = channel.id == message.id
         current_time = datetime.utcnow().timestamp()
         last_post_time = self.first_post_time.get(str(channel.id), 0)
         elapsed_time = current_time - last_post_time
         remaining_time = timedelta(hours=48).total_seconds() - elapsed_time
+
+        presentation_famille_tag_present = 'présentation-famille' in {tag.name for tag in channel.applied_tags}
+
+        timer_hours = 96 if presentation_famille_tag_present else 48
+        remaining_time = timedelta(hours=timer_hours).total_seconds() - elapsed_time
 
         if channel.parent_id == COMMERCES_ID and (is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds()):
             self.first_post_time[str(channel.id)] = current_time
@@ -289,8 +344,28 @@ class ImageForwarder(commands.Cog):
                     )
             else:
                 if remaining_time > 0:
-                    await message.reply(f"🕒 Il reste {self.format_remaining_time(remaining_time)} avant la prochaine actualisation possible de votre annonce.",
-                                        mention_author=True)
+                    user_id = message.author.id
+                    thread_id = str(message.channel.id)
+                    current_time = datetime.utcnow()
+                    if user_id in self.last_notification_time:
+                        if thread_id in self.last_notification_time[user_id]:
+                            last_notification = self.last_notification_time[user_id][thread_id]
+                            if (current_time - last_notification) < timedelta(hours=1):
+                                return
+                        else:
+                            self.last_notification_time[user_id][thread_id] = current_time
+                    else:
+                        self.last_notification_time[user_id] = {thread_id: current_time}
+
+                    self.last_notification_time[user_id][thread_id] = current_time
+
+                    remaining_timedelta = timedelta(seconds=remaining_time)
+                    notification_message = f"🕒 Il reste {self.format_remaining_time(remaining_timedelta)} avant la prochaine actualisation possible de votre annonce."
+                    
+                    try:
+                        await message.author.send(notification_message)
+                    except Exception as e:
+                        print(f"Erreur lors de l'envoi du MP : {e}")
 
     def get_tags_string(self, thread: discord.Thread) -> str:
         tags_list = thread.applied_tags
