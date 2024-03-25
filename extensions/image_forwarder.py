@@ -228,22 +228,27 @@ class ImageForwarder(commands.Cog):
 
         if message.channel.id in LOCKED_CHANNELS_1:
             await message.delete()
-            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{COMMERCES_ID}> et cliquer sur le bouton \"Nouveau post\".\n https://www.zupimages.net/up/24/11/siro.png"
+            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{COMMERCES_ID}> et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
             await message.author.send(inform_message)
             return
 
         if message.channel.id in LOCKED_CHANNELS_2:
             await message.delete()
-            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{ACTIVITES_ID}> et cliquer sur le bouton \"Nouveau post\".\n https://www.zupimages.net/up/24/11/siro.png"
+            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{ACTIVITES_ID}> et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
             await message.author.send(inform_message)
             return
 
         if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
             await self.handle_post_logic(message)
 
-    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str, selected_raids: list | None = None,
-                             trade_type: str | None = None, activity_type: str | None = None) -> int:
+    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None) -> int:
         target_channel_id = None
+
+        thread = msg.channel
+        async for first_message in thread.history(oldest_first=True, limit=1):
+            break
+        else:
+            first_message = msg
 
         if msg_type == "commerce":
             target_channel_id = TRADE_CHANNELS.get(f"{trade_type}_{server}", None)
@@ -261,31 +266,48 @@ class ImageForwarder(commands.Cog):
             raise Exception(f"Le salon {target_channel_id} n'existe pas.")
 
         action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
-        header = f"{action} par {msg.author.mention} dans {msg.channel.mention}.\n"
-        title = f"**Titre :** {msg.channel.name}"
-        tags_string = self.get_tags_string(msg.channel)
-        content_formatted = "\n".join([f"> {line}" for line in msg.content.strip().split('\n')])
+        header = f"{action} par {first_message.author.mention} dans {thread.mention}.\n"
+        title = f"**Titre :** {thread.name}"
+        tags_string = self.get_tags_string(thread)
+        content_formatted = "**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
 
-        if selected_raids and server in RAID_ROLE_MAPPING:
-            raid_mentions = [RAID_ROLE_MAPPING[server][raid] for raid in selected_raids if raid in RAID_ROLE_MAPPING[server]]
-            mentions_str = " ".join(raid_mentions)
-            content_formatted += f"\nRaids : {mentions_str}"
+        server_key = "Cosmos" if server.lower() == "cosmos" else "NosFire" if server.lower() == "nosfire" else None
 
-        final_msg_content = "\n".join(part for part in [header, title, tags_string, content_formatted] if part)
-        actions_view = ActionsView(msg.channel.id)
+        if server_key is None:
+            print(f"Serveur invalide: {server}")
+            return
+
+        raids_mentions = ""
+        if selected_raids and msg_type == "raid":
+            raids_mentions = "**Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server_key].get(raid, '')}>" for raid in selected_raids])
+            raids_mentions = raids_mentions.strip(", ")
+
+        if msg_type == "commerce":
+            target_channel_id = TRADE_CHANNELS.get(f"{trade_type}_{server}", None)
+        elif msg_type == "raid":
+            target_channel_id = RAIDS_COSMOS_ID if server == "Cosmos" else RAIDS_NOSFIRE_ID
+        elif msg_type == "activité":
+            target_channel_id = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}", None)
+
+        if not target_channel_id:
+            print("Canal cible non trouvé.")
+            return 
+
+        target_channel = self.bot.get_channel(target_channel_id)
+        final_msg_content = "\n".join(part for part in [header, title, tags_string, raids_mentions, content_formatted] if part)
+        actions_view = ActionsView(thread.id)
 
         try:
             await target_channel.send(
                 content=final_msg_content,
-                files=[await attachment.to_file() for attachment in msg.attachments if 'image' in attachment.content_type],
+                files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
                 view=actions_view
             )
         except Exception as e:
             print(f"Erreur lors de l'envoi du message: {e}")
 
-        self.message_to_thread[str(msg.id)] = msg.channel.id
+        self.message_to_thread[str(first_message.id)] = thread.id
         self.save_datas()
-
         return target_channel_id
 
     async def handle_post_logic(self, message: discord.Message):
@@ -303,7 +325,7 @@ class ImageForwarder(commands.Cog):
                 await asyncio.sleep(300)
                 
                 try:
-                    await channel.delete(reason="Utilisation de plusieurs tags")
+                    await channel.delete()
                 except discord.NotFound:
                     pass
                 except discord.Forbidden:
@@ -326,6 +348,38 @@ class ImageForwarder(commands.Cog):
             await message.reply("Quel type de transaction souhaitez-vous réaliser ?",
                                 view=CommerceTypeView(partial(self.repost_message, msg=message, is_initial_post=True, msg_type="commerce")))
             return
+        
+        if message.channel.parent_id == COMMERCES_ID:
+            if message.author == message.channel.owner:
+                if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
+                    self.first_post_time[str(channel.id)] = current_time
+                    self.save_datas()
+                    await message.reply("Quel type de transaction souhaitez-vous réaliser ?", view=CommerceTypeView(partial(self.repost_message, message, True, "commerce")))
+                else:
+                    if remaining_time > 0:
+                        user_id = message.author.id
+                        thread_id = str(message.channel.id)
+                        current_time = datetime.utcnow()
+                        if user_id in self.last_notification_time:
+                            if thread_id in self.last_notification_time[user_id]:
+                                last_notification = self.last_notification_time[user_id][thread_id]
+                                if (current_time - last_notification) < timedelta(minutes=5):
+                                    return
+                            else:
+                                self.last_notification_time[user_id][thread_id] = current_time
+                        else:
+                            self.last_notification_time[user_id] = {thread_id: current_time}
+
+                        self.last_notification_time[user_id][thread_id] = current_time
+
+                        remaining_timedelta = timedelta(seconds=remaining_time)
+                        notification_message = f"🕒 Il reste {self.format_remaining_time(remaining_timedelta)} avant la prochaine actualisation possible de votre annonce."
+                        
+                        try:
+                            await message.author.send(notification_message)
+                        except Exception as e:
+                            print(f"Erreur lors de l'envoi du MP : {e}")
+
 
         if channel.parent_id == ACTIVITES_ID and message.author == channel.owner:
             if is_initial_post or elapsed_time >= timedelta(hours=48).total_seconds():
@@ -350,7 +404,7 @@ class ImageForwarder(commands.Cog):
                     if user_id in self.last_notification_time:
                         if thread_id in self.last_notification_time[user_id]:
                             last_notification = self.last_notification_time[user_id][thread_id]
-                            if (current_time - last_notification) < timedelta(hours=1):
+                            if (current_time - last_notification) < timedelta(minutes=5):
                                 return
                         else:
                             self.last_notification_time[user_id][thread_id] = current_time
