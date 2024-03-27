@@ -246,15 +246,19 @@ class ImageForwarder(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        print(f"Message reçu de {message.author.name}: {message.content}")
         if message.author.bot:
             return
 
         if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id == ACTIVITES_ID:
+            print(f"Traitement du message dans un thread public dans ACTIVITES_ID : {message.channel.id}")
             thread = message.channel
+            print(f"Tags appliqués : {[tag.name for tag in thread.applied_tags]}")
 
             num_tags = len(thread.applied_tags)
 
             if num_tags > 1:
+                print(f"Suppression du thread {thread.id} pour cause de multiples tags.")
                 warning_msg = f"{thread.owner.mention}, votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. Veuillez utiliser un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
                 await message.channel.send(warning_msg)
 
@@ -262,10 +266,13 @@ class ImageForwarder(commands.Cog):
 
                 try:
                     await thread.delete()
+                    logging.info(f'Successfully deleted thread: {thread.id}')
                 except Exception as e:
+                    logging.error(f'Error deleting thread {thread.id}: {e}')
                     print(f"Erreur lors de la suppression du thread : {e}")
 
         if message.channel.id in LOCKED_CHANNELS_1:
+            print(f"Message posté dans un canal verrouillé : {message.channel.id}")
             await message.delete()
             channel_mention = f"<#{COMMERCES_ID}>"
             inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
@@ -290,9 +297,11 @@ class ImageForwarder(commands.Cog):
 
         if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
             await self.handle_post_logic(message)
+        logging.info('Finished processing on_message')
 
     async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str = None, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None, channel_id: int | None = None) -> int:
         target_channel_id = channel_id
+        print(f"Repost du message dans le canal {target_channel_id}")
 
         thread = msg.channel
         async for first_message in thread.history(oldest_first=True, limit=1):
@@ -370,11 +379,14 @@ class ImageForwarder(commands.Cog):
         return target_channel_id
 
     async def handle_post_logic(self, message: discord.Message):
+        print(f"Entrée dans handle_post_logic avec message : {message.content}")
         if message.author.bot or message.channel.type != discord.ChannelType.public_thread or message.channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
+            print("Condition initiale non remplie (auteur bot, type de canal, parent_id)")
             return
 
         thread = message.channel
         is_initial_post = not bool(self.message_to_thread.get(str(thread.id)))
+        print(f"is_initial_post: {is_initial_post}, thread.id: {thread.id}")
 
         current_time = datetime.utcnow().timestamp()
         last_post_time = self.first_post_time.get(str(thread.id), 0)
@@ -387,6 +399,7 @@ class ImageForwarder(commands.Cog):
             timer_hours = TRADE_CHANNELS.get(f"{trade_type}_{server}", {}).get("timer_hours", 24)
         elif thread.parent_id == ACTIVITES_ID:
             detected_tags = {tag.name for tag in thread.applied_tags}
+            print(f"Tags détectés: {detected_tags}")
             for tag in detected_tags:
                 if tag in ACTIVITY_CHANNELS:
                     timer_hours = ACTIVITY_CHANNELS[tag]["timer_hours"]
@@ -397,6 +410,7 @@ class ImageForwarder(commands.Cog):
 
         remaining_time = (timer_hours * 3600) - elapsed_time
         if remaining_time > 0 and not is_initial_post:
+            print(f"Temps restant avant la prochaine publication: {remaining_time}")
             notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
             try:
                 await message.author.send(notification_message)
@@ -409,6 +423,7 @@ class ImageForwarder(commands.Cog):
             self.save_datas()
 
         if thread.parent_id == COMMERCES_ID and message.author == thread.owner:
+            print("Thread parent_id est COMMERCES_ID, prêt à répondre pour le type de commerce")
             if is_initial_post:
                 await message.reply(
                     "Quel type de commerce souhaitez-vous réaliser ?",
@@ -427,14 +442,18 @@ class ImageForwarder(commands.Cog):
                     print(f"Aucun channel_id trouvé pour le thread {thread.id}. Peut-être le premier post n'a-t-il pas été traité correctement ?")
 
         elif thread.parent_id == ACTIVITES_ID and message.author == thread.owner:
+            print("Thread parent_id est ACTIVITES_ID, vérification des tags pour l'action suivante")
             detected_tags = {tag.name for tag in thread.applied_tags}
             if is_initial_post:
                 if "recherche-raid" in detected_tags:
+                    print("Création de RaidSelectView pour la recherche de raid")
                     select_view = RaidSelectView(author_id=message.author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
                     await message.reply("Sélectionnez les types de raids :", view=select_view)
                 else:
+                    print("Autre tag détecté, préparation à instancier ServerChoiceView")
                     activity_type = next(iter(detected_tags), None)
                     if activity_type and activity_type in ACTIVITY_CHANNELS:
+                        print(f"Instanciation de ServerChoiceView avec activity_type: {activity_type}")
                         await message.reply(
                             "Sur quel serveur souhaitez-vous poster votre activité ?",
                             view=ServerChoiceView(
