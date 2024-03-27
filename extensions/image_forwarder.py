@@ -140,7 +140,7 @@ class ServerChoiceView(discord.ui.View):
     @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
     async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
         target_channel_id = await self.repost_message_func(server="nosfire")
-        # print("Result from repost_message_func:", target_channel_id)
+        print("Result from repost_message_func:", target_channel_id)
         for item in self.children:
             if isinstance(item, discord.ui.Button):
                 item.disabled = True
@@ -234,6 +234,7 @@ class ImageForwarder(commands.Cog):
                 message_to_thread = json.load(f)
         except FileNotFoundError:
             pass
+        # print("Données chargées : ", message_to_thread)
         return first_post_time, message_to_thread
 
     def save_datas(self):
@@ -241,36 +242,57 @@ class ImageForwarder(commands.Cog):
             json.dump(self.first_post_time, f)
         with open(self.message_to_thread_path, "w") as f:
             json.dump(self.message_to_thread, f)
-
-    def format_remaining_time(self, remaining_seconds):
-        """Prend en entrée le nombre de secondes restantes et retourne une chaîne formatée."""
-        days, remainder = divmod(remaining_seconds, 86400)
-        hours, remainder = divmod(remainder, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        return f"{int(days)}j {int(hours)}h {int(minutes)}min"
+        # print("Données sauvegardées : ", self.message_to_thread)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
 
+        if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id == ACTIVITES_ID:
+            thread = message.channel
+
+            num_tags = len(thread.applied_tags)
+
+            if num_tags > 1:
+                warning_msg = f"{thread.owner.mention}, votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. Veuillez utiliser un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
+                await message.channel.send(warning_msg)
+
+                await asyncio.sleep(300)
+
+                try:
+                    await thread.delete()
+                except Exception as e:
+                    print(f"Erreur lors de la suppression du thread : {e}")
+
         if message.channel.id in LOCKED_CHANNELS_1:
             await message.delete()
-            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{COMMERCES_ID}> et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            channel_mention = f"<#{COMMERCES_ID}>"
+            inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            bot_message = await message.channel.send(inform_message)
             await message.author.send(inform_message)
-            return
-
-        if message.channel.id in LOCKED_CHANNELS_2:
+            await asyncio.sleep(300)
+            await bot_message.delete()
+        elif message.channel.id in LOCKED_CHANNELS_2 and message.channel.id not in [RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID]:
             await message.delete()
-            inform_message = f"Vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié <#{ACTIVITES_ID}> et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            channel_mention = f"<#{ACTIVITES_ID}>"
+            inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            bot_message = await message.channel.send(inform_message)
             await message.author.send(inform_message)
-            return
+            await asyncio.sleep(300)
+            await bot_message.delete()
+
+        if message.channel.id in [RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID]:
+            inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié pour les raids et cliquer sur le bouton **\"Nouveau post\"**. Les rôles sont disponibles afin d'être mentionné dans le salon <id:customize>.\n https://www.zupimages.net/up/24/11/siro.png"
+            bot_message = await message.channel.send(inform_message)
+            await asyncio.sleep(300)
+            await bot_message.delete()
 
         if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
             await self.handle_post_logic(message)
 
-    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None) -> int:
-        target_channel_id = None
+    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str = None, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None, channel_id: int | None = None) -> int:
+        target_channel_id = channel_id
 
         thread = msg.channel
         async for first_message in thread.history(oldest_first=True, limit=1):
@@ -305,7 +327,7 @@ class ImageForwarder(commands.Cog):
             print(f"Serveur invalide: {server}")
             return
 
-        title = f"**Titre :** {thread.name}"
+        # title = f"**Titre :** {thread.name}"
         tags_string = self.get_tags_string(thread)
 
         raids_mentions = ""
@@ -313,7 +335,7 @@ class ImageForwarder(commands.Cog):
             raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server_key].get(raid, '')}>" for raid in selected_raids])
         
         header_and_metadata = f"{header} [{tags_string}{raids_mentions}]".rstrip(" |")
-        content_formatted = f"{title}\n**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
+        content_formatted = f"**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
         final_msg_content = "\n".join([header_and_metadata, content_formatted])
 
         actions_view = ActionsView(thread.id)
@@ -342,47 +364,52 @@ class ImageForwarder(commands.Cog):
                 view=actions_view
             )
 
-        self.message_to_thread[str(first_message.id)] = thread.id
+        # print(f"Enregistrement du channel_id {target_channel_id} pour le thread {thread.id}")
+        self.message_to_thread[str(thread.id)] = {"channel_id": target_channel_id}
         self.save_datas()
         return target_channel_id
 
     async def handle_post_logic(self, message: discord.Message):
-        channel = message.channel
-        if message.author.bot or not isinstance(channel, discord.Thread) or channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
+        if message.author.bot or message.channel.type != discord.ChannelType.public_thread or message.channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
             return
 
-        is_initial_post = channel.id == message.id
+        thread = message.channel
+        is_initial_post = not bool(self.message_to_thread.get(str(thread.id)))
+
         current_time = datetime.utcnow().timestamp()
-        last_post_time = self.first_post_time.get(str(channel.id), 0)
+        last_post_time = self.first_post_time.get(str(thread.id), 0)
         elapsed_time = current_time - last_post_time
 
-        if channel.parent_id == ACTIVITES_ID:
-            detected_tags = {tag.name for tag in channel.applied_tags}
-            timer_hours = None
-            for detected_tag in detected_tags:
-                activity_key = next((key for key in ACTIVITY_CHANNELS if detected_tag in key), None)
-                if activity_key:
-                    timer_hours = ACTIVITY_CHANNELS[activity_key]["timer_hours"]
+        timer_hours = None
+        if thread.parent_id == COMMERCES_ID:
+            trade_type = "achat" if "achat" in thread.name else "vente"
+            server = "cosmos" if "cosmos" in thread.name else "nosfire"
+            timer_hours = TRADE_CHANNELS.get(f"{trade_type}_{server}", {}).get("timer_hours", 24)
+        elif thread.parent_id == ACTIVITES_ID:
+            detected_tags = {tag.name for tag in thread.applied_tags}
+            for tag in detected_tags:
+                if tag in ACTIVITY_CHANNELS:
+                    timer_hours = ACTIVITY_CHANNELS[tag]["timer_hours"]
                     break
-            if timer_hours is None:
-                print(f"Aucun timer trouvé pour les tags détectés: {detected_tags}")
-                return
-        else:
-            trade_type = "achat" if "achat" in channel.name else "vente"
-            server = "cosmos" if "cosmos" in channel.name else "nosfire"
-            trade_key = f"{trade_type}_{server}"
-            if trade_key in TRADE_CHANNELS:
-                timer_hours = TRADE_CHANNELS[trade_key]["timer_hours"]
-            else:
-                print(f"Aucun timer trouvé pour le type de commerce: {trade_type}, serveur: {server}")
-                return
 
-        remaining_time = timedelta(hours=timer_hours).total_seconds() - elapsed_time
+        if timer_hours is None:
+            timer_hours = 24
 
-        if message.channel.parent_id == COMMERCES_ID and message.author == message.channel.owner:
-            if is_initial_post or elapsed_time >= timedelta(hours=timer_hours).total_seconds():
-                self.first_post_time[str(channel.id)] = current_time
-                self.save_datas()
+        remaining_time = (timer_hours * 3600) - elapsed_time
+        if remaining_time > 0 and not is_initial_post:
+            notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
+            try:
+                await message.author.send(notification_message)
+            except Exception as e:
+                print(f"Erreur lors de l'envoi du MP : {e}")
+            return
+
+        if is_initial_post:
+            self.first_post_time[str(thread.id)] = current_time
+            self.save_datas()
+
+        if thread.parent_id == COMMERCES_ID and message.author == thread.owner:
+            if is_initial_post:
                 await message.reply(
                     "Quel type de commerce souhaitez-vous réaliser ?",
                     view=CommerceTypeView(
@@ -391,43 +418,36 @@ class ImageForwarder(commands.Cog):
                     )
                 )
             else:
-                if remaining_time > 0:
-                    user_id = message.author.id
-                    thread_id = str(message.channel.id)
-                    current_time = datetime.utcnow()
-                    self.last_notification_time.setdefault(user_id, {})[thread_id] = current_time
-                    notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
-                    try:
-                        await message.author.send(notification_message)
-                    except Exception as e:
-                        print(f"Erreur lors de l'envoi du MP : {e}")
+                thread_info = self.message_to_thread.get(str(thread.id), {})
+                channel_id = thread_info.get("channel_id") if isinstance(thread_info, dict) else None
+                # print(f"Récupération du channel_id pour le thread {thread.id} : {channel_id}")
+                if channel_id:
+                    await self.repost_message(message, False, "commerce", server="cosmos", channel_id=channel_id)
+                else:
+                    print(f"Aucun channel_id trouvé pour le thread {thread.id}. Peut-être le premier post n'a-t-il pas été traité correctement ?")
 
-        if channel.parent_id == ACTIVITES_ID and message.author == channel.owner:
-            if is_initial_post or elapsed_time >= timedelta(hours=timer_hours).total_seconds():
-                self.first_post_time[str(channel.id)] = current_time
-                self.save_datas()
+        elif thread.parent_id == ACTIVITES_ID and message.author == thread.owner:
+            detected_tags = {tag.name for tag in thread.applied_tags}
+            if is_initial_post:
                 if "recherche-raid" in detected_tags:
                     select_view = RaidSelectView(author_id=message.author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
                     await message.reply("Sélectionnez les types de raids :", view=select_view)
                 else:
-                    await message.reply(
-                        "Sur quel serveur souhaitez-vous poster votre activité ?",
-                        view=ServerChoiceView(
-                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
-                            author_id=message.author.id
+                    activity_type = next(iter(detected_tags), None)
+                    if activity_type and activity_type in ACTIVITY_CHANNELS:
+                        await message.reply(
+                            "Sur quel serveur souhaitez-vous poster votre activité ?",
+                            view=ServerChoiceView(
+                                repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=activity_type),
+                                author_id=message.author.id
+                            )
                         )
-                    )
             else:
-                if remaining_time > 0:
-                    user_id = message.author.id
-                    thread_id = str(message.channel.id)
-                    current_time = datetime.utcnow()
-                    self.last_notification_time.setdefault(user_id, {})[thread_id] = current_time
-                    notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
-                    try:
-                        await message.author.send(notification_message)
-                    except Exception as e:
-                        print(f"Erreur lors de l'envoi du MP : {e}")
+                channel_id = self.message_to_thread.get(str(thread.id), {}).get("channel_id")
+                if channel_id:
+                    await self.repost_message(message, False, "commerce", server="cosmos", channel_id=channel_id)
+
+
 
     def get_tags_string(self, thread: discord.Thread) -> str:
         tags_list = thread.applied_tags
@@ -435,11 +455,11 @@ class ImageForwarder(commands.Cog):
         return f"**Tags :** {tags_names}" if tags_names else ""
 
     def format_remaining_time(self, remaining_time: timedelta) -> str:
-        days, remainder = divmod(remaining_time.total_seconds(), 86400)
+        total_seconds = remaining_time.total_seconds()
+        days, remainder = divmod(total_seconds, 86400)
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(days)}j {int(hours)}h {int(minutes)}min"
-
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ImageForwarder(bot))

@@ -19,7 +19,7 @@ MUDAE_WAIFUS_CHANNEL_ID = 1133868580342087761
 PRESENTATION_CHANNEL_ID = 1183375149131628574
 QUESTION_CHANNEL_ID = 1055993732505284690
 RECHERCHE_KELKIN_CHANNEL_ID = 995990482167545856
-SIGNALEMENT_VENTES_ID = 1217616850993680464
+SIGNALEMENT_VENTES_ID = 1217666437921898537
 SUGGESTION_FAFA_CHANNEL_ID = 1126957845485735996
 SUGGESTION_GSTAR_CHANNEL_ID = 809772368473882646
 VIDEO_CHANNEL_ID = 709653621393850438
@@ -45,26 +45,28 @@ RAIDS_NOSFIRE_ID = 1219331769287966760
 LEVELING_NOSFIRE_ID = 1219332588318228622
 GROUPE_XP_NOSFIRE_ID = 1219333053139386389
 
+
 ACTIVITY_CHANNELS = {
-    "présentation-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 96},
-    "recherche-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 12},
-    "recherche-raid_cosmos": {"id": RAIDS_COSMOS_ID, "timer_hours": 1},
-    "recherche-leveling_cosmos": {"id": LEVELING_COSMOS_ID, "timer_hours": 1},
-    "recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 1},
-    "présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 96},
-    "recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 12},
-    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 1},
-    "recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 1},
-    "recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 1},
+    "présentation-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
+    "recherche-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
+    "recherche-raid_cosmos": {"id": RAIDS_COSMOS_ID, "timer_hours": 0.01},
+    "recherche-leveling_cosmos": {"id": LEVELING_COSMOS_ID, "timer_hours": 0.01},
+    "recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 0.01},
+    "présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
+    "recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
+    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 0.01},
+    "recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 0.01},
+    "recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
 }
 
 TRADE_CHANNELS = {
-    "achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 48},
-    "vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 48},
-    "achat_nosfire": {"id": ACHATS_NOSFIRE_ID, "timer_hours": 48},
-    "vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 48},
+    "achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 0.01},
+    "vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 0.01},
+    "achat_nosfire": {"id": ACHATS_NOSFIRE_ID, "timer_hours": 0.01},
+    "vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 0.01},
 }
 
+LOCKED_CHANNELS = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
 LOCKED_CHANNELS_1 = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
 
 LOCKED_CHANNELS_2 = {FAMILLES_COSMOS_ID, RAIDS_COSMOS_ID, LEVELING_COSMOS_ID, GROUPE_XP_COSMOS_ID, FAMILLES_NOSFIRE_ID, RAIDS_NOSFIRE_ID, LEVELING_NOSFIRE_ID, GROUPE_XP_NOSFIRE_ID}
@@ -73,76 +75,76 @@ LOCKED_CHANNELS_2 = {FAMILLES_COSMOS_ID, RAIDS_COSMOS_ID, LEVELING_COSMOS_ID, GR
 RAID_ROLE_MAPPING = {
     "Cosmos": {
         "Evènement": "1219914901519073321",
-        "Arma": "1184041296797650944",
-        "Pollutus": "1184041291747696640",
-        "Asgobas": "1052818238850994227",
-        "Alzanor": "920365332605071371",
-        "Valehir": "920365045794365440",
-        "Paimon ressuscité": "867333150978736158",
-        "Paimon": "730355445839036467",
-        "Bélial": "718959619426222172",
-        "Carno": "718959619267100834",
-        "Kirollas": "718959618474246164",
-        "Fernon": "718959447048847460",
-        "Erenia": "718958893950042134",
-        "Zénas": "718959445496955010",
-        "Greniga": "718959448491819058",
-        "Valakus": "718959581706977341",
-        "Kertos": "718959447208230963",
-        "Ibrahim": "718959615613599967",
-        "Laurena": "718959620319870983",
-        "Glacerus": "718959617278869514",
-        "Draco": "718959617006239864",
-        "Yertirand": "718959620831576076",
-        "Fafnir": "718960085920907365",
-        "Slade": "1116784762871357571",
-        "Araignée": "1116784746287071282",
-        "Castra": "1102463563420926022",
-        "Ginseng": "1095042505516531802",
-        "Cuby": "1093937219728846959",
-        "Poule": "1093937216813809794",
         "Namaju": "1093937218445398166",
+        "Poule": "1093937216813809794",
+        "Cuby": "1093937219728846959",
+        "Ginseng": "1095042505516531802",
+        "Castra": "1102463563420926022",
+        "Araignée": "1116784746287071282",
+        "Slade": "1116784762871357571",
+        "Fafnir": "718960085920907365",
+        "Yertirand": "718959620831576076",
+        "Draco": "718959617006239864",
+        "Glacerus": "718959617278869514",
+        "Laurena": "718959620319870983",
+        "Ibrahim": "718959615613599967",
+        "Kertos": "718959447208230963",
+        "Valakus": "718959581706977341",
+        "Greniga": "718959448491819058",
+        "Zénas": "718959445496955010",
+        "Erenia": "718958893950042134",
+        "Fernon": "718959447048847460",
+        "Kirollas": "718959618474246164",
+        "Carno": "718959619267100834",
+        "Bélial": "718959619426222172",
+        "Paimon": "730355445839036467",
+        "Paimon ressuscité": "867333150978736158",
+        "Valehir": "920365045794365440",
+        "Alzanor": "920365332605071371",
+        "Asgobas": "1052818238850994227",
+        "Pollutus": "1184041291747696640",
+        "Arma": "1184041296797650944"
     },
     "NosFire": {
         "Evènement": "1219914896783839253",
-        "Arma": "1219915736806326302",
-        "Pollutus": "1219915738073141249",
-        "Asgobas": "1219915739796869150",
-        "Alzanor": "1219915739943931904",
-        "Valehir": "1219915741046898698",
-        "Paimon ressuscité": "1219915741805936661",
-        "Paimon": "1219915742624088115",
-        "Bélial": "1219915743416553472",
-        "Carno": "1219915743982784574",
-        "Kirollas": "1219915745048268800",
-        "Fernon": "1219915745853440000",
-        "Erenia": "1219915746851815517",
-        "Zénas": "1219915747522908160",
-        "Greniga": "1219915748038672425",
-        "Valakus": "1219915749200498718",
-        "Kertos": "1219915750035427390",
-        "Ibrahim": "1219915751012438016",
-        "Laurena": "1219915751780126770",
-        "Glacerus": "1219915752413597727",
-        "Draco": "1219915753592193115",
-        "Yertirand": "1219915754695299102",
-        "Fafnir": "1219915755634688050",
-        "Slade": "1219915756087541853",
-        "Araignée": "1219915757689901106",
-        "Castra": "1219915758117589012",
-        "Ginseng": "1219915759162232883",
-        "Cuby": "1219915760370061402",
-        "Poule": "1219915902397714432",
         "Namaju": "1219914893634048091",
+        "Poule": "1219915902397714432",
+        "Cuby": "1219915760370061402",
+        "Ginseng": "1219915759162232883",
+        "Castra": "1219915758117589012",
+        "Araignée": "1219915757689901106",
+        "Slade": "1219915756087541853",
+        "Fafnir": "1219915755634688050",
+        "Yertirand": "1219915754695299102",
+        "Draco": "1219915753592193115",
+        "Glacerus": "1219915752413597727",
+        "Laurena": "1219915751780126770",
+        "Ibrahim": "1219915751012438016",
+        "Kertos": "1219915750035427390",
+        "Valakus": "1219915749200498718",
+        "Greniga": "1219915748038672425",
+        "Zénas": "1219915747522908160",
+        "Erenia": "1219915746851815517",
+        "Fernon": "1219915745853440000",
+        "Kirollas": "1219915745048268800",
+        "Carno": "1219915743982784574",
+        "Bélial": "1219915743416553472",
+        "Paimon": "1219915742624088115",
+        "Paimon ressuscité": "1219915741805936661",
+        "Valehir": "1219915741046898698",
+        "Alzanor": "1219915739943931904",
+        "Asgobas": "1219915739796869150",
+        "Pollutus": "1219915738073141249",
+        "Arma": "1219915736806326302",
     }
 }
 
 
 RAIDS_LIST = [
-    "Evènement", "Arma", "Pollutus", "Asgobas", "Alzanor", "Valehir", "Paimon ressuscité", "Paimon", "Bélial", 
-    "Carno", "Kirollas", "Fernon", "Erenia", "Zénas", "Greniga", "Valakus", "Kertos", "Ibrahim", 
-    "Laurena", "Glacerus", "Draco", "Yertirand", "Fafnir", "Slade", "Araignée", "Castra", "Ginseng", 
-    "Cuby", "Poule", "Namaju"
+    "Evènement", "Namaju", "Poule", "Cuby", "Ginseng", "Castra", "Araignée", "Slade", "Fafnir", 
+    "Yertirand", "Draco", "Glacerus", "Laurena", "Ibrahim", "Kertos", "Valakus", "Greniga", "Zénas", 
+    "Erenia", "Fernon", "Kirollas", "Carno", "Bélial", "Paimon", "Paimon ressuscité", "Valehir", 
+    "Alzanor", "Asgobas", "Pollutus", "Arma"
 ]
 
 CHANNELS_NAME_TO_ID = {
@@ -157,7 +159,6 @@ CHANNELS_NAME_TO_ID = {
     "MUDAE_WAIFUS_CHANNEL_2_ID": MUDAE_WAIFUS_CHANNEL_2_ID,
     "MUDAE_WAIFUS_CHANNEL_ID": MUDAE_WAIFUS_CHANNEL_ID,
 }
-
 
 # Roles
 
@@ -179,7 +180,6 @@ ROLE5_ID_FAFA = 1056284345633095771
 
 GUILD_ID_FAFA = 922991241443041300
 GUILD_ID_GSTAR = 684734347177230451
-
 
 # Users
 
