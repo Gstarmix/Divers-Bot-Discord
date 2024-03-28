@@ -54,7 +54,7 @@ ACTIVITY_CHANNELS = {
     "recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 0.01},
     "présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
     "recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
-    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 0.01},
+    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 24},
     "recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 0.01},
     "recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
 }
