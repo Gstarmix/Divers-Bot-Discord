@@ -59,6 +59,8 @@ ACTIVITY_CHANNELS = {
     "recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
 }
 
+ACTIVITY_TYPES = {"présentation-famille", "recherche-famille", "recherche-raid", "recherche-leveling", "recherche-groupe-xp"}
+
 TRADE_CHANNELS = {
     "achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 0.01},
     "vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 0.01},

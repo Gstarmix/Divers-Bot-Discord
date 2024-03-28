@@ -9,7 +9,7 @@ import discord
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
 
-from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING
+from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING, ACTIVITY_TYPES
 
 DATA_PATH = "datas/image_forwarder"
 
@@ -300,7 +300,7 @@ class ImageForwarder(commands.Cog):
         logging.info('Finished processing on_message')
 
     async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str = None, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None, channel_id: int | None = None) -> int:
-        target_channel_id = channel_id
+        target_channel_id = None
         print(f"Repost du message dans le canal {target_channel_id}")
 
         thread = msg.channel
@@ -320,9 +320,10 @@ class ImageForwarder(commands.Cog):
             if channel_info:
                 target_channel_id = channel_info["id"]
 
-        if not target_channel_id:
-            print("Canal cible non trouvé.")
-            return None 
+        if target_channel_id is None:
+            print("Aucun canal cible n'a été trouvé pour les paramètres donnés.")
+            # Vous pourriez vouloir retourner ici ou gérer l'erreur différemment
+            return
 
         target_channel = self.bot.get_channel(target_channel_id)
         if not target_channel:
@@ -385,6 +386,8 @@ class ImageForwarder(commands.Cog):
             return
 
         thread = message.channel
+        print(f"thread.parent_id: {thread.parent_id}")
+        
         is_initial_post = not bool(self.message_to_thread.get(str(thread.id)))
         print(f"is_initial_post: {is_initial_post}, thread.id: {thread.id}")
 
@@ -396,17 +399,22 @@ class ImageForwarder(commands.Cog):
         if thread.parent_id == COMMERCES_ID:
             trade_type = "achat" if "achat" in thread.name else "vente"
             server = "cosmos" if "cosmos" in thread.name else "nosfire"
+            print(f"Commerce détecté: trade_type={trade_type}, server={server}")
             timer_hours = TRADE_CHANNELS.get(f"{trade_type}_{server}", {}).get("timer_hours", 24)
         elif thread.parent_id == ACTIVITES_ID:
             detected_tags = {tag.name for tag in thread.applied_tags}
             print(f"Tags détectés: {detected_tags}")
             for tag in detected_tags:
-                if tag in ACTIVITY_CHANNELS:
-                    timer_hours = ACTIVITY_CHANNELS[tag]["timer_hours"]
+                if tag in ACTIVITY_TYPES:
+                    server = "cosmos" if "cosmos" in detected_tags else "nosfire"
+                    print(f"Activité détectée: tag={tag}, server={server}")
+                    timer_hours = ACTIVITY_CHANNELS[f"{tag}_{server}"].get("timer_hours")
                     break
 
+        print(f"timer_hours avant condition finale: {timer_hours}")
         if timer_hours is None:
             timer_hours = 24
+            print("Aucun timer_hours spécifique trouvé, utilisation de la valeur par défaut.")
 
         remaining_time = (timer_hours * 3600) - elapsed_time
         if remaining_time > 0 and not is_initial_post:
@@ -450,17 +458,13 @@ class ImageForwarder(commands.Cog):
                     select_view = RaidSelectView(author_id=message.author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
                     await message.reply("Sélectionnez les types de raids :", view=select_view)
                 else:
-                    print("Autre tag détecté, préparation à instancier ServerChoiceView")
-                    activity_type = next(iter(detected_tags), None)
-                    if activity_type and activity_type in ACTIVITY_CHANNELS:
-                        print(f"Instanciation de ServerChoiceView avec activity_type: {activity_type}")
-                        await message.reply(
-                            "Sur quel serveur souhaitez-vous poster votre activité ?",
-                            view=ServerChoiceView(
-                                repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=activity_type),
-                                author_id=message.author.id
-                            )
+                    await message.reply(
+                        "Sur quel serveur souhaitez-vous poster votre activité ?",
+                        view=ServerChoiceView(
+                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
+                            author_id=message.author.id
                         )
+                    )
             else:
                 channel_id = self.message_to_thread.get(str(thread.id), {}).get("channel_id")
                 if channel_id:
