@@ -8,6 +8,7 @@ import asyncio
 import discord
 from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
+import discord.utils
 
 from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING, ACTIVITY_TYPES
 
@@ -91,63 +92,47 @@ class CommerceTypeView(discord.ui.View):
 
     @discord.ui.button(label="Achat", style=discord.ButtonStyle.green, custom_id="buy")
     async def buy(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                item.disabled = True
-        await interaction.response.edit_message(view=self)
         new_callback = partial(self.callback, trade_type="achat")
-        await interaction.followup.send("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback, self.author_id))
+        await end_view_chain(interaction, new_callback)
+        # await interaction.followup.send("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback, self.author_id))
+
 
     @discord.ui.button(label="Vente", style=discord.ButtonStyle.blurple, custom_id="sell")
     async def sell(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                item.disabled = True
-        await interaction.response.edit_message(view=self)
         new_callback = partial(self.callback, trade_type="vente")
-        await interaction.followup.send("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback, self.author_id))
+        await end_view_chain(interaction, new_callback)
+        # await interaction.followup.send("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback, self.author_id))
 
 
-
-class ServerChoiceView(discord.ui.View):
-    def __init__(self, repost_message_func, author_id: int):
-        super().__init__()
-        # self.msg = msg
-        # self.selected_raids = selected_raids
-        self.repost_message_func = repost_message_func
-        self.author_id = author_id
-
-    # async def disable_buttons(self):
-    #     for item in self.children:
-    #         if isinstance(item, discord.ui.Button):
-    #             item.disabled = True
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.author_id:
-            await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
-            return False
-        return True
-
-    @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
-    async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        target_channel_id = await self.repost_message_func(server="cosmos")
-        # print("Result from repost_message_func:", target_channel_id)
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                item.disabled = True
-        await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
-
-    @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
-    async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-        target_channel_id = await self.repost_message_func(server="nosfire")
-        # print("Result from repost_message_func:", target_channel_id)
-        for item in self.children:
-            if isinstance(item, discord.ui.Button):
-                item.disabled = True
-        await interaction.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
+# class ServerChoiceView(discord.ui.View):
+#     def __init__(self, repost_message_func, author_id: int):
+#         super().__init__()
+#         # self.msg = msg
+#         # self.selected_raids = selected_raids
+#         self.repost_message_func = repost_message_func
+#         self.author_id = author_id
+#
+#     # async def disable_buttons(self):
+#     #     for item in self.children:
+#     #         if isinstance(item, discord.ui.Button):
+#     #             item.disabled = True
+#
+#     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+#         if interaction.user.id != self.author_id:
+#             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
+#             return False
+#         return True
+#
+#     @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
+#     async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+#         await end_view_chain(interaction, self.repost_message_func, "cosmos")
+#
+#     @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
+#     async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+#         await end_view_chain(interaction, self.repost_message_func, "nosfire")
 
 class RaidSelectView(discord.ui.View):
-    def __init__(self, author_id, repost_message, *, page=0):
+    def __init__(self, author_id: int, repost_message, *, page=0):
         super().__init__(timeout=None)
         self.author_id = author_id
         self.repost_message = repost_message
@@ -161,7 +146,7 @@ class RaidSelectView(discord.ui.View):
 
 
 class RaidSelect(discord.ui.Select[RaidSelectView]):
-    def __init__(self, author_id, repost_message, page=0):
+    def __init__(self, author_id: int, repost_message, page=0):
         self.author_id = author_id
         self.repost_message = repost_message
         options = [
@@ -175,12 +160,13 @@ class RaidSelect(discord.ui.Select[RaidSelectView]):
             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
             return
         new_callback = partial(self.repost_message, selected_raids=self.values)
-        view = ServerChoiceView(repost_message_func=new_callback, author_id=self.author_id)
-        await interaction.response.send_message("Sur quel serveur souhaitez-vous publier votre annonce de raid ?", view=view)
+        await end_view_chain(interaction, new_callback)
+        # view = ServerChoiceView(repost_message_func=new_callback, author_id=self.author_id)
+        # await interaction.response.send_message("Sur quel serveur souhaitez-vous publier votre annonce de raid ?", view=view)
 
 
 class PageButton(discord.ui.Button[RaidSelectView]):
-    def __init__(self, author_id, page_to_add: Literal[-1, 1]):
+    def __init__(self, author_id: int, page_to_add: Literal[-1, 1]):
         label = "Page précédente"
         if page_to_add == 1:
             label = "Page suivante"
@@ -197,6 +183,13 @@ class PageButton(discord.ui.Button[RaidSelectView]):
         new_view = RaidSelectView(self.author_id, self.view.repost_message, page=view.page + self.page_to_add)
         await interaction.response.edit_message(view=new_view)
 
+
+async def end_view_chain(target: discord.Interaction | discord.Thread, callback, server="cosmos"):
+    target_channel_id = await callback(server=server)
+    if isinstance(target, discord.Thread):
+        await target.send(content=f"Annonce postée sur <#{target_channel_id}>.")
+    else:
+        await target.response.edit_message(content=f"Annonce postée sur <#{target_channel_id}>.", view=None)
 
 # class NextPageButton(discord.ui.Button):
 #     def __init__(self, author_id):
@@ -216,17 +209,17 @@ class PageButton(discord.ui.Button[RaidSelectView]):
 class ImageForwarder(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.first_post_time_path = f"{DATA_PATH}/first_post_time.json"
+        self.last_post_time_path = f"{DATA_PATH}/last_post_time.json"
         self.message_to_thread_path = f"{DATA_PATH}/message_to_thread.json"
-        self.first_post_time, self.message_to_thread = self.load_datas()
+        self.last_post_time, self.message_to_thread = self.load_datas()
         self.last_notification_time = {}
 
     def load_datas(self):
-        first_post_time = {}
+        last_post_time = {}
         message_to_thread = {}
         try:
-            with open(self.first_post_time_path, "r") as f:
-                first_post_time = json.load(f)
+            with open(self.last_post_time_path, "r") as f:
+                last_post_time = json.load(f)
         except FileNotFoundError:
             pass
         try:
@@ -235,113 +228,139 @@ class ImageForwarder(commands.Cog):
         except FileNotFoundError:
             pass
         # print("Données chargées : ", message_to_thread)
-        return first_post_time, message_to_thread
+        return last_post_time, message_to_thread
 
     def save_datas(self):
-        with open(self.first_post_time_path, "w") as f:
-            json.dump(self.first_post_time, f)
+        with open(self.last_post_time_path, "w") as f:
+            json.dump(self.last_post_time, f)
         with open(self.message_to_thread_path, "w") as f:
             json.dump(self.message_to_thread, f)
         # print("Données sauvegardées : ", self.message_to_thread)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        author = message.author
+        channel = message.channel
+
         # print(f"Message reçu de {message.author.name}: {message.content}")
-        if message.author.bot:
+        if author.bot:
             return
 
-        if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id == ACTIVITES_ID:
-            # print(f"Traitement du message dans un thread public dans ACTIVITES_ID : {message.channel.id}")
-            thread = message.channel
-            # print(f"Tags appliqués : {[tag.name for tag in thread.applied_tags]}")
+        if channel.type == discord.ChannelType.public_thread:
+            num_tags = len(channel.applied_tags)
+            if channel.parent_id == ACTIVITES_ID:
+                # print(f"Traitement du message dans un thread public dans ACTIVITES_ID : {message.channel.id}")
+                # print(f"Tags appliqués : {[tag.name for tag in channel.applied_tags]}")
 
-            num_tags = len(thread.applied_tags)
+                if num_tags > 1:
+                    # print(f"Suppression du thread {channel.id} pour cause de multiples tags.")
+                    warning_msg = f"{channel.owner.mention}, votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. Veuillez n'utiliser qu'un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
+                    await channel.send(warning_msg)
 
-            if num_tags > 1:
-                # print(f"Suppression du thread {thread.id} pour cause de multiples tags.")
-                warning_msg = f"{thread.owner.mention}, votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. Veuillez utiliser un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
-                await message.channel.send(warning_msg)
+                    await asyncio.sleep(300)
 
-                await asyncio.sleep(300)
+                    try:
+                        await channel.delete(reason="Trop de tags")
+                    except Exception as e:
+                        raise Exception(f"Erreur lors de la suppression du thread {channel=} : {e}")
 
-                try:
-                    await thread.delete()
-                    logging.info(f'Successfully deleted thread: {thread.id}')
-                except Exception as e:
-                    logging.error(f'Error deleting thread {thread.id}: {e}')
-                    print(f"Erreur lors de la suppression du thread : {e}")
+            if channel.parent_id == COMMERCES_ID:
+                if num_tags > 4:
+                    warning_msg = f"{channel.owner.mention}, votre fil va être supprimé car il utilise trop de tags. Veuillez n'utiliser qu'au maximum 4 tags. Votre fil sera supprimé dans 5 minutes."
+                    await channel.send(warning_msg)
 
-        if message.channel.id in LOCKED_CHANNELS_1:
+                    await asyncio.sleep(300)
+
+                    try:
+                        await channel.delete(reason="Trop de tags")
+                    except Exception as e:
+                        raise Exception(f"Erreur lors de la suppression du thread {channel=} : {e}")
+
+        if channel.id in LOCKED_CHANNELS_1:
             # print(f"Message posté dans un canal verrouillé : {message.channel.id}")
             await message.delete()
             channel_mention = f"<#{COMMERCES_ID}>"
-            inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
-            bot_message = await message.channel.send(inform_message)
-            await message.author.send(inform_message)
-            await asyncio.sleep(300)
-            await bot_message.delete()
-        elif message.channel.id in LOCKED_CHANNELS_2 and message.channel.id not in [RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID]:
+            inform_message = f"{author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            bot_message = await channel.send(inform_message)
+            await author.send(inform_message)
+            await bot_message.delete(delay=300)
+        if channel.id in LOCKED_CHANNELS_2 and channel.id not in {RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID}:
             await message.delete()
             channel_mention = f"<#{ACTIVITES_ID}>"
-            inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
-            bot_message = await message.channel.send(inform_message)
-            await message.author.send(inform_message)
-            await asyncio.sleep(300)
-            await bot_message.delete()
+            inform_message = f"{author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            bot_message = await channel.send(inform_message)
+            await author.send(inform_message)
+            await bot_message.delete(delay=300)
 
-        if message.channel.id in [RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID]:
-            inform_message = f"{message.author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié pour les raids et cliquer sur le bouton **\"Nouveau post\"**. Les rôles sont disponibles afin d'être mentionné dans le salon <id:customize>.\n https://www.zupimages.net/up/24/11/siro.png"
-            bot_message = await message.channel.send(inform_message)
-            await asyncio.sleep(300)
-            await bot_message.delete()
+        if channel.id in {RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID}:
+            channel_mention = f"<#{ACTIVITES_ID}>"
+            inform_message = f"{author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**. Les rôles sont disponibles afin d'être mentionné dans le salon <id:customize>.\n https://www.zupimages.net/up/24/11/siro.png"
+            bot_message = await channel.send(inform_message)
+            await bot_message.delete(delay=300)
 
-        if message.channel.type == discord.ChannelType.public_thread and message.channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
+        if channel.type == discord.ChannelType.public_thread and channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
             await self.handle_post_logic(message)
-        logging.info('Finished processing on_message')
 
-    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str = None, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None, channel_id: int | None = None) -> int:
-        target_channel_id = channel_id
-        # print(f"Repost du message dans le canal {target_channel_id}")
-
+    async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str = None, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None) -> int:
         thread = msg.channel
+        guild = msg.guild
+
         async for first_message in thread.history(oldest_first=True, limit=1):
             break
         else:
             first_message = msg
 
+        target_channel_id = None
+
+        thread_tags = {tag.name for tag in thread.applied_tags}
+
+        if not server:
+            server_tags = thread_tags & {"cosmos", "nosfire"}
+            if server_tags:
+                server = server_tags.pop()
+            else:
+                server = "cosmos"
+
+        if not trade_type:
+            trade_tags = thread_tags & {"vente", "achat"}
+            if trade_tags:
+                trade_type = trade_tags.pop()
+
+        if not activity_type:
+            activity_tags = thread_tags & ACTIVITY_TYPES
+            if activity_tags:
+                activity_type = activity_tags.pop()
+
         if msg_type == "commerce":
             channel_info = TRADE_CHANNELS.get(f"{trade_type}_{server}")
             if channel_info:
                 target_channel_id = channel_info["id"]
-        elif msg_type == "raid":
+            await self.add_tag_to_thread(thread, trade_type)
+        if msg_type == "raid":
             target_channel_id = RAIDS_COSMOS_ID if server == "cosmos" else RAIDS_NOSFIRE_ID
-        elif msg_type == "activité":
+        if msg_type == "activité":
             channel_info = ACTIVITY_CHANNELS.get(f"{activity_type}_{server}")
             if channel_info:
                 target_channel_id = channel_info["id"]
+            await self.add_tag_to_thread(thread, activity_type)
+        # await self.add_tag_to_thread(thread, server)
 
-        if target_channel_id is None:
-            # print("Aucun canal cible n'a été trouvé pour les paramètres donnés.")
-            return
+        if not target_channel_id:
+            raise Exception(f"Aucun canal cible n'a été trouvé pour les paramètres donnés {msg_type=} {server=} {activity_type=} {trade_type=}")
 
-        target_channel = self.bot.get_channel(target_channel_id)
+        target_channel = guild.get_channel(target_channel_id)
         if not target_channel:
-            return {"id": target_channel_id}
+            raise Exception(f"Est-ce que le salon {target_channel_id=} existe bien sur {guild.name} ?")
 
         action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
         header = f"{action} par {first_message.author.mention} dans {thread.mention}."
-
-        server_key = "Cosmos" if server.lower() == "cosmos" else "NosFire" if server.lower() == "nosfire" else None
-        if server_key is None:
-            print(f"Serveur invalide: {server}")
-            return
 
         # title = f"**Titre :** {thread.name}"
         tags_string = self.get_tags_string(thread)
 
         raids_mentions = ""
         if selected_raids and msg_type == "raid":
-            raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server_key].get(raid, '')}>" for raid in selected_raids])
+            raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids])
         
         header_and_metadata = f"{header} [{tags_string}{raids_mentions}]".rstrip(" |")
         content_formatted = f"**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
@@ -349,49 +368,57 @@ class ImageForwarder(commands.Cog):
 
         actions_view = ActionsView(thread.id)
 
-        try:
-            webhooks = await target_channel.webhooks()
-            webhook = next((wh for wh in webhooks if wh.user == self.bot.user), None)
-            if webhook is None:
-                webhook = await target_channel.create_webhook(name="MonWebhook", reason="Pour reposter les messages")
+        webhooks = await target_channel.webhooks()
+        webhook = discord.utils.find(lambda wh: wh.user == self.bot.user, webhooks)
+        if webhook is None:
+            webhook = await target_channel.create_webhook(name=self.bot.user.name, reason="Pour reposter les messages")
 
-            if not webhook.is_partial():
-                await webhook.send(
-                    content=final_msg_content,
-                    username=msg.author.display_name,
-                    avatar_url=msg.author.avatar.url if msg.author.avatar else None,
-                    files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
-                    view=actions_view if not webhook.is_partial() else None
-                )
-            else:
-                raise Exception("Webhook partiel. Passage à l'envoi standard.")
-        except Exception as e:
-            print(f"Utilisation de l'envoi standard en raison d'une erreur avec le webhook: {e}")
-            await target_channel.send(
-                content=final_msg_content,
-                files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
-                view=actions_view
-            )
+        sent_msg = await webhook.send(
+            content=final_msg_content,
+            username=msg.author.display_name,
+            avatar_url=msg.author.avatar.url if msg.author.avatar else None,
+            files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
+            view=actions_view,
+            wait=True
+        )
 
-        # print(f"Enregistrement du channel_id {target_channel_id} pour le thread {thread.id}")
-        self.message_to_thread[str(thread.id)] = {"channel_id": target_channel_id}
+        if is_initial_post:
+            msg_ids, thread_ids = tuple(self.message_to_thread), tuple(self.message_to_thread.values())
+            try:
+                msg_index = thread_ids.index(thread.id)
+                msg_id = msg_ids[msg_index]
+                del self.message_to_thread[msg_id]
+                await target_channel.get_partial_message(msg_id).edit(view=None)
+            except ValueError:
+                pass
+            except discord.NotFound as e:
+                if e.code == 10008:
+                    pass
+                else:
+                    raise e
+
+        self.message_to_thread[str(sent_msg.id)] = thread.id
         self.save_datas()
         return target_channel_id
 
     async def handle_post_logic(self, message: discord.Message):
-        # print(f"Entrée dans handle_post_logic avec message : {message.content}")
-        if message.author.bot or message.channel.type != discord.ChannelType.public_thread or message.channel.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
-            print("Condition initiale non remplie (auteur bot, type de canal, parent_id)")
-            return
-
         thread = message.channel
+        author = message.author
+
+        # print(f"Entrée dans handle_post_logic avec message : {message.content}")
+        if author.bot or thread.type != discord.ChannelType.public_thread or thread.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
+            raise Exception("Condition initiale non remplie (auteur bot, type de canal, parent_id)")
+
         # print(f"thread.parent_id: {thread.parent_id}")
+
+        if author != thread.owner:
+            return
         
-        is_initial_post = not bool(self.message_to_thread.get(str(thread.id)))
+        is_initial_post = message.id == thread.id
         # print(f"is_initial_post: {is_initial_post}, thread.id: {thread.id}")
 
         current_time = datetime.utcnow().timestamp()
-        last_post_time = self.first_post_time.get(str(thread.id), 0)
+        last_post_time = self.last_post_time.get(str(thread.id), 0)
         elapsed_time = current_time - last_post_time
 
         timer_hours = None
@@ -413,62 +440,67 @@ class ImageForwarder(commands.Cog):
         # print(f"timer_hours avant condition finale: {timer_hours}")
         if timer_hours is None:
             timer_hours = 24
-            # print("Aucun timer_hours spécifique trouvé, utilisation de la valeur par défaut.")
+            print(f"Aucun timer_hours spécifique trouvé, utilisation de la valeur par défaut (24h). Faut que tu vérifies pourquoi {thread=}")
 
         remaining_time = (timer_hours * 3600) - elapsed_time
         if remaining_time > 0 and not is_initial_post:
             print(f"Temps restant avant la prochaine publication: {remaining_time}")
             notification_message = f"🕒 Il reste {self.format_remaining_time(timedelta(seconds=remaining_time))} avant la prochaine actualisation possible de votre annonce."
             try:
-                await message.author.send(notification_message)
+                await author.send(notification_message)
             except Exception as e:
                 print(f"Erreur lors de l'envoi du MP : {e}")
             return
 
-        if is_initial_post:
-            self.first_post_time[str(thread.id)] = current_time
-            self.save_datas()
+        self.last_post_time[str(thread.id)] = current_time
+        self.save_datas()
 
-        if thread.parent_id == COMMERCES_ID and message.author == thread.owner:
+        if thread.parent_id == COMMERCES_ID:
             # print("Thread parent_id est COMMERCES_ID, prêt à répondre pour le type de commerce")
             if is_initial_post:
                 await message.reply(
                     "Quel type de commerce souhaitez-vous réaliser ?",
                     view=CommerceTypeView(
-                        partial(self.repost_message, message, True, "commerce"),
-                        author_id=message.author.id
+                        partial(self.repost_message, msg=message, is_initial_post=True, msg_type="commerce"),
+                        author_id=author.id
                     )
                 )
             else:
-                thread_info = self.message_to_thread.get(str(thread.id), {})
-                channel_id = thread_info.get("channel_id") if isinstance(thread_info, dict) else None
+                # channel_id = self.message_to_thread.get(str(message.id))
                 # print(f"Récupération du channel_id pour le thread {thread.id} : {channel_id}")
-                if channel_id:
-                    await self.repost_message(message, False, "commerce", server="cosmos", channel_id=channel_id)
-                else:
-                    print(f"Aucun channel_id trouvé pour le thread {thread.id}. Peut-être le premier post n'a-t-il pas été traité correctement ?")
+                # if channel_id:
+                await self.repost_message(message, False, "commerce")
+                # else:
+                #     raise Exception(f"Aucun channel_id trouvé pour le thread {thread=}. Peut-être le premier post n'a-t-il pas été traité correctement ?")
 
-        elif thread.parent_id == ACTIVITES_ID and message.author == thread.owner:
+        if thread.parent_id == ACTIVITES_ID:
             # print("Thread parent_id est ACTIVITES_ID, vérification des tags pour l'action suivante")
-            detected_tags = {tag.name for tag in thread.applied_tags}
+            detected_tags = {tag.name for tag in thread.applied_tags} & ACTIVITY_TYPES
+            if not detected_tags:
+                raise Exception(f"Aucun tag d'activités pour {thread=}")
             if is_initial_post:
                 if "recherche-raid" in detected_tags:
                     # print("Création de RaidSelectView pour la recherche de raid")
-                    select_view = RaidSelectView(author_id=message.author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
+                    select_view = RaidSelectView(author_id=author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
                     await message.reply("Sélectionnez les types de raids :", view=select_view)
                 else:
-                    await message.reply(
-                        "Sur quel serveur souhaitez-vous poster votre activité ?",
-                        view=ServerChoiceView(
-                            repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
-                            author_id=message.author.id
-                        )
-                    )
+                    # await message.reply(
+                    #     "Sur quel serveur souhaitez-vous poster votre activité ?",
+                    #     view=ServerChoiceView(
+                    #         repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
+                    #         author_id=author.id
+                    #     )
+                    # )
+                    await end_view_chain(thread, partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()))
             else:
-                channel_id = self.message_to_thread.get(str(thread.id), {}).get("channel_id")
-                if channel_id:
-                    await self.repost_message(message, False, "commerce", server="cosmos", channel_id=channel_id)
-
+                if "recherche-raid" in detected_tags:
+                    print("tentative d'up de raid, pour l'instant ça ignore juste le message, à toi de voir si tu veux envoyer un message ou quoi")
+                    return
+                # channel_id = self.message_to_thread.get(str(message.id))
+                # if channel_id:
+                await self.repost_message(message, False, "commerce")
+                # else:
+                #     raise Exception(f"Aucun channel_id trouvé pour le thread {thread=}. Peut-être le premier post n'a-t-il pas été traité correctement ?")
 
 
     def get_tags_string(self, thread: discord.Thread) -> str:
@@ -482,6 +514,13 @@ class ImageForwarder(commands.Cog):
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(days)}j {int(hours)}h {int(minutes)}min"
+
+    async def add_tag_to_thread(self, thread: discord.Thread, tag_name: str):
+        tag = discord.utils.find(lambda tag: tag.name == tag_name, thread.parent.available_tags)
+        if not tag:
+            print(f"{tag_name=} introuvable dans {thread.parent=}")
+            return
+        await thread.add_tags(tag)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ImageForwarder(bot))

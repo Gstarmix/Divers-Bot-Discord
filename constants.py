@@ -54,7 +54,7 @@ ACTIVITY_CHANNELS = {
     "recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 0.01},
     "présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
     "recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
-    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 24},
+    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 1},
     "recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 0.01},
     "recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
 }
@@ -75,7 +75,7 @@ LOCKED_CHANNELS_2 = {FAMILLES_COSMOS_ID, RAIDS_COSMOS_ID, LEVELING_COSMOS_ID, GR
 
 
 RAID_ROLE_MAPPING = {
-    "Cosmos": {
+    "cosmos": {
         "Evènement": "1219914901519073321",
         "Namaju": "1093937218445398166",
         "Poule": "1093937216813809794",
@@ -107,7 +107,7 @@ RAID_ROLE_MAPPING = {
         "Pollutus": "1184041291747696640",
         "Arma": "1184041296797650944"
     },
-    "NosFire": {
+    "nosfire": {
         "Evènement": "1219914896783839253",
         "Namaju": "1219914893634048091",
         "Poule": "1219915902397714432",
