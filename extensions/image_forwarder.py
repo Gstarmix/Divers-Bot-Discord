@@ -10,7 +10,7 @@ from discord.ext import commands
 from discord.ui import Modal, TextInput, View, Button
 import discord.utils
 
-from constants import COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING, ACTIVITY_TYPES
+from constants import RAIDS_EMOTES, COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING, ACTIVITY_TYPES
 
 DATA_PATH = "datas/image_forwarder"
 
@@ -150,7 +150,7 @@ class RaidSelect(discord.ui.Select[RaidSelectView]):
         self.author_id = author_id
         self.repost_message = repost_message
         options = [
-            discord.SelectOption(label=raid, value=raid)
+            discord.SelectOption(label=raid, value=raid, emoji=RAIDS_EMOTES.get(raid))
             for raid in RAIDS_LIST[page * 25:min((page + 1) * 25, len(RAIDS_LIST))]
         ]
         super().__init__(placeholder='Choisissez les raids', min_values=1, max_values=min(len(options), 25), options=options)
@@ -352,43 +352,72 @@ class ImageForwarder(commands.Cog):
         if not target_channel:
             raise Exception(f"Est-ce que le salon {target_channel_id=} existe bien sur {guild.name} ?")
 
-        action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
-        header = f"{action} par {first_message.author.mention} dans {thread.mention}."
+        # action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
+        # header = f"{action} par {first_message.author.mention} dans {thread.mention}."
 
-        # title = f"**Titre :** {thread.name}"
-        tags_string = self.get_tags_string(thread)
+        # # title = f"**Titre :** {thread.name}"
+        # tags_string = self.get_tags_string(thread)
 
-        raids_mentions = ""
-        if selected_raids and msg_type == "raid":
-            raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids])
+        # raids_mentions = ""
+        # if selected_raids and msg_type == "raid":
+        #     raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids])
         
-        header_and_metadata = f"{header} [{tags_string}{raids_mentions}]".rstrip(" |")
-        content_formatted = f"**Contenu :**\n" + "\n".join([f"{line}" for line in first_message.content.strip().split('\n')])
-        final_msg_content = "\n".join([header_and_metadata, content_formatted])
+        # header_and_metadata = f"{header} [{tags_string}{raids_mentions}]".rstrip(" |")
+        # if first_message.content.strip():
+        #     # S'il y a du texte, ajoutez '> ' au début de chaque ligne.
+        #     content_formatted = f"\n".join([f"> {line}" for line in first_message.content.strip().split('\n')])
+        # else:
+        #     # S'il n'y a pas de texte (image uniquement), ne modifiez pas le contenu.
+        #     content_formatted = first_message.content
 
-        actions_view = ActionsView(thread.id)
+        # final_msg_content = "\n".join([header_and_metadata, content_formatted])
+
+        # # actions_view = ActionsView(thread.id) 
+        # # Les membres n'aiment pas cette fonctionnalité
+
+        # tags_string = self.get_tags_string(thread)
+        # raids_mentions = "**Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
+
+        action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
+
+        message_content = ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
+
+        embed = None
+        files = []
+
+        if trade_type == "vente":
+            header_vente = f"{action} dans {thread.mention}."
+            content_formatted_vente = "\n".join([f"> {line}" for line in first_message.content.split('\n')])
+            files = [await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type]
+            message_content = f"{header_vente}\n{content_formatted_vente}"
+        else:
+            embed = discord.Embed(
+                title=f"{action} dans {thread.mention}.",
+                description=first_message.content,
+                color=discord.Color.blue() if is_initial_post else discord.Color.green(),
+            )
 
         webhooks = await target_channel.webhooks()
         webhook = discord.utils.find(lambda wh: wh.user == self.bot.user, webhooks)
         if webhook is None:
-            webhook = await target_channel.create_webhook(name=self.bot.user.name, reason="Pour reposter les messages")
+            webhook = await target_channel.create_webhook(name=guild.me.name, reason="Pour reposter les messages")
 
         sent_msg = await webhook.send(
-            content=final_msg_content,
+            content=message_content,
             username=msg.author.display_name,
-            avatar_url=msg.author.avatar.url if msg.author.avatar else None,
-            files=[await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type],
-            view=actions_view,
+            avatar_url=msg.author.display_avatar.url,
+            files=files,
+            embed=embed,
             wait=True
         )
 
-        if is_initial_post:
+        if not is_initial_post:
             msg_ids, thread_ids = tuple(self.message_to_thread), tuple(self.message_to_thread.values())
             try:
                 msg_index = thread_ids.index(thread.id)
                 msg_id = msg_ids[msg_index]
                 del self.message_to_thread[msg_id]
-                await target_channel.get_partial_message(msg_id).edit(view=None)
+                # await target_channel.get_partial_message(msg_id).edit(view=None)
             except ValueError:
                 pass
             except discord.NotFound as e:
@@ -498,7 +527,7 @@ class ImageForwarder(commands.Cog):
                     return
                 # channel_id = self.message_to_thread.get(str(message.id))
                 # if channel_id:
-                await self.repost_message(message, False, "commerce")
+                await self.repost_message(message, False, "activité")
                 # else:
                 #     raise Exception(f"Aucun channel_id trouvé pour le thread {thread=}. Peut-être le premier post n'a-t-il pas été traité correctement ?")
 

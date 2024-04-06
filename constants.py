@@ -68,7 +68,6 @@ TRADE_CHANNELS = {
     "vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 0.01},
 }
 
-LOCKED_CHANNELS = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
 LOCKED_CHANNELS_1 = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
 
 LOCKED_CHANNELS_2 = {FAMILLES_COSMOS_ID, RAIDS_COSMOS_ID, LEVELING_COSMOS_ID, GROUPE_XP_COSMOS_ID, FAMILLES_NOSFIRE_ID, RAIDS_NOSFIRE_ID, LEVELING_NOSFIRE_ID, GROUPE_XP_NOSFIRE_ID}
@@ -92,7 +91,7 @@ RAID_ROLE_MAPPING = {
         "Ibrahim": "718959615613599967",
         "Kertos": "718959447208230963",
         "Valakus": "718959581706977341",
-        "Greniga": "718959448491819058",
+        "Grenigas": "718959448491819058",
         "Zénas": "718959445496955010",
         "Erenia": "718958893950042134",
         "Fernon": "718959447048847460",
@@ -124,7 +123,7 @@ RAID_ROLE_MAPPING = {
         "Ibrahim": "1219915751012438016",
         "Kertos": "1219915750035427390",
         "Valakus": "1219915749200498718",
-        "Greniga": "1219915748038672425",
+        "Grenigas": "1219915748038672425",
         "Zénas": "1219915747522908160",
         "Erenia": "1219915746851815517",
         "Fernon": "1219915745853440000",
@@ -142,12 +141,40 @@ RAID_ROLE_MAPPING = {
 }
 
 
-RAIDS_LIST = [
-    "Evènement", "Namaju", "Poule", "Cuby", "Ginseng", "Castra", "Araignée", "Slade", "Fafnir", 
-    "Yertirand", "Draco", "Glacerus", "Laurena", "Ibrahim", "Kertos", "Valakus", "Greniga", "Zénas", 
-    "Erenia", "Fernon", "Kirollas", "Carno", "Bélial", "Paimon", "Paimon ressuscité", "Valehir", 
-    "Alzanor", "Asgobas", "Pollutus", "Arma"
-]
+RAIDS_LIST = ["Evènement", "Arma", "Pollutus", "Asgobas", "Alzanor", "Valehir", "Paimon ressuscité", "Paimon", "Bélial", "Carno", "Kirollas", "Fernon", "Erenia", "Zénas", "Grenigas", "Valakus", "Kertos", "Ibrahim", "Laurena", "Glacerus", "Draco", "Yertirand", "Fafnir", "Slade", "Araignée", "Castra", "Ginseng", "Cuby", "Poule", "Namaju"]
+
+RAIDS_EMOTES = {
+    "Evènement": "<:iconeevent:1225984383098294272>",
+    "Arma": "<:arma:1225981400339976303>",
+    "Pollutus": "<:pollutus:1225981401367707669>",
+    "Asgobas": "<:raidasgobas:1052817952585568316>",
+    "Alzanor": "<:Alzanor:920364236792823818>",
+    "Valehir": "<:Valehir:920364236847321088>",
+    "Paimon ressuscité": "<:Paimonressucite:867332592046702592>",
+    "Paimon": "<:Paimon:730356031506612274>",
+    "Bélial": "<:Belial:719111138595438623>",
+    "Carno": "<:Carno:719111138419408907>",
+    "Kirollas": "<:Kirollas:719111138566078524>",
+    "Fernon": "<:Fernon:971225082754109440>",
+    "Erenia": "<:Erenia:719111138427666486>",
+    "Zénas": "<:Zenas:719111138247442466>",
+    "Grenigas": "<:Grenigas:719111138540781588>",
+    "Valakus": "<:Valakus:719111138620735560>",
+    "Kertos": "<:Kertos:719111138545238096>",
+    "Ibrahim": "<:Ibrahim:971225789372719156>",
+    "Laurena": "<:Laurena:719111138276540437>",
+    "Glacerus": "<:Glacerus:719111138360426567>",
+    "Draco": "<:Draco:719111558952648715>",
+    "Yertirand": "<:Yertirand:719111138620735540>",
+    "Fafnir": "<:Fafnir:719111138234859542>",
+    "Slade": "<:Slade:739077081018794037>",
+    "Araignée": "<:Araigne:739077081148817430>",
+    "Castra": "<:Castra:739077081354338365>",
+    "Ginseng": "<:Ginseng:739077080976982028>",
+    "Cuby": "<:Cuby:739077081396150343>",
+    "Poule": "<:Poule:739077081442418728>",
+    "Namaju": "<:Namaju:739077098307715154>"
+}
 
 CHANNELS_NAME_TO_ID = {
     "LOG_CHANNEL_ID": LOG_CHANNEL_ID,
