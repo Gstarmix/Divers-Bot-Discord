@@ -19,7 +19,7 @@ MUDAE_WAIFUS_CHANNEL_ID = 1133868580342087761
 PRESENTATION_CHANNEL_ID = 1183375149131628574
 QUESTION_CHANNEL_ID = 1055993732505284690
 RECHERCHE_KELKIN_CHANNEL_ID = 995990482167545856
-SIGNALEMENT_VENTES_ID = 1217666437921898537
+SIGNALEMENT_VENTES_ID = 1217616850993680464
 SUGGESTION_FAFA_CHANNEL_ID = 1126957845485735996
 SUGGESTION_GSTAR_CHANNEL_ID = 809772368473882646
 VIDEO_CHANNEL_ID = 709653621393850438
@@ -47,25 +47,25 @@ GROUPE_XP_NOSFIRE_ID = 1219333053139386389
 
 
 ACTIVITY_CHANNELS = {
-    "présentation-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
-    "recherche-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
-    "recherche-raid_cosmos": {"id": RAIDS_COSMOS_ID, "timer_hours": 0.01},
-    "recherche-leveling_cosmos": {"id": LEVELING_COSMOS_ID, "timer_hours": 0.01},
-    "recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 0.01},
-    "présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
-    "recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
-    "recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 1},
-    "recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 0.01},
-    "recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
+    "Présentation-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
+    "Recherche-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
+    "Recherche-raid_cosmos": {"id": RAIDS_COSMOS_ID, "timer_hours": 0.01},
+    "Recherche-leveling_cosmos": {"id": LEVELING_COSMOS_ID, "timer_hours": 0.01},
+    "Recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 0.01},
+    "Présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
+    "Recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
+    "Recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 0.01},
+    "Recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 0.01},
+    "Recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
 }
 
-ACTIVITY_TYPES = {"présentation-famille", "recherche-famille", "recherche-raid", "recherche-leveling", "recherche-groupe-xp"}
+ACTIVITY_TYPES = {"Présentation-famille", "Recherche-famille", "Recherche-raid", "Recherche-leveling", "Recherche-groupe-xp"}
 
 TRADE_CHANNELS = {
-    "achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 0.01},
-    "vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 0.01},
-    "achat_nosfire": {"id": ACHATS_NOSFIRE_ID, "timer_hours": 0.01},
-    "vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 0.01},
+    "Achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 0.01},
+    "Vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 0.01},
+    "Achat_nosfire": {"id": ACHATS_NOSFIRE_ID, "timer_hours": 0.01},
+    "Vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 0.01},
 }
 
 LOCKED_CHANNELS_1 = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
@@ -213,3 +213,7 @@ GUILD_ID_GSTAR = 684734347177230451
 # Users
 
 GSTAR_USER_ID = 200750717437345792
+
+# Cooldown
+
+DELETE_COOLDOWN_HOURS = 48
