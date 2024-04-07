@@ -215,7 +215,7 @@ class PageButton(discord.ui.Button[RaidSelectView]):
 async def end_view_chain(target: discord.Interaction | discord.Thread, callback, server="cosmos", is_raid_search=False):
     target_channel_id, thread_to_messages, delete_timestamps = await callback(server=server)
     base_message = f":white_check_mark: Annonce postée dans <#{target_channel_id}>.\n"
-    raid_message = ":warning: Pour être mentionné par les rôles, rendez-vous dans <id:customize>.\n:warning: La républication n'est pas disponible pour les annonces de raid. Vous devrez créer un nouveau post pour mettre à jour votre recherche." if is_raid_search else ""
+    raid_message = ":warning: Pour être mentionné par les rôles de raid, rendez-vous dans <id:customize>.\n:warning: La républication n'est pas disponible pour les annonces de raid. Vous devrez créer un nouveau post pour mettre à jour votre recherche." if is_raid_search else ""
     if isinstance(target, discord.Thread):
         actions_view = ActionsView(thread_to_messages, delete_timestamps)
         await target.send(content=base_message + raid_message, view=actions_view)
@@ -245,6 +245,7 @@ class ImageForwarder(commands.Cog):
         self.thread_to_messages_path = f"{DATA_PATH}/thread_to_messages.json"
         self.delete_timestamps_path = f"{DATA_PATH}/delete_timestamps.json"
         self.last_post_time, self.thread_to_messages, self.delete_timestamps = self.load_datas()
+        self.last_notification_time = {}
 
         self.bot.add_view(ActionsView(self.thread_to_messages, self.delete_timestamps))
 
@@ -322,25 +323,23 @@ class ImageForwarder(commands.Cog):
                         raise Exception(f"Erreur lors de la suppression du thread {channel=} : {e}")
 
         if channel.id in LOCKED_CHANNELS_1:
-            # print(f"Message posté dans un canal verrouillé : {message.channel.id}")
             await message.delete()
             channel_mention = f"<#{COMMERCES_ID}>"
-            inform_message = f"{author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            inform_message = f"<:no_valide:1125533828602150972> {author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
             bot_message = await channel.send(inform_message)
-            await author.send(inform_message)
             await bot_message.delete(delay=300)
+
         if channel.id in LOCKED_CHANNELS_2 and channel.id not in {RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID}:
             await message.delete()
             channel_mention = f"<#{ACTIVITES_ID}>"
-            inform_message = f"{author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
+            inform_message = f"<:no_valide:1125533828602150972> {author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**.\n https://www.zupimages.net/up/24/11/siro.png"
             bot_message = await channel.send(inform_message)
-            await author.send(inform_message)
             await bot_message.delete(delay=300)
 
         if channel.id in {RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID}:
             await message.delete()
             channel_mention = f"<#{ACTIVITES_ID}>"
-            inform_message = f"{author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**. Les rôles sont disponibles afin d'être mentionné dans le salon <id:customize>.\n https://www.zupimages.net/up/24/11/siro.png"
+            inform_message = f"<:no_valide:1125533828602150972> {author.mention}, vous ne pouvez pas poster directement dans ce salon. Veuillez vous diriger vers le salon approprié {channel_mention} et cliquer sur le bouton **\"Nouveau post\"**. Les rôles de raid sont disponibles afin d'être mentionné dans le salon <id:customize>.\n https://www.zupimages.net/up/24/11/siro.png"
             bot_message = await channel.send(inform_message)
             await bot_message.delete(delay=300)
 
@@ -443,6 +442,17 @@ class ImageForwarder(commands.Cog):
         #         else:
         #             raise e
 
+        # if not is_initial_post:
+        #     confirmation_message = await thread.send(f":white_check_mark: Annonce repostée dans <#{target_channel_id}>. Ce message sera supprimé dans 5 minutes.")
+        #     await confirmation_message.delete(delay=300)
+
+        if not is_initial_post:
+            confirmation_message = await thread.send(
+                content=f":white_check_mark: Annonce repostée dans <#{target_channel_id}>.\n:warning: Ce message sera supprimé dans 5 minutes.",
+                reference=msg
+            )
+            await confirmation_message.delete(delay=300)
+
         self.thread_to_messages.setdefault(str(thread.id), []).append(sent_msg.id)
         self.save_datas()
         return target_channel_id, self.thread_to_messages, self.delete_timestamps
@@ -483,13 +493,13 @@ class ImageForwarder(commands.Cog):
             timer_hours = 24
             #print(f"Aucun timer_hours spécifique trouvé, utilisation de la valeur par défaut (24h). Faut verifier pourquoi {thread=}")
 
-        if last_post_time+timedelta(hours=timer_hours) > current_time and not is_initial_post:
-            # print(f"Temps restant avant la prochaine publication: {remaining_time}")
-            notification_message = f"🕒 Tu ne pourras réactualiser ton annonce qu'à partir du {discord.utils.format_dt(last_post_time+timedelta(hours=timer_hours), 'f')}."
-            try:
-                await author.send(notification_message)
-            except Exception as e:
-                print(f"Erreur lors de l'envoi du MP : {e}")
+        if last_post_time + timedelta(hours=timer_hours) > current_time and not is_initial_post:
+            user_thread_key = (author.id, thread.id)
+            if user_thread_key not in self.last_notification_time or (datetime.now() - self.last_notification_time[user_thread_key]).total_seconds() > 300:
+                notification_message = f"🕒 Tu ne pourras reposter ton annonce qu'à partir du {discord.utils.format_dt(last_post_time + timedelta(hours=timer_hours), 'f')}.\n:warning: Ce message sera supprimé dans 5 minutes."
+                bot_message = await thread.send(content=notification_message, reference=message)
+                await bot_message.delete(delay=300)
+                self.last_notification_time[user_thread_key] = datetime.now()
             return
 
         if activity_type != "Recherche-raid":
