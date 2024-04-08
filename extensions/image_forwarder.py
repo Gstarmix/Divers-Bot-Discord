@@ -195,9 +195,9 @@ class RaidSelect(discord.ui.Select[RaidSelectView]):
 
 class PageButton(discord.ui.Button[RaidSelectView]):
     def __init__(self, author_id: int, page_to_add: Literal[-1, 1]):
-        label = "Page précédente"
+        label = "◀️ Page précédente"
         if page_to_add == 1:
-            label = "Page suivante"
+            label = "Page suivante ▶️"
         super().__init__(style=discord.ButtonStyle.secondary, label=label)
         self.author_id = author_id
         self.page_to_add = page_to_add
@@ -215,7 +215,7 @@ class PageButton(discord.ui.Button[RaidSelectView]):
 async def end_view_chain(target: discord.Interaction | discord.Thread, callback, server="cosmos", is_raid_search=False):
     target_channel_id, thread_to_messages, delete_timestamps = await callback(server=server)
     base_message = f":white_check_mark: Annonce postée dans <#{target_channel_id}>.\n"
-    raid_message = ":warning: Pour être mentionné par les rôles de raid, rendez-vous dans <id:customize>.\n:warning: La républication n'est pas disponible pour les annonces de raid. Vous devrez créer un nouveau post pour mettre à jour votre recherche." if is_raid_search else ""
+    raid_message = ":warning: Pour être mentionné par les rôles de raid, rendez-vous dans <id:customize>.\n:warning: La republication n'est pas disponible pour les annonces de raid. Vous devrez créer un nouveau post pour mettre à jour votre recherche." if is_raid_search else ""
     if isinstance(target, discord.Thread):
         actions_view = ActionsView(thread_to_messages, delete_timestamps)
         await target.send(content=base_message + raid_message, view=actions_view)
@@ -236,6 +236,35 @@ async def end_view_chain(target: discord.Interaction | discord.Thread, callback,
 #         view.clear_items()
 #         new_view = RaidSelectView(self.author_id, page=view.page + 1)
 #         await interaction.response.edit_message(view=new_view)
+
+
+class ImageNavigator(discord.ui.View):
+    def __init__(self, images: list, title: str, description: str, color: discord.Color):
+        super().__init__(timeout=None)
+        self.images = images
+        self.current_image = 0
+        self.title = title
+        self.description = description
+        self.color = color
+
+    def update_embed(self, image_index):
+        embed = discord.Embed(title=self.title, description=self.description, color=self.color)
+        embed.set_image(url=self.images[image_index])
+        embed.set_footer(text=f"{image_index + 1} / {len(self.images)}")
+        return embed
+
+    @discord.ui.button(label="◀️ Précédent", style=discord.ButtonStyle.grey, custom_id="previous_image")
+    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_image = (self.current_image - 1) % len(self.images)
+        embed = self.update_embed(self.current_image)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Suivant ▶️", style=discord.ButtonStyle.grey, custom_id="next_image")
+    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_image = (self.current_image + 1) % len(self.images)
+        embed = self.update_embed(self.current_image)
+        await interaction.response.edit_message(embed=embed, view=self)
+
 
 
 class ImageForwarder(commands.Cog):
@@ -365,6 +394,8 @@ class ImageForwarder(commands.Cog):
         if not target_channel:
             raise Exception(f"Est-ce que le salon {target_channel_id=} existe bien sur {guild.name} ?")
 
+        # - V1:
+
         # action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
         # header = f"{action} par {first_message.author.mention} dans {thread.mention}."
 
@@ -391,41 +422,87 @@ class ImageForwarder(commands.Cog):
         # tags_string = get_tags_string(thread)
         # raids_mentions = "**Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
 
+        # - V2:
+
+        # action = "🆕" if is_initial_post else "♻️"
+
+        # message_content = ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
+
+        # embed = None
+        # files = []
+
+        # if trade_type == "Vente":
+        #     header_vente = f"{action} {thread.mention}"
+        #     if first_message.content.strip():
+        #         content_formatted_vente = "\n".join([f"> {line}" for line in first_message.content.strip().split('\n')])
+        #     else:
+        #         content_formatted_vente = ""
+        #     files = [await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type]
+        #     message_content = f"{header_vente}\n{content_formatted_vente}"
+        # else:
+        #     embed = discord.Embed(
+        #         title=f"{action} {thread.mention}",
+        #         description=first_message.content,
+        #         color=discord.Color.blue() if is_initial_post else discord.Color.green(),
+        #     )
+
+        # webhooks = await target_channel.webhooks()
+        # webhook = discord.utils.find(lambda wh: wh.user == guild.me, webhooks)
+        # if webhook is None:
+        #     webhook = await target_channel.create_webhook(name=guild.me.name, reason="Pour reposter les messages")
+
+        # sent_msg = await webhook.send(
+        #     content=message_content,
+        #     username=msg.author.display_name,
+        #     avatar_url=msg.author.display_avatar.url,
+        #     files=files,
+        #     embed=embed,
+        #     wait=True
+        # )
+
+        # - V3:
+
         action = "🆕" if is_initial_post else "♻️"
 
         message_content = ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
 
-        embed = None
-        files = []
+        embed = discord.Embed(
+            title=f"{action} {thread.mention}",
+            description=first_message.content,
+            color=discord.Color.blue() if is_initial_post else discord.Color.green(),
+        )
 
-        if trade_type == "Vente":
-            header_vente = f"{action} {thread.mention}"
-            if first_message.content.strip():
-                content_formatted_vente = "\n".join([f"> {line}" for line in first_message.content.strip().split('\n')])
+        images = []
+        view = None
+
+        images = [attachment.url for attachment in first_message.attachments if 'image' in attachment.content_type]
+
+        if trade_type == "Vente" and images:
+            embed.set_image(url=images[0])
+
+            if len(images) > 1:
+                embed.set_footer(text=f"1 / {len(images)}")
+                view = ImageNavigator(images, title=f"{action} {thread.mention}", description=first_message.content, color=embed.color)
             else:
-                content_formatted_vente = ""
-            files = [await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type]
-            message_content = f"{header_vente}\n{content_formatted_vente}"
+                view = None
         else:
-            embed = discord.Embed(
-                title=f"{action} {thread.mention}",
-                description=first_message.content,
-                color=discord.Color.blue() if is_initial_post else discord.Color.green(),
-            )
+            view = None
 
         webhooks = await target_channel.webhooks()
-        webhook = discord.utils.find(lambda wh: wh.user == guild.me, webhooks)
-        if webhook is None:
-            webhook = await target_channel.create_webhook(name=guild.me.name, reason="Pour reposter les messages")
+        webhook = discord.utils.find(lambda wh: wh.user == guild.me, webhooks) or await target_channel.create_webhook(name="ImageForwarder", reason="Pour reposter les messages")
 
-        sent_msg = await webhook.send(
-            content=message_content,
-            username=msg.author.display_name,
-            avatar_url=msg.author.display_avatar.url,
-            files=files,
-            embed=embed,
-            wait=True
-        )
+        kwargs = {
+            "content": message_content,
+            "username": msg.author.display_name,
+            "avatar_url": msg.author.display_avatar.url,
+            "embed": embed,
+            "wait": True
+        }
+
+        if view is not None:
+            kwargs["view"] = view
+
+        sent_msg = await webhook.send(**kwargs)
 
         # if not is_initial_post:
         #     msg_ids, thread_ids = tuple(self.message_to_thread), tuple(self.message_to_thread.values())
