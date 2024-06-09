@@ -21,22 +21,27 @@ def send_success_message(title):
     return embed
 
 class TitleModal(discord.ui.Modal):
-    def __init__(self, channel, message_id, get_question_error, bot, original_message):
+    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
         super().__init__(title="Modifier le titre du fil")
-        self.channel = channel
+        self.thread = thread
         self.message_id = message_id
         self.get_question_error = get_question_error
         self.bot = bot
         self.original_message = original_message
+        self.author = author
         self.add_item(discord.ui.TextInput(label="Nouveau titre", style=discord.TextStyle.short, placeholder="Entrez le nouveau titre du fil...", custom_id="new_title", max_length=100))
 
     async def on_submit(self, interaction: discord.Interaction):
+        if interaction.user != self.author:
+            await interaction.response.send_message("Seul l'auteur du fil peut modifier le titre.", ephemeral=True)
+            return
+        
         new_title = self.children[0].value
         error_types = self.get_question_error(new_title)
         try:
-            message = await self.channel.fetch_message(self.message_id)
+            message = await self.thread.fetch_message(self.message_id)
         except discord.NotFound:
-            print(f"Message ID: {self.message_id} in Channel ID: {self.channel.id} not found.")
+            print(f"Message ID: {self.message_id} in Thread ID: {self.thread.id} not found.")
             await interaction.response.send_message("Le message original est introuvable.", ephemeral=True)
             return
 
@@ -45,44 +50,40 @@ class TitleModal(discord.ui.Modal):
             await message.edit(embed=error_embed)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
+            await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
-            await message.edit(content=self.channel.guild.owner.mention, embed=success_embed)
+            await message.edit(content=self.author.mention, embed=success_embed)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
-            self.bot.get_cog('Question').delete_messages[self.channel.id] = False
+            self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
-            question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
-            new_thread = await question_channel.create_thread(
-                name=new_title,
-                auto_archive_duration=1440
-            )
-
-            await new_thread.send(content=self.original_message.content)
-
-            await self.original_message.delete()
-
-            await self.channel.send(content=f"Votre question a été déplacée dans le fil '{new_thread.id}'.")
+            if self.original_message:
+                try:
+                    await self.original_message.delete()
+                except discord.NotFound:
+                    print(f"Original message ID: {self.original_message.id} not found for deletion.")
 
 class AnswerView(discord.ui.View):
-    def __init__(self, channel, message_id, get_question_error, bot, original_message):
+    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
         super().__init__(timeout=None)
-        self.channel = channel
+        self.thread = thread
         self.message_id = message_id
         self.get_question_error = get_question_error
         self.bot = bot
         self.original_message = original_message
+        self.author = author
 
     @discord.ui.button(label="Modifier le titre", style=discord.ButtonStyle.grey)
     async def answer(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user != self.original_message.author:
+        if interaction.user != self.author:
             await interaction.response.send_message("Seul l'auteur du fil peut modifier le titre.", ephemeral=True)
             return
-        modal = TitleModal(self.channel, self.message_id, self.get_question_error, self.bot, self.original_message)
+        modal = TitleModal(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author)
         await interaction.response.send_modal(modal)
 
 class Question(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.channels = {}
+        self.threads = {}
         self.delete_messages = {}
         self.last_asked = {}
         self.interrogative_words = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "d'où", "depuis", "jusqu'", "à", "de", "en"]
@@ -109,28 +110,53 @@ class Question(commands.Cog):
         
         return errors if errors else None
 
-    async def handle_timeout(self, channel):
-        await channel.guild.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-        await channel.delete()
+    async def handle_timeout(self, thread):
+        await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+        await thread.delete()
 
-    async def monitor_channel(self, channel):
+    async def monitor_thread(self, thread):
         await asyncio.sleep(600)
-        if self.delete_messages.get(channel.id, False):
-            await self.handle_timeout(channel)
+        if self.delete_messages.get(thread.id, False):
+            await self.handle_timeout(thread)
+
+    @commands.Cog.listener()
+    async def on_thread_create(self, thread):
+        if thread.parent_id != QUESTION_CHANNEL_ID:
+            return
+
+        async for message in thread.history(limit=1):
+            await message.pin()
+            break
+
+        self.threads[thread.id] = thread.owner.id
+        self.delete_messages[thread.id] = True
+
+        error_types = self.get_question_error(thread.name)
+        if not error_types:
+            success_embed = send_success_message(thread.name)
+            await thread.send(content=thread.owner.mention, embed=success_embed)
+            self.delete_messages[thread.id] = False
+        else:
+            error_embed = send_error_message(thread.name, error_types)
+            view = AnswerView(thread, None, self.get_question_error, self.bot, None, thread.owner)
+            msg = await thread.send(content=thread.owner.mention, embed=error_embed, view=view)
+            view.message_id = msg.id
+            asyncio.create_task(self.monitor_thread(thread))
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
             return
 
-        if isinstance(message.channel, discord.TextChannel) and message.channel.id == QUESTION_CHANNEL_ID:
-            if self.delete_messages.get(message.channel.id, False):
-                if message.author.id != self.channels.get(message.channel.id):
+        if isinstance(message.channel, discord.Thread):
+            thread = message.channel
+            if self.delete_messages.get(thread.id, False):
+                if message.author.id != self.threads.get(thread.id):
                     await message.delete()
-                    await message.author.send(f"Vous ne pouvez pas écrire dans ce canal tant que le titre n'est pas corrigé : {message.channel.jump_url}")
-                elif message.author.id == self.channels.get(message.channel.id):
+                    await message.author.send(f"Vous ne pouvez pas écrire dans ce fil tant que le titre n'est pas corrigé : {thread.jump_url}")
+                elif message.author.id == self.threads.get(thread.id):
                     await message.delete()
-                    await message.author.send(f"Vous ne pouvez pas écrire dans ce canal tant que le titre n'est pas corrigé : {message.channel.jump_url}")
+                    await message.author.send(f"Vous ne pouvez pas écrire dans ce fil tant que le titre n'est pas corrigé : {thread.jump_url}")
 
         if message.channel.id == DISCUSSION_CHANNEL_ID:
             content = message.content.lower()
@@ -151,24 +177,24 @@ class Question(commands.Cog):
                 view.message_id = message.id
 
     @commands.Cog.listener()
-    async def on_channel_update(self, before, after):
-        if before.id != QUESTION_CHANNEL_ID or before.name == after.name:
-            return3
+    async def on_thread_update(self, before, after):
+        if before.parent_id != QUESTION_CHANNEL_ID or before.name == after.name:
+            return
 
         error_types = self.get_question_error(after.name)
         try:
-            message = await after.fetch_message(self.channels.get(after.id))
+            message = await after.fetch_message(self.threads.get(after.id))
         except discord.NotFound:
             return
 
         if error_types:
             error_embed = send_error_message(after.name, error_types)
-            view = AnswerView(after, self.channels.get(after.id), self.get_question_error, self.bot, None)
-            await message.edit(content=after.guild.owner.mention if after.guild.owner else "", embed=error_embed, view=view)
+            view = AnswerView(after, self.threads.get(after.id), self.get_question_error, self.bot, None, after.owner)
+            await message.edit(content=after.owner.mention if after.owner else "", embed=error_embed, view=view)
             self.delete_messages[after.id] = True
         else:
             success_embed = send_success_message(after.name)
-            await message.edit(content=after.guild.owner.mention if after.guild.owner else "", embed=success_embed)
+            await message.edit(content=after.owner.mention if after.owner else "", embed=success_embed)
             self.delete_messages[after.id] = False
 
 class ConfirmView(discord.ui.View):
@@ -186,21 +212,29 @@ class ConfirmView(discord.ui.View):
             return
 
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
-        new_thread = await question_channel.create_thread(
+        new_thread, thread_message = await question_channel.create_thread(
             name=self.message.content[:50],
-            auto_archive_duration=1440
+            auto_archive_duration=1440,
+            content=self.message.content
         )
+        print(f"Thread ID: {new_thread.id}, Message ID: {thread_message.id}")
 
-        await new_thread.send(content=self.message.content)
+        try:
+            await self.message.delete()
+        except discord.NotFound:
+            print(f"Message ID: {self.message.id} not found for deletion.")
 
-        await self.message.delete()
+        await interaction.response.send_message(f"Votre question a été déplacée dans le fil <#{new_thread.id}>.", ephemeral=True)
 
-        await interaction.response.send_message(f"Votre question a été déplacée dans le fil {new_thread.id}.", ephemeral=True)
+        await thread_message.edit(content=self.message.author.mention)
+
+        await self.confirmation_message.delete()
 
         error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
         if error_types:
             error_embed = send_error_message(new_thread.name, error_types)
-            await new_thread.send(embed=error_embed)
+            view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
+            await thread_message.edit(embed=error_embed, view=view)
         else:
             success_embed = send_success_message(new_thread.name)
             await new_thread.send(embed=success_embed)
