@@ -62,6 +62,10 @@ class TitleModal(discord.ui.Modal):
                 except discord.NotFound:
                     print(f"Original message ID: {self.original_message.id} not found for deletion.")
 
+            role = discord.utils.get(self.thread.guild.roles, id=QUESTION_ROLE_ID)
+            if role:
+                await self.author.remove_roles(role)
+
 class AnswerView(discord.ui.View):
     def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
         super().__init__(timeout=None)
@@ -114,6 +118,10 @@ class Question(commands.Cog):
         await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
         await thread.delete()
 
+        role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
+        if role:
+            await thread.owner.remove_roles(role)
+
     async def monitor_thread(self, thread):
         await asyncio.sleep(600)
         if self.delete_messages.get(thread.id, False):
@@ -128,10 +136,14 @@ class Question(commands.Cog):
             await message.pin()
             break
 
-        self.threads[thread.id] = thread.owner.id
+        self.threads[thread.id] = thread.owner_id
         self.delete_messages[thread.id] = True
 
         error_types = self.get_question_error(thread.name)
+        role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
+        if role and thread.owner and not thread.owner.bot:
+            await thread.owner.add_roles(role)
+
         if not error_types:
             success_embed = send_success_message(thread.name)
             await thread.send(content=thread.owner.mention, embed=success_embed)
@@ -139,7 +151,7 @@ class Question(commands.Cog):
         else:
             error_embed = send_error_message(thread.name, error_types)
             view = AnswerView(thread, None, self.get_question_error, self.bot, None, thread.owner)
-            msg = await thread.send(content=thread.owner.mention, embed=error_embed, view=view)
+            msg = await thread.send(content=thread.owner.mention if thread.owner else "Owner not found", embed=error_embed, view=view)
             view.message_id = msg.id
             asyncio.create_task(self.monitor_thread(thread))
 
@@ -156,7 +168,7 @@ class Question(commands.Cog):
                     await message.author.send(f"Vous ne pouvez pas écrire dans ce fil tant que le titre n'est pas corrigé : {thread.jump_url}")
                 elif message.author.id == self.threads.get(thread.id):
                     await message.delete()
-                    await message.author.send(f"Vous ne pouvez pas écrire dans ce fil tant que le titre n'est pas corrigé : {thread.jump_url}")
+                    await message.author.send(f"Veuillez cliquer sur le bouton `Modifier le titre` de votre fil pour corriger le titre : {thread.jump_url}")
 
         if message.channel.id == DISCUSSION_CHANNEL_ID:
             content = message.content.lower()
@@ -174,7 +186,7 @@ class Question(commands.Cog):
                 )
                 confirmation_message = await message.reply(embed=embed, view=view)
                 view.confirmation_message = confirmation_message
-                view.message_id = message.id
+                view.message_id = message.id 
 
     @commands.Cog.listener()
     async def on_thread_update(self, before, after):
@@ -190,12 +202,20 @@ class Question(commands.Cog):
         if error_types:
             error_embed = send_error_message(after.name, error_types)
             view = AnswerView(after, self.threads.get(after.id), self.get_question_error, self.bot, None, after.owner)
-            await message.edit(content=after.owner.mention if after.owner else "", embed=error_embed, view=view)
+            await message.edit(content=after.owner.mention if after.owner else "Owner not found", embed=error_embed, view=view)
             self.delete_messages[after.id] = True
+
+            role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
+            if role and after.owner and not after.owner.bot:
+                await after.owner.remove_roles(role)
         else:
             success_embed = send_success_message(after.name)
-            await message.edit(content=after.owner.mention if after.owner else "", embed=success_embed)
+            await message.edit(content=after.owner.mention if after.owner else "Owner not found", embed=success_embed)
             self.delete_messages[after.id] = False
+
+            role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
+            if role and after.owner and not after.owner.bot:
+                await after.owner.add_roles(role)
 
 class ConfirmView(discord.ui.View):
     def __init__(self, message, bot):
@@ -212,40 +232,64 @@ class ConfirmView(discord.ui.View):
             return
 
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
-        new_thread, thread_message = await question_channel.create_thread(
-            name=self.message.content[:50],
-            auto_archive_duration=1440,
-            content=self.message.content
+
+        webhooks = await question_channel.webhooks()
+        webhook = discord.utils.get(webhooks, name="ImageForwarder")
+        if webhook is None:
+            webhook = await question_channel.create_webhook(name="ImageForwarder")
+
+        error_types = self.bot.get_cog('Question').get_question_error(self.message.content)
+        if error_types:
+            embed = send_error_message(self.message.content, error_types)
+        else:
+            embed = send_success_message(self.message.content)
+
+        sent_msg = await webhook.send(
+            content=self.message.content,
+            username=self.message.author.display_name,
+            avatar_url=self.message.author.display_avatar.url,
+            wait=True,
+            embed=embed,
+            thread_name=self.message.content[:50]
         )
-        print(f"Thread ID: {new_thread.id}, Message ID: {thread_message.id}")
+
+        new_thread = sent_msg.channel
+
+        role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
+        if role and not self.message.author.bot:
+            await self.message.author.add_roles(role)
 
         try:
             await self.message.delete()
         except discord.NotFound:
             print(f"Message ID: {self.message.id} not found for deletion.")
 
-        await interaction.response.send_message(f"Votre question a été déplacée dans le fil <#{new_thread.id}>.", ephemeral=True)
-
-        await thread_message.edit(content=self.message.author.mention)
+        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
         await self.confirmation_message.delete()
 
-        error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
+        async for msg in new_thread.history(limit=10):
+            if msg.author == self.bot.user and msg.id != sent_msg.id:
+                await msg.delete()
+
         if error_types:
-            error_embed = send_error_message(new_thread.name, error_types)
-            view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
-            await thread_message.edit(embed=error_embed, view=view)
+            view = AnswerView(new_thread, sent_msg.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
+            await sent_msg.edit(embed=embed, view=view)
+            await self.message.author.send(f"Veuillez cliquer sur le bouton `Modifier le titre` de votre fil pour corriger le titre : <#{new_thread.id}>.")
         else:
-            success_embed = send_success_message(new_thread.name)
-            await new_thread.send(embed=success_embed)
+            await sent_msg.edit(embed=embed)
+
+            if role and not self.message.author.bot:
+                await self.message.author.remove_roles(role)
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user != self.message.author:
-            await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
+            await interaction.response.send_message(f"{self.message.author.mention} Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
         await self.confirmation_message.delete()
-        await interaction.response.send_message("Votre question n'a pas été déplacée.", ephemeral=True)
+        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question n'a pas été déplacée.")
+
         self.stop()
 
 async def setup(bot):
