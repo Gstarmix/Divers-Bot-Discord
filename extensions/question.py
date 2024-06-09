@@ -233,7 +233,6 @@ class ConfirmView(discord.ui.View):
 
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
 
-        # Create a webhook if it doesn't exist
         webhooks = await question_channel.webhooks()
         webhook = discord.utils.find(lambda wh: wh.user == self.bot.user, webhooks)
         if webhook is None:
@@ -245,7 +244,6 @@ class ConfirmView(discord.ui.View):
         else:
             embed = send_success_message(self.message.content)
 
-        # Create a thread with the initial message from the webhook
         new_thread, thread_message = await question_channel.create_thread(
             name=self.message.content[:50],
             auto_archive_duration=1440,
@@ -258,7 +256,7 @@ class ConfirmView(discord.ui.View):
             username=self.message.author.display_name,
             avatar_url=self.message.author.display_avatar.url,
             wait=True,
-            thread=new_thread  # Use the thread object directly
+            thread=new_thread
         )
 
         print(f"Thread ID: {new_thread.id}")
