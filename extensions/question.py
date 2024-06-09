@@ -233,30 +233,37 @@ class ConfirmView(discord.ui.View):
 
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
 
-        thread = await question_channel.create_thread(
-            name=self.message.content[:50],
-            auto_archive_duration=1440
-        )
-
-        initial_message = await thread.send(content="Thread initiated.")
-
+        # Create a webhook if it doesn't exist
         webhooks = await question_channel.webhooks()
         webhook = discord.utils.find(lambda wh: wh.user == self.bot.user, webhooks)
-
         if webhook is None:
             webhook = await question_channel.create_webhook(name="QuestionBot")
+
+        error_types = self.bot.get_cog('Question').get_question_error(self.message.content)
+        if error_types:
+            embed = send_error_message(self.message.content, error_types)
+        else:
+            embed = send_success_message(self.message.content)
+
+        # Create a thread with the initial message from the webhook
+        new_thread, thread_message = await question_channel.create_thread(
+            name=self.message.content[:50],
+            auto_archive_duration=1440,
+            content=self.message.content,
+            embed=embed
+        )
 
         await webhook.send(
             content=self.message.content,
             username=self.message.author.display_name,
             avatar_url=self.message.author.display_avatar.url,
             wait=True,
-            thread=discord.Object(id=thread.id)
+            thread=new_thread  # Use the thread object directly
         )
 
-        print(f"Thread ID: {thread.id}")
+        print(f"Thread ID: {new_thread.id}")
 
-        role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
+        role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
         if role and not self.message.author.bot:
             await self.message.author.add_roles(role)
 
@@ -265,26 +272,13 @@ class ConfirmView(discord.ui.View):
         except discord.NotFound:
             print(f"Message ID: {self.message.id} not found for deletion.")
 
-        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{thread.id}>.")
+        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
         await self.confirmation_message.delete()
 
-        async for msg in thread.history(limit=10):
-            if msg.author == self.bot.user and msg.id != initial_message.id:
+        async for msg in new_thread.history(limit=10):
+            if msg.author == self.bot.user and msg.id != thread_message.id:
                 await msg.delete()
-
-        error_types = self.bot.get_cog('Question').get_question_error(thread.name)
-        if error_types:
-            error_embed = send_error_message(thread.name, error_types)
-            view = AnswerView(thread, self.message_id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
-            await thread.send(embed=error_embed, view=view)
-
-        else:
-            success_embed = send_success_message(thread.name)
-            await thread.send(embed=success_embed)
-
-            if role and not self.message.author.bot:
-                await self.message.author.remove_roles(role)
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
