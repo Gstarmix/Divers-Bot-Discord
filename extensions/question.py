@@ -51,17 +51,14 @@ class TitleModal(discord.ui.Modal):
             self.bot.get_cog('Question').delete_messages[self.channel.id] = False
 
             question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
-            thread_message = await question_channel.create_thread(
+            new_thread = await question_channel.create_thread(
                 name=new_title,
-                auto_archive_duration=1440,
-                content=self.original_message.content
+                auto_archive_duration=1440
             )
 
-            new_thread = thread_message.channel
+            await new_thread.send(content=self.original_message.content)
 
             await self.original_message.delete()
-
-            await new_thread.send(embed=send_success_message(new_title))
 
             await self.channel.send(content=f"Votre question a été déplacée dans le fil '{new_thread.id}'.")
 
@@ -156,7 +153,7 @@ class Question(commands.Cog):
     @commands.Cog.listener()
     async def on_channel_update(self, before, after):
         if before.id != QUESTION_CHANNEL_ID or before.name == after.name:
-            return
+            return3
 
         error_types = self.get_question_error(after.name)
         try:
@@ -189,13 +186,12 @@ class ConfirmView(discord.ui.View):
             return
 
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
-        thread_message = await question_channel.create_thread(
+        new_thread = await question_channel.create_thread(
             name=self.message.content[:50],
-            auto_archive_duration=1440,
-            content=self.message.content
+            auto_archive_duration=1440
         )
 
-        new_thread = thread_message.channel
+        await new_thread.send(content=self.message.content)
 
         await self.message.delete()
 
