@@ -48,22 +48,26 @@ class TitleModal(discord.ui.Modal):
         new_title = self.children[0].value
         error_types = self.get_question_error(new_title)
         try:
+            print(f"Fetching message with ID: {self.message_id}")
             message = await self.thread.fetch_message(self.message_id)
         except discord.NotFound:
             print(f"Message ID: {self.message_id} in Thread ID: {self.thread.id} not found.")
             await interaction.response.send_message("Le message original est introuvable.", ephemeral=True)
             return
-
+            
         if error_types:
             error_embed = send_error_message(new_title, error_types)
-            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed)
+            print(f"Attempting to edit message with ID: {self.message_id} with error embed in thread {self.thread.id}")
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
-            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed)
+            print(f"Attempting to edit message with ID: {self.message_id} with success embed in thread {self.thread.id}")
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
+
 
             if self.original_message:
                 try:
@@ -159,7 +163,7 @@ class ConfirmView(discord.ui.View):
             await self.confirmation_message.delete()
 
             async for msg in new_thread.history(limit=10):
-                if msg.author == self.bot.user:
+                if msg.author == self.bot.user and not msg.is_system() and msg.id != thread_message.id:
                     await msg.delete()
 
             error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
@@ -297,13 +301,17 @@ class Question(commands.Cog):
 
         error_types = self.get_question_error(after.name)
         try:
-            message = await after.fetch_message(self.threads.get(after.id))
+            message_id = self.threads.get(after.id)
+            print(f"Fetching message with ID: {message_id}")
+            message = await after.fetch_message(message_id)
         except discord.NotFound:
+            print(f"Message ID: {message_id} in Thread ID: {after.id} not found.")
             return
 
         if error_types:
             error_embed = send_error_message(after.name, error_types)
-            view = AnswerView(after, self.threads.get(after.id), self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
+            view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
+            print(f"edit l'id: {message_id} avec error embed")
             await message.edit(content=after.owner.mention if after.owner else "", embed=error_embed, view=view)
             self.delete_messages[after.id] = True
 
@@ -312,6 +320,7 @@ class Question(commands.Cog):
                 await after.owner.remove_roles(role)
         else:
             success_embed = send_success_message(after.name)
+            print(f"edit l'id: {message_id} avec succes embed")
             await message.edit(content=after.owner.mention if after.owner else "", embed=success_embed)
             self.delete_messages[after.id] = False
 
