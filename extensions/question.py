@@ -13,9 +13,10 @@ def send_error_message(title, error_types):
     return embed
 
 def send_success_message(title):
+    message = "Le fil est maintenant ouvert à tous pour la discussion."
     embed = discord.Embed(
         title="Titre validé",
-        description="Le fil est maintenant ouvert à tous pour la discussion.",
+        description=message,
         color=discord.Color.green()
     )
     return embed
@@ -32,7 +33,7 @@ class TitleModal(discord.ui.Modal):
         self.add_item(discord.ui.TextInput(label="Nouveau titre", style=discord.TextStyle.short, placeholder="Entrez le nouveau titre du fil...", custom_id="new_title", max_length=100))
 
     async def on_submit(self, interaction: discord.Interaction):
-        if interaction.user != self.author:
+        if interaction.user.id != self.author.id:
             await interaction.response.send_message("Seul l'auteur du fil peut modifier le titre.", ephemeral=True)
             return
         
@@ -47,7 +48,7 @@ class TitleModal(discord.ui.Modal):
 
         if error_types:
             error_embed = send_error_message(new_title, error_types)
-            await message.edit(embed=error_embed)
+            await message.edit(content=self.author.mention, embed=error_embed)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
@@ -65,6 +66,7 @@ class TitleModal(discord.ui.Modal):
             role = discord.utils.get(self.thread.guild.roles, id=QUESTION_ROLE_ID)
             if role:
                 await self.author.remove_roles(role)
+
 
 class AnswerView(discord.ui.View):
     def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
@@ -134,24 +136,33 @@ class Question(commands.Cog):
 
         async for message in thread.history(limit=1):
             await message.pin()
+            message_id = message.id
             break
 
-        self.threads[thread.id] = thread.owner.id
+        if not hasattr(self.bot, 'threads'):
+            self.bot.threads = {}
+
+        if thread.owner:
+            self.threads[thread.id] = thread.owner.id
+        else:
+            print(f"Thread ID: {thread.id} has no owner.")
+
         self.delete_messages[thread.id] = True
 
         error_types = self.get_question_error(thread.name)
         role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
-        if role and not thread.owner.bot:
+        
+        if role and thread.owner and not thread.owner.bot:
             await thread.owner.add_roles(role)
 
         if not error_types:
             success_embed = send_success_message(thread.name)
-            await thread.send(content=thread.owner.mention, embed=success_embed)
+            await thread.send(content=thread.owner.mention if thread.owner else "", embed=success_embed)
             self.delete_messages[thread.id] = False
         else:
             error_embed = send_error_message(thread.name, error_types)
-            view = AnswerView(thread, None, self.get_question_error, self.bot, None, thread.owner)
-            msg = await thread.send(content=thread.owner.mention, embed=error_embed, view=view)
+            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, thread.owner)
+            msg = await thread.send(content=thread.owner.mention if thread.owner else "", embed=error_embed, view=view)
             view.message_id = msg.id
             asyncio.create_task(self.monitor_thread(thread))
 
@@ -241,16 +252,23 @@ class ConfirmView(discord.ui.View):
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
         
         webhook = await self.get_webhook(question_channel)
+        initial_content = f"Posté par : {self.message.author.id}\n{self.message.content}"
         sent_message = await webhook.send(
-            content=self.message.content,
+            content=initial_content,
             username=self.message.author.display_name,
             avatar_url=self.message.author.display_avatar.url,
             thread_name=self.message.content[:50],
             wait=True
         )
-        new_thread = sent_message.thread
+        thread_id = sent_message.id
+        new_thread = question_channel.get_thread(thread_id)
         print(f"Thread ID: {new_thread.id}")
 
+        if not hasattr(self.bot, 'threads'):
+            self.bot.threads = {}
+
+        self.bot.threads[new_thread.id] = self.message.author.id
+        
         role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
         if role and not self.message.author.bot:
             await self.message.author.add_roles(role)
@@ -272,10 +290,10 @@ class ConfirmView(discord.ui.View):
         if error_types:
             error_embed = send_error_message(new_thread.name, error_types)
             view = AnswerView(new_thread, new_thread.last_message_id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
-            await new_thread.send(embed=error_embed, view=view)
+            await new_thread.send(content=self.message.author.mention, embed=error_embed, view=view)
         else:
             success_embed = send_success_message(new_thread.name)
-            await new_thread.send(embed=success_embed)
+            await new_thread.send(content=self.message.author.mention, embed=success_embed)
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
