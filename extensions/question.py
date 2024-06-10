@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from datetime import datetime
 from discord.ext import commands
 import discord
@@ -125,16 +126,24 @@ class ConfirmView(discord.ui.View):
             )
 
             if sent_message:
-                new_thread = await question_channel.create_thread(
-                    name=self.message.content[:50],
-                    auto_archive_duration=1440,
-                    reason="Question déplacée"
-                )
-                await new_thread.add_user(self.message.author)
-                view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+                try:
+                    new_thread = await question_channel.create_thread(
+                        name=self.message.content[:50],
+                        auto_archive_duration=1440,
+                        reason="Question déplacée"
+                    )
+                    print(f"Thread créé: {new_thread}")
+                    await new_thread.add_user(self.message.author)
+                    view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
 
-                success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
-                await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed, view=view)
+                    success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
+                    await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed, view=view)
+                except discord.HTTPException as e:
+                    print(f"Erreur lors de la création du thread: {e}")
+                    traceback.print_exc() 
+                    if e.code == 50006:
+                        print("Cannot send an empty message")
+                    raise e
             else:
                 raise Exception("Le message n'a pas été envoyé correctement.")
         except Exception as e:
@@ -154,40 +163,39 @@ class ConfirmView(discord.ui.View):
                     wait=True
                 )
             print(f"An error occurred: {e}")
+            traceback.print_exc()
 
         if new_thread:
             print(f"Thread ID: {new_thread.id}")
-
-            if not hasattr(self.bot, 'threads'):
-                self.bot.threads = {}
-
             self.bot.threads[new_thread.id] = self.message.author.id
 
-        role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
-        if role and not self.message.author.bot:
-            await self.message.author.add_roles(role)
+            role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
+            if role and not self.message.author.bot:
+                await self.message.author.add_roles(role)
 
-        try:
-            await self.message.delete()
-        except discord.NotFound:
-            print(f"Message ID: {self.message.id} not found for deletion.")
+            try:
+                await self.message.delete()
+            except discord.NotFound:
+                print(f"Message ID: {self.message.id} not found for deletion.")
 
-        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
+            await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
-        await self.confirmation_message.delete()
+            await self.confirmation_message.delete()
 
-        async for msg in new_thread.history(limit=10):
-            if msg.author == self.bot.user:
-                await msg.delete()
+            async for msg in new_thread.history(limit=10):
+                if msg.author == self.bot.user:
+                    await msg.delete()
 
-        error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
-        if error_types:
-            error_embed = send_error_message(new_thread.name, error_types)
-            view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
-            await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=error_embed, view=view)
+            error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
+            if error_types:
+                error_embed = send_error_message(new_thread.name, error_types)
+                view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+                await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=error_embed, view=view)
+            else:
+                success_embed = send_success_message(new_thread.name)
+                await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed)
         else:
-            success_embed = send_success_message(new_thread.name)
-            await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed)
+            print("Erreur: new_thread est None après la tentative de création.")
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
