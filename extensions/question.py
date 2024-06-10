@@ -63,14 +63,15 @@ class TitleModal(discord.ui.Modal):
                 await self.author.remove_roles(role)
 
 class AnswerView(discord.ui.View):
-    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
-        super().__init__(timeout=None)
+    def __init__(self, thread, message_id, get_question_error, bot, message, author, webhook):
+        super().__init__()
         self.thread = thread
         self.message_id = message_id
         self.get_question_error = get_question_error
         self.bot = bot
-        self.original_message = original_message
+        self.message = message
         self.author = author
+        self.webhook = webhook
 
     @discord.ui.button(label="Modifier le titre", style=discord.ButtonStyle.grey)
     async def answer(self, interaction: discord.Interaction, button: discord.ui.Button):
