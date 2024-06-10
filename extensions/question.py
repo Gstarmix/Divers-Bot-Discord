@@ -22,7 +22,7 @@ def send_success_message(title):
     return embed
 
 class TitleModal(discord.ui.Modal):
-    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
+    def __init__(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
         super().__init__(title="Modifier le titre du fil")
         self.thread = thread
         self.message_id = message_id
@@ -30,6 +30,7 @@ class TitleModal(discord.ui.Modal):
         self.bot = bot
         self.original_message = original_message
         self.author = author
+        self.webhook = webhook
         self.add_item(discord.ui.TextInput(label="Nouveau titre", style=discord.TextStyle.short, placeholder="Entrez le nouveau titre du fil...", custom_id="new_title", max_length=100))
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -39,21 +40,15 @@ class TitleModal(discord.ui.Modal):
         
         new_title = self.children[0].value
         error_types = self.get_question_error(new_title)
-        try:
-            message = await self.thread.fetch_message(self.message_id)
-        except discord.NotFound:
-            print(f"Message ID: {self.message_id} in Thread ID: {self.thread.id} not found.")
-            await interaction.response.send_message("Le message original est introuvable.", ephemeral=True)
-            return
 
         if error_types:
             error_embed = send_error_message(new_title, error_types)
-            await message.edit(content=self.author.mention, embed=error_embed)
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
-            await message.edit(content=self.author.mention, embed=success_embed)
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
@@ -259,14 +254,14 @@ class ConfirmView(discord.ui.View):
             thread_name=self.message.content[:50],
             wait=True
         )
-        thread_id = sent_message.id
-        new_thread = self.bot.get_channel(thread_id)  # here luci
+        
+        new_thread = question_channel.get_thread(sent_message.id)
         print(f"Thread ID: {new_thread.id}")
 
         if not hasattr(self.bot, 'threads'):
             self.bot.threads = {}
 
-        self.bot.threads[new_thread.id] = self.message.author.id  
+        self.bot.threads[new_thread.id] = self.message.author.id
 
         role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
         if role and not self.message.author.bot:
@@ -288,11 +283,12 @@ class ConfirmView(discord.ui.View):
         error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
         if error_types:
             error_embed = send_error_message(new_thread.name, error_types)
-            view = AnswerView(new_thread, new_thread.last_message_id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
-            await new_thread.send(content=self.message.author.mention, embed=error_embed, view=view)
+            view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+            await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=error_embed, view=view)
         else:
             success_embed = send_success_message(new_thread.name)
-            await new_thread.send(content=self.message.author.mention, embed=success_embed)
+            await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed)
+
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
