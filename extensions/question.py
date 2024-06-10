@@ -110,64 +110,40 @@ class ConfirmView(discord.ui.View):
 
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
         
-        webhook = await get_webhook(question_channel)
         initial_content = f"Posté par : {self.message.author.id}\n{self.message.content}"
         
-        sent_message = None
+        if not initial_content.strip():
+            initial_content = "Contenu par défaut"
+
         new_thread = None
+        thread_message = None
 
         try:
-            sent_message = await webhook.send(
+            new_thread, thread_message = await question_channel.create_thread(
+                name=self.message.content[:50],
+                auto_archive_duration=1440,
                 content=initial_content,
-                username=self.message.author.display_name,
-                avatar_url=self.message.author.display_avatar.url,
-                thread_name=self.message.content[:50],
-                wait=True
+                reason="Question déplacée"
             )
+            print(f"Thread créé: {new_thread}")
+            
+            await new_thread.add_user(self.message.author)
+            view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, await get_webhook(question_channel))
 
-            if sent_message:
-                try:
-                    new_thread = await question_channel.create_thread(
-                        name=self.message.content[:50],
-                        auto_archive_duration=1440,
-                        reason="Question déplacée"
-                    )
-                    print(f"Thread créé: {new_thread}")
-                    await new_thread.add_user(self.message.author)
-                    view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+            success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
+            await thread_message.edit(content=self.message.author.mention, embed=success_embed, view=view)
 
-                    success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
-                    await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed, view=view)
-                except discord.HTTPException as e:
-                    print(f"Erreur lors de la création du thread: {e}")
-                    traceback.print_exc() 
-                    if e.code == 50006:
-                        print("Cannot send an empty message")
-                    raise e
-            else:
-                raise Exception("Le message n'a pas été envoyé correctement.")
-        except Exception as e:
-            error_embed = discord.Embed(title="Erreur", description=f"Il y a eu une erreur : {e}", color=discord.Color.red())
-            if sent_message:
-                try:
-                    await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=error_embed)
-                except discord.errors.NotFound:
-                    print(f"Le message envoyé n'a pas pu être trouvé pour édition.")
-            else:
-                sent_message = await webhook.send(
-                    content=self.message.author.mention,
-                    embed=error_embed,
-                    username=self.message.author.display_name,
-                    avatar_url=self.message.author.display_avatar.url,
-                    thread_name=self.message.content[:50],
-                    wait=True
-                )
-            print(f"An error occurred: {e}")
+        except discord.HTTPException as e:
+            print(f"Erreur lors de la création du thread: {e}")
             traceback.print_exc()
+            if e.code == 50006:
+                print("Cannot send an empty message")
+            error_embed = discord.Embed(title="Erreur", description=f"Il y a eu une erreur : {e}", color=discord.Color.red())
+            await question_channel.send(content=self.message.author.mention, embed=error_embed)
 
         if new_thread:
             print(f"Thread ID: {new_thread.id}")
-            self.bot.threads[new_thread.id] = self.message.author.id
+            self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
             role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
             if role and not self.message.author.bot:
@@ -189,11 +165,11 @@ class ConfirmView(discord.ui.View):
             error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
             if error_types:
                 error_embed = send_error_message(new_thread.name, error_types)
-                view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
-                await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=error_embed, view=view)
+                view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, await get_webhook(question_channel))
+                await thread_message.edit(content=self.message.author.mention, embed=error_embed, view=view)
             else:
                 success_embed = send_success_message(new_thread.name)
-                await webhook.edit_message(sent_message.id, content=self.message.author.mention, embed=success_embed)
+                await thread_message.edit(content=self.message.author.mention, embed=success_embed)
         else:
             print("Erreur: new_thread est None après la tentative de création.")
 
@@ -260,13 +236,7 @@ class Question(commands.Cog):
             message_id = message.id
             break
 
-        if not hasattr(self.bot, 'threads'):
-            self.bot.threads = {}
-
-        if thread.owner:
-            self.threads[thread.id] = thread.owner.id
-        else:
-            print(f"Thread ID: {thread.id} has no owner.")
+        self.threads[thread.id] = thread.owner.id
 
         self.delete_messages[thread.id] = True
 
