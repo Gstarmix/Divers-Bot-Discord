@@ -67,7 +67,6 @@ class TitleModal(discord.ui.Modal):
             if role:
                 await self.author.remove_roles(role)
 
-
 class AnswerView(discord.ui.View):
     def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
         super().__init__(timeout=None)
@@ -261,14 +260,14 @@ class ConfirmView(discord.ui.View):
             wait=True
         )
         thread_id = sent_message.id
-        new_thread = question_channel.get_thread(thread_id)
+        new_thread = self.bot.get_channel(thread_id)  # here luci
         print(f"Thread ID: {new_thread.id}")
 
         if not hasattr(self.bot, 'threads'):
             self.bot.threads = {}
 
-        self.bot.threads[new_thread.id] = self.message.author.id
-        
+        self.bot.threads[new_thread.id] = self.message.author.id  
+
         role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
         if role and not self.message.author.bot:
             await self.message.author.add_roles(role)
