@@ -63,7 +63,7 @@ class TitleModal(discord.ui.Modal):
                 await self.author.remove_roles(role)
 
 class AnswerView(discord.ui.View):
-    def __init__(self, thread, message_id, get_question_error, bot, message, author, webhook):
+    def __init__(self, thread, message_id, get_question_error, bot, message, author):
         super().__init__()
         self.thread = thread
         self.message_id = message_id
@@ -71,7 +71,6 @@ class AnswerView(discord.ui.View):
         self.bot = bot
         self.message = message
         self.author = author
-        self.webhook = webhook
 
     @discord.ui.button(label="Modifier le titre", style=discord.ButtonStyle.grey)
     async def answer(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -255,14 +254,23 @@ class ConfirmView(discord.ui.View):
             thread_name=self.message.content[:50],
             wait=True
         )
-        
-        new_thread = question_channel.get_thread(sent_message.id)
+
+        try:
+            new_thread = question_channel.get_thread(sent_message.id)
+            view = AnswerView(new_thread, sent_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
+            error_embed = discord.Embed(title="Erreur", description="Il y a eu une erreur.", color=discord.Color.red())
+            await sent_message.edit(content=self.message.author.mention, embed=error_embed)
+            print(f"Message edited successfully.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
         print(f"Thread ID: {new_thread.id}")
 
         if not hasattr(self.bot, 'threads'):
             self.bot.threads = {}
 
         self.bot.threads[new_thread.id] = self.message.author.id
+
 
         role = discord.utils.get(new_thread.guild.roles, id=QUESTION_ROLE_ID)
         if role and not self.message.author.bot:
