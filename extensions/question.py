@@ -124,7 +124,7 @@ class ConfirmView(discord.ui.View):
             thread_message = await webhook.send(
                 content=initial_content,
                 username=self.message.author.display_name,
-                avatar_url=self.message.author.avatar_url,
+                avatar_url=self.message.author.display_avatar.url,
                 wait=True,
                 thread_name=self.message.content[:50]
             )
