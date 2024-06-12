@@ -58,13 +58,13 @@ class TitleModal(discord.ui.Modal):
         if error_types:
             error_embed = send_error_message(new_title, error_types)
             print(f"Attempting to edit message with ID: {self.message_id} with error embed in thread {self.thread.id}")
-            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed)
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
             print(f"Attempting to edit message with ID: {self.message_id} with success embed in thread {self.thread.id}")
-            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed)
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
@@ -138,7 +138,7 @@ class ConfirmView(discord.ui.View):
             view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
 
             success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
-            await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, view=view)
+            await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, view=view, thread=new_thread)
 
         except discord.HTTPException as e:
             print(f"Erreur lors de la création du thread: {e}")
@@ -173,10 +173,10 @@ class ConfirmView(discord.ui.View):
             if error_types:
                 error_embed = send_error_message(new_thread.name, error_types)
                 view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
-                await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=error_embed, view=view)
+                await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=error_embed, view=view, thread=new_thread)
             else:
                 success_embed = send_success_message(new_thread.name)
-                await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed)
+                await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, thread=new_thread)
         else:
             print("Erreur: new_thread est None après la tentative de création.")
 
