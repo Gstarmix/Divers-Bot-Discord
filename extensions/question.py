@@ -58,13 +58,19 @@ class TitleModal(discord.ui.Modal):
         if error_types:
             error_embed = send_error_message(new_title, error_types)
             print(f"Attempting to edit message with ID: {self.message_id} with error embed in thread {self.thread.id}")
-            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
+            if message.author.bot:
+                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
+            else:
+                await message.edit(content=self.author.mention, embed=error_embed)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
             print(f"Attempting to edit message with ID: {self.message_id} with success embed in thread {self.thread.id}")
-            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
+            if message.author.bot:
+                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
+            else:
+                await message.edit(content=self.author.mention, embed=success_embed)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
@@ -315,7 +321,10 @@ class Question(commands.Cog):
             error_embed = send_error_message(after.name, error_types)
             view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
             print(f"edit l'id: {message_id} avec error embed")
-            await message.edit(content=after.owner.mention if after.owner else "", embed=error_embed, view=view)
+            if message.author.bot:
+                await self.webhook.edit_message(message_id, content=after.owner.mention, embed=error_embed, thread=after)
+            else:
+                await message.edit(content=after.owner.mention, embed=error_embed, view=view)
             self.delete_messages[after.id] = True
 
             role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
@@ -324,7 +333,10 @@ class Question(commands.Cog):
         else:
             success_embed = send_success_message(after.name)
             print(f"edit l'id: {message_id} avec succes embed")
-            await message.edit(content=after.owner.mention if after.owner else "", embed=success_embed)
+            if message.author.bot:
+                await self.webhook.edit_message(message_id, content=after.owner.mention, embed=success_embed, thread=after)
+            else:
+                await message.edit(content=after.owner.mention, embed=success_embed)
             self.delete_messages[after.id] = False
 
             role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
