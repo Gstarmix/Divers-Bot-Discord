@@ -218,7 +218,7 @@ class Question(commands.Cog):
         return errors if errors else None
 
     async def handle_timeout(self, thread):
-        await thread.owner.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+        await thread.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
         await thread.delete()
 
         role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
@@ -240,24 +240,24 @@ class Question(commands.Cog):
             message_id = message.id
             break
 
-        self.threads[thread.id] = thread.owner.id
+        self.threads[thread.id] = message.author.id
 
         self.delete_messages[thread.id] = True
 
         error_types = self.get_question_error(thread.name)
         role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
         
-        if role and thread.owner and not thread.owner.bot:
-            await thread.owner.add_roles(role)
+        if role and message.author and not message.author.bot:
+            await message.author.add_roles(role)
 
         if not error_types:
             success_embed = send_success_message(thread.name)
-            await thread.send(content=thread.owner.mention if thread.owner else "", embed=success_embed)
+            await thread.send(content=message.author.mention if message.author else "", embed=success_embed)
             self.delete_messages[thread.id] = False
         else:
             error_embed = send_error_message(thread.name, error_types)
-            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, thread.owner)
-            msg = await thread.send(content=thread.owner.mention if thread.owner else "", embed=error_embed, view=view)
+            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, message.author)
+            msg = await thread.send(content=message.author.mention if message.author else "", embed=error_embed, view=view)
             view.message_id = msg.id
             asyncio.create_task(self.monitor_thread(thread))
 
