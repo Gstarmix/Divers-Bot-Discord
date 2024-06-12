@@ -129,7 +129,7 @@ class ConfirmView(discord.ui.View):
                 thread_name=self.message.content[:50]
             )
             thread_message = await webhook_message.fetch()
-            new_thread = thread_message.channel
+            new_thread = await self.bot.fetch_channel(thread_message.id)
             print(f"Thread créé: {new_thread}")
             
             await new_thread.add_user(self.message.author)
