@@ -120,12 +120,15 @@ class ConfirmView(discord.ui.View):
         thread_message = None
 
         try:
-            new_thread, thread_message = await question_channel.create_thread(
-                name=self.message.content[:50],
-                auto_archive_duration=1440,
+            webhook = await get_webhook(question_channel)
+            thread_message = await webhook.send(
                 content=initial_content,
-                reason="Question déplacée"
+                username=self.message.author.display_name,
+                avatar_url=self.message.author.avatar_url,
+                wait=True,
+                thread_name=self.message.content[:50]
             )
+            new_thread = thread_message.channel
             print(f"Thread créé: {new_thread}")
             
             await new_thread.add_user(self.message.author)
