@@ -29,7 +29,7 @@ async def get_webhook(channel):
     return webhook
 
 class TitleModal(discord.ui.Modal):
-    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
+    def __init__(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
         super().__init__(title="Modifier le titre du fil")
         self.thread = thread
         self.message_id = message_id
@@ -37,6 +37,7 @@ class TitleModal(discord.ui.Modal):
         self.bot = bot
         self.original_message = original_message
         self.author = author
+        self.webhook = webhook
         self.add_item(discord.ui.TextInput(label="Nouveau titre", style=discord.TextStyle.short, placeholder="Entrez le nouveau titre du fil...", custom_id="new_title", max_length=100))
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -57,13 +58,13 @@ class TitleModal(discord.ui.Modal):
         if error_types:
             error_embed = send_error_message(new_title, error_types)
             print(f"Attempting to edit message with ID: {self.message_id} with error embed in thread {self.thread.id}")
-            await message.edit(content=self.author.mention, embed=error_embed)
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
             print(f"Attempting to edit message with ID: {self.message_id} with success embed in thread {self.thread.id}")
-            await message.edit(content=self.author.mention, embed=success_embed)
+            await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
@@ -78,7 +79,7 @@ class TitleModal(discord.ui.Modal):
                 await self.author.remove_roles(role)
 
 class AnswerView(discord.ui.View):
-    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
+    def __init__(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
         super().__init__(timeout=None)
         self.thread = thread
         self.message_id = message_id
@@ -86,13 +87,14 @@ class AnswerView(discord.ui.View):
         self.bot = bot
         self.original_message = original_message
         self.author = author
+        self.webhook = webhook
 
     @discord.ui.button(label="Modifier le titre", style=discord.ButtonStyle.grey)
     async def answer(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user != self.author:
             await interaction.response.send_message("Seul l'auteur du fil peut modifier le titre.", ephemeral=True)
             return
-        modal = TitleModal(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author)
+        modal = TitleModal(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author, self.webhook)
         await interaction.response.send_modal(modal)
 
 class ConfirmView(discord.ui.View):
@@ -133,10 +135,10 @@ class ConfirmView(discord.ui.View):
             print(f"Thread créé: {new_thread}")
             
             await new_thread.add_user(self.message.author)
-            view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
+            view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
 
             success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
-            await thread_message.edit(content=self.message.author.mention, embed=success_embed, view=view)
+            await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, view=view)
 
         except discord.HTTPException as e:
             print(f"Erreur lors de la création du thread: {e}")
@@ -170,11 +172,11 @@ class ConfirmView(discord.ui.View):
             error_types = self.bot.get_cog('Question').get_question_error(new_thread.name)
             if error_types:
                 error_embed = send_error_message(new_thread.name, error_types)
-                view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author)
-                await thread_message.edit(content=self.message.author.mention, embed=error_embed, view=view)
+                view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+                await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=error_embed, view=view)
             else:
                 success_embed = send_success_message(new_thread.name)
-                await thread_message.edit(content=self.message.author.mention, embed=success_embed)
+                await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed)
         else:
             print("Erreur: new_thread est None après la tentative de création.")
 
@@ -257,7 +259,7 @@ class Question(commands.Cog):
             self.delete_messages[thread.id] = False
         else:
             error_embed = send_error_message(thread.name, error_types)
-            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, message.author)
+            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, message.author, await get_webhook(thread.parent))
             msg = await thread.send(content=message.author.mention if message.author else "", embed=error_embed, view=view)
             view.message_id = msg.id
             asyncio.create_task(self.monitor_thread(thread))
@@ -311,7 +313,7 @@ class Question(commands.Cog):
 
         if error_types:
             error_embed = send_error_message(after.name, error_types)
-            view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner)
+            view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
             print(f"edit l'id: {message_id} avec error embed")
             await message.edit(content=after.owner.mention if after.owner else "", embed=error_embed, view=view)
             self.delete_messages[after.id] = True
