@@ -21,6 +21,11 @@ def send_success_message(title):
     )
     return embed
 
+def disable_buttons(view):
+    for item in view.children:
+        if isinstance(item, discord.ui.Button):
+            item.disabled = True
+
 async def get_webhook(channel):
     webhooks = await channel.webhooks()
     webhook = discord.utils.find(lambda wh: wh.user == channel.guild.me, webhooks)
@@ -50,6 +55,7 @@ class TitleModal(discord.ui.Modal):
         try:
             print(f"Fetching message with ID: {self.message_id}")
             message = await self.thread.fetch_message(self.message_id)
+            print(f"Message fetched: {message.id} by {message.author}")
         except discord.NotFound:
             print(f"Message ID: {self.message_id} in Thread ID: {self.thread.id} not found.")
             await interaction.response.send_message("Le message original est introuvable.", ephemeral=True)
@@ -58,19 +64,23 @@ class TitleModal(discord.ui.Modal):
         if error_types:
             error_embed = send_error_message(new_title, error_types)
             print(f"Attempting to edit message with ID: {self.message_id} with error embed in thread {self.thread.id}")
-            if message.author.bot:
-                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
-            else:
+            if message.author == self.bot.user:
+                print("Editing message sent by the bot")
                 await message.edit(content=self.author.mention, embed=error_embed)
+            else:
+                print("Editing message sent by the webhook")
+                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
             print(f"Attempting to edit message with ID: {self.message_id} with success embed in thread {self.thread.id}")
-            if message.author.bot:
-                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
-            else:
+            if message.author == self.bot.user:
+                print("Editing message sent by the bot")
                 await message.edit(content=self.author.mention, embed=success_embed)
+            else:
+                print("Editing message sent by the webhook")
+                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
@@ -279,11 +289,13 @@ class Question(commands.Cog):
             thread = message.channel
             if self.delete_messages.get(thread.id, False):
                 if message.author.id != self.threads.get(thread.id):
-                    await message.delete()
-                    await message.author.send(f"Vous ne pouvez pas écrire dans ce fil tant que le titre n'est pas corrigé : {thread.jump_url}")
+                    if not message.is_system():
+                        await message.delete()
+                        await message.author.send(f"Vous ne pouvez pas écrire dans ce fil tant que le titre n'est pas corrigé : {thread.jump_url}")
                 elif message.author.id == self.threads.get(thread.id):
-                    await message.delete()
-                    await message.author.send(f"Veuillez cliquer sur le bouton `Modifier le titre` de votre fil pour corriger le titre : {thread.jump_url}")
+                    if not message.is_system():
+                        await message.delete()
+                        await message.author.send(f"Veuillez cliquer sur le bouton `Modifier le titre` de votre fil pour corriger le titre : {thread.jump_url}")
 
         if message.channel.id == DISCUSSION_CHANNEL_ID:
             content = message.content.lower()
@@ -321,10 +333,10 @@ class Question(commands.Cog):
             error_embed = send_error_message(after.name, error_types)
             view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
             print(f"edit l'id: {message_id} avec error embed")
-            if message.author.bot:
-                await self.webhook.edit_message(message_id, content=after.owner.mention, embed=error_embed, thread=after)
-            else:
+            if message.author == self.bot.user:
                 await message.edit(content=after.owner.mention, embed=error_embed, view=view)
+            else:
+                await self.webhook.edit_message(message_id, content=after.owner.mention, embed=error_embed, thread=after)
             self.delete_messages[after.id] = True
 
             role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
@@ -333,10 +345,10 @@ class Question(commands.Cog):
         else:
             success_embed = send_success_message(after.name)
             print(f"edit l'id: {message_id} avec succes embed")
-            if message.author.bot:
-                await self.webhook.edit_message(message_id, content=after.owner.mention, embed=success_embed, thread=after)
-            else:
+            if message.author == self.bot.user:
                 await message.edit(content=after.owner.mention, embed=success_embed)
+            else:
+                await self.webhook.edit_message(message_id, content=after.owner.mention, embed=success_embed, thread=after)
             self.delete_messages[after.id] = False
 
             role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
