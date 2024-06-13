@@ -243,7 +243,8 @@ class Question(commands.Cog):
             message_id = message.id
             break
 
-        self.threads[thread.id] = message.author.id
+        self.threads[thread.id] = message_id
+        print(f"Message ID {message_id} stored for thread ID {thread.id}")
 
         self.delete_messages[thread.id] = True
 
