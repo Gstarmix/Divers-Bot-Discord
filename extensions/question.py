@@ -116,7 +116,7 @@ class AnswerView(discord.ui.View):
 
 class ConfirmView(discord.ui.View):
     def __init__(self, message, bot):
-        super().__init__(timeout=None)
+        super().__init__(timeout=60)
         self.message = message
         self.bot = bot
         self.confirmation_message = None
@@ -164,7 +164,7 @@ class ConfirmView(discord.ui.View):
                 # print("Cannot send an empty message")
                 pass
             error_embed = discord.Embed(title="Erreur", description=f"Il y a eu une erreur : {e}", color=discord.Color.red())
-            await question_channel.send(content=self.message.author.mention, embed=error_embed)
+            await thread.send(content=self.message.author.mention, embed=error_embed)
 
         if new_thread:
             # print(f"Thread ID: {new_thread.id}")
@@ -202,7 +202,24 @@ class ConfirmView(discord.ui.View):
             await interaction.response.send_message(f"Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
         await self.confirmation_message.delete()
-        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"Votre question n'a pas été déplacée.")
+        await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question n'a pas été déplacée.")
+
+    async def handle_timeout(self):
+        await self.message.reply(f"{self.message.author.mention} Le temps est écoulé. Votre question n'a pas été déplacée.")
+        await self.confirmation_message.delete()
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        result = await super().interaction_check(interaction)
+        if not result:
+            await self.handle_timeout()
+        return result
+
+    async def on_timeout(self):
+        await self.handle_timeout()
+
+        if self.confirmation_message:
+            await self.confirmation_message.edit(content="Le temps est écoulé. Votre question n'a pas été déplacée.")
+            await self.confirmation_message.delete()
 
         self.stop()
 
@@ -213,7 +230,7 @@ class Question(commands.Cog):
         self.embed_messages = {}
         self.delete_messages = {}
         self.last_asked = {}
-        self.interrogative_words = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", "d'où", "depuis", "jusqu'", "à", "de", "en"]
+        self.interrogative_words = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
 
     def get_question_error(self, title):
         errors = []
@@ -238,12 +255,15 @@ class Question(commands.Cog):
         return errors if errors else None
 
     async def handle_timeout(self, thread):
-        await thread.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
-        await thread.delete()
+        if self.delete_messages.get(thread.id, False):
+            await thread.send("Votre fil a été supprimé car vous avez mis plus de 10 minutes à répondre au questionnaire.")
+            await thread.delete()
 
-        role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
-        if role:
-            await thread.owner.remove_roles(role)
+            role = discord.utils.get(thread.guild.roles, id=QUESTION_ROLE_ID)
+            if role:
+                await thread.owner.remove_roles(role)
+        else:
+            await thread.send("Le temps est écoulé, mais votre question n'a pas été déplacée.")
 
     async def monitor_thread(self, thread):
         await asyncio.sleep(600)
@@ -301,7 +321,8 @@ class Question(commands.Cog):
 
         if message.channel.id == DISCUSSION_CHANNEL_ID:
             content = message.content.lower()
-            if (any(word in content for word in self.interrogative_words) or content.endswith('?')) and len(content) > 10:
+            # if (any(word in content for word in self.interrogative_words) or content.endswith('?')) and len(content) > 10:
+            if message.channel.id == DISCUSSION_CHANNEL_ID and len(message.content) > 10 and message.content.endswith('?'):
                 last_asked_time = self.last_asked.get(message.author.id)
                 if last_asked_time and (datetime.now() - last_asked_time).total_seconds() < 86400:
                     return
