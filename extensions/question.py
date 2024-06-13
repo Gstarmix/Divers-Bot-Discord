@@ -4,15 +4,6 @@ from datetime import datetime
 from discord.ext import commands
 import discord
 from constants import *
-from transformers import pipeline
-
-# Initialize the transformers pipeline for question detection
-question_detector = pipeline('text-classification', model='mrm8488/bert-tiny-finetuned-question-detection')
-
-def is_question(title):
-    # Use the question detector to classify the title
-    result = question_detector(title)
-    return result[0]['label'] == 'LABEL_1'  # Assuming LABEL_1 is the class for questions
 
 def send_error_message(title, error_types):
     if error_types is None:
@@ -62,24 +53,33 @@ class TitleModal(discord.ui.Modal):
         new_title = self.children[0].value
         error_types = self.get_question_error(new_title)
         try:
+            # print(f"Fetching message with ID: {self.message_id}")
             message = await self.thread.fetch_message(self.message_id)
+            # print(f"Message fetched: {message.id} by {message.author}")
         except discord.NotFound:
+            # print(f"Message ID: {self.message_id} in Thread ID: {self.thread.id} not found.")
             await interaction.response.send_message("Le message original est introuvable.", ephemeral=True)
             return
             
         if error_types:
             error_embed = send_error_message(new_title, error_types)
+            # print(f"Attempting to edit message with ID: {self.message_id} with error embed in thread {self.thread.id}")
             if message.author == self.bot.user:
+                # print("Editing message sent by the bot")
                 await message.edit(content=self.author.mention, embed=error_embed)
             else:
+                # print("Editing message sent by the webhook")
                 await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
             await self.thread.edit(name=new_title)
             success_embed = send_success_message(new_title)
+            # print(f"Attempting to edit message with ID: {self.message_id} with success embed in thread {self.thread.id}")
             if message.author == self.bot.user:
+                # print("Editing message sent by the bot")
                 await message.edit(content=self.author.mention, embed=success_embed)
             else:
+                # print("Editing message sent by the webhook")
                 await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
@@ -88,6 +88,7 @@ class TitleModal(discord.ui.Modal):
                 try:
                     await self.original_message.delete()
                 except discord.NotFound:
+                    # print(f"Original message ID: {self.original_message.id} not found for deletion.")
                     pass
 
             role = discord.utils.get(self.thread.guild.roles, id=QUESTION_ROLE_ID)
@@ -148,6 +149,7 @@ class ConfirmView(discord.ui.View):
             )
             thread_message = await webhook_message.fetch()
             new_thread = await self.bot.fetch_channel(thread_message.id)
+            # print(f"Thread créé: {new_thread}")
             
             await new_thread.add_user(self.message.author)
             view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
@@ -156,18 +158,22 @@ class ConfirmView(discord.ui.View):
             await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, view=view, thread=new_thread)
 
         except discord.HTTPException as e:
+            # print(f"Erreur lors de la création du thread: {e}")
             traceback.print_exc()
             if e.code == 50006:
+                # print("Cannot send an empty message")
                 pass
             error_embed = discord.Embed(title="Erreur", description=f"Il y a eu une erreur : {e}", color=discord.Color.red())
             await thread.send(content=self.message.author.mention, embed=error_embed)
 
         if new_thread:
+            # print(f"Thread ID: {new_thread.id}")
             self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
             try:
                 await self.message.delete()
             except discord.NotFound:
+                # print(f"Message ID: {self.message.id} not found for deletion.")
                 pass
 
             await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
@@ -187,6 +193,7 @@ class ConfirmView(discord.ui.View):
                 success_embed = send_success_message(new_thread.name)
                 await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, thread=new_thread)
         else:
+            # print("Erreur: new_thread est None après la tentative de création.")
             pass
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
@@ -229,8 +236,9 @@ class Question(commands.Cog):
         if not first_word_original[0].isupper():
             errors.append("Le premier mot de votre titre doit commencer par une majuscule.")
         
-        if not is_question(title):
-            errors.append("Votre titre ne semble pas être une question.")
+        if not any(first_word.startswith(word) for word in self.interrogative_words):
+            if not any(ending in first_word for ending in ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]):
+                errors.append("Votre titre ne commence pas par un mot interrogatif ou une expression interrogative.")
         
         if len(lower_title) < 20:
             errors.append("Votre titre est trop court. Il doit contenir au moins 20 caractères.")
@@ -308,6 +316,7 @@ class Question(commands.Cog):
 
         if message.channel.id == DISCUSSION_CHANNEL_ID:
             content = message.content.lower()
+            # if (any(word in content for word in self.interrogative_words) or content.endswith('?')) and len(content) > 10:
             if message.channel.id == DISCUSSION_CHANNEL_ID and len(message.content) > 10 and message.content.endswith('?'):
                 last_asked_time = self.last_asked.get(message.author.id)
                 if last_asked_time and (datetime.now() - last_asked_time).total_seconds() < 86400:
@@ -341,13 +350,16 @@ class Question(commands.Cog):
         error_types = self.get_question_error(after.name)
         try:
             message_id = self.embed_messages.get(after.id)
+            # print(f"Fetching message with ID: {message_id}")
             embed_message = await after.fetch_message(message_id)
         except discord.NotFound:
+            # print(f"Embed message ID: {message_id} not found for update.")
             return
 
         if error_types:
             error_embed = send_error_message(after.name, error_types)
             view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
+            # print(f"edit l'id: {message_id} avec error embed")
             await embed_message.edit(content=after.owner.mention, embed=error_embed, view=view)
             self.delete_messages[after.id] = True
 
@@ -356,6 +368,7 @@ class Question(commands.Cog):
                 await after.owner.add_roles(role)
         else:
             success_embed = send_success_message(after.name)
+            # print(f"edit l'id: {message_id} avec succes embed")
             await embed_message.edit(content=after.owner.mention, embed=success_embed)
             self.delete_messages[after.id] = False
 
