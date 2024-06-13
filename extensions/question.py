@@ -199,7 +199,7 @@ class ConfirmView(discord.ui.View):
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user != self.message.author:
-            await interaction.response.send_message(f"{self.message.author.mention} Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
+            await interaction.response.send_message(f"Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
         await self.confirmation_message.delete()
         await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"Votre question n'a pas été déplacée.")
