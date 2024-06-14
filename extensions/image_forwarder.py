@@ -10,31 +10,27 @@ from discord.ui import Modal, TextInput, View, Button
 import discord.utils
 from dateutil import tz
 
-from constants import DELETE_COOLDOWN_HOURS, RAIDS_EMOTES, COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1,  LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING, ACTIVITY_TYPES
+from constants import DELETE_COOLDOWN_HOURS, RAIDS_EMOTES, COMMERCES_ID, SIGNALEMENT_VENTES_ID, GSTAR_USER_ID, ACTIVITES_ID, ACTIVITY_CHANNELS, TRADE_CHANNELS, RAIDS_COSMOS_ID, RAIDS_NOSFIRE_ID, LOCKED_CHANNELS_1, LOCKED_CHANNELS_2, RAIDS_LIST, RAID_ROLE_MAPPING, ACTIVITY_TYPES
 
 DATA_PATH = "datas/image_forwarder"
 
 FRA = tz.gettz('Europe/Paris')
-# user_choices: dict[int, dict[str, str]] = {}
 
 class ActionsView(discord.ui.View):
     def __init__(self, thread_to_messages: dict[str, list[int]], delete_timestamps: dict[str, int]) -> None:
         super().__init__(timeout=None)
-        # self.target_thread_id = target_thread_id
         self.thread_to_messages = thread_to_messages
         self.delete_timestamps = delete_timestamps
 
     @discord.ui.button(label="Signaler", style=discord.ButtonStyle.danger, custom_id="report_button_v2")
     async def report(self, interaction: discord.Interaction, _: discord.ui.Button):
         print("Bouton Signaler cliqué")
-        # modal = ReportModal(message_id=interaction.message.id, channel_id=self.target_thread_id)
         modal = ReportModal(message_id=interaction.message.id, channel_id=interaction.channel_id)
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(label="Supprimer", style=discord.ButtonStyle.danger, custom_id="delete_button_v2")
     async def delete(self, interaction: discord.Interaction, _: discord.ui.Button):
         print("Bouton Supprimer cliqué")
-        # thread = await interaction.client.fetch_channel(self.target_thread_id)
         thread: discord.Thread = interaction.channel
         author = interaction.user
         if author.id not in {GSTAR_USER_ID, thread.owner.id}:
@@ -68,7 +64,6 @@ class ReportModal(discord.ui.Modal):
 class DeleteView(discord.ui.View):
     def __init__(self, target_interaction: discord.Interaction, thread_to_messages: dict[str, list[int]], delete_timestamps: dict[str, int]):
         super().__init__(timeout=None)
-        # self.target_thread_id = target_thread_id
         self.target_interaction = target_interaction
         self.thread_to_messages = thread_to_messages
         self.delete_timestamps = delete_timestamps
@@ -77,9 +72,7 @@ class DeleteView(discord.ui.View):
     async def delete(self, interaction: discord.Interaction, _: discord.ui.Button):
         await interaction.response.defer(thinking=False)
         try:
-            # target: discord.Thread = await interaction.guild.fetch_channel(self.target_thread_id)
             target: discord.Thread = interaction.channel
-            # await target.delete()
             await target.edit(archived=True, locked=True)
 
             self.delete_timestamps[str(interaction.user.id)] = int(datetime.now(tz=FRA).timestamp())
@@ -98,8 +91,6 @@ class DeleteView(discord.ui.View):
 
         except discord.NotFound:
             pass
-        # await self.target_interaction.message.delete()
-        # await self.target_interaction.edit_original_response(content="Annonce supprimée !", view=None)
 
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.secondary, custom_id="cancel_delete")
     async def cancel(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -123,41 +114,12 @@ class CommerceTypeView(discord.ui.View):
     async def buy(self, interaction: discord.Interaction, _: discord.ui.Button):
         new_callback = partial(self.callback, trade_type="Achat")
         await end_view_chain(interaction, new_callback)
-        # await interaction.followup.send("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback, self.author_id))
 
     @discord.ui.button(label="Vente", style=discord.ButtonStyle.blurple, custom_id="sell")
     async def sell(self, interaction: discord.Interaction, _: discord.ui.Button):
         new_callback = partial(self.callback, trade_type="Vente")
         await end_view_chain(interaction, new_callback)
-        # await interaction.followup.send("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback, self.author_id))
 
-
-# class ServerChoiceView(discord.ui.View):
-#     def __init__(self, repost_message_func, author_id: int):
-#         super().__init__()
-#         # self.msg = msg
-#         # self.selected_raids = selected_raids
-#         self.repost_message_func = repost_message_func
-#         self.author_id = author_id
-#
-#     # async def disable_buttons(self):
-#     #     for item in self.children:
-#     #         if isinstance(item, discord.ui.Button):
-#     #             item.disabled = True
-#
-#     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-#         if interaction.user.id != self.author_id:
-#             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
-#             return False
-#         return True
-#
-#     @discord.ui.button(label="Cosmos", style=discord.ButtonStyle.green, custom_id="choose_cosmos")
-#     async def cosmos_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-#         await end_view_chain(interaction, self.repost_message_func, "cosmos")
-#
-#     @discord.ui.button(label="NosFire", style=discord.ButtonStyle.blurple, custom_id="choose_nosfire")
-#     async def nosfire_button_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-#         await end_view_chain(interaction, self.repost_message_func, "nosfire")
 
 class RaidSelectView(discord.ui.View):
     def __init__(self, author_id: int, repost_message, *, page=0):
@@ -187,17 +149,19 @@ class RaidSelect(discord.ui.Select[RaidSelectView]):
         if interaction.user.id != self.author_id:
             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
             return
+
+        # Cancel the inactivity timer when a raid is selected
+        if interaction.channel.id in self.view.repost_message.__self__.inactivity_timers:
+            self.view.repost_message.__self__.inactivity_timers[interaction.channel.id].cancel()
+            del self.view.repost_message.__self__.inactivity_timers[interaction.channel.id]
+
         new_callback = partial(self.repost_message, selected_raids=self.values)
         await end_view_chain(interaction, new_callback, is_raid_search=True)
-        # view = ServerChoiceView(repost_message_func=new_callback, author_id=self.author_id)
-        # await interaction.response.send_message("Sur quel serveur souhaitez-vous publier votre annonce de raid ?", view=view)
 
 
 class PageButton(discord.ui.Button[RaidSelectView]):
     def __init__(self, author_id: int, page_to_add: Literal[-1, 1]):
-        label = "◀️ Page précédente"
-        if page_to_add == 1:
-            label = "Page suivante ▶️"
+        label = "◀️ Page précédente" if page_to_add == -1 else "Page suivante ▶️"
         super().__init__(style=discord.ButtonStyle.secondary, label=label)
         self.author_id = author_id
         self.page_to_add = page_to_add
@@ -222,20 +186,6 @@ async def end_view_chain(target: discord.Interaction | discord.Thread, callback,
     else:
         actions_view = ActionsView(thread_to_messages, delete_timestamps)
         await target.response.edit_message(content=base_message + raid_message, view=actions_view)
-
-# class NextPageButton(discord.ui.Button):
-#     def __init__(self, author_id):
-#         super().__init__(style=discord.ButtonStyle.secondary, label="Page suivante")
-#         self.author_id = author_id
-#
-#     async def callback(self, interaction: discord.Interaction):
-#         if interaction.user.id != self.author_id:
-#             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
-#             return
-#         view = self.view
-#         view.clear_items()
-#         new_view = RaidSelectView(self.author_id, page=view.page + 1)
-#         await interaction.response.edit_message(view=new_view)
 
 
 class ImageNavigator(discord.ui.View):
@@ -266,7 +216,6 @@ class ImageNavigator(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 
-
 class ImageForwarder(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -275,6 +224,8 @@ class ImageForwarder(commands.Cog):
         self.delete_timestamps_path = f"{DATA_PATH}/delete_timestamps.json"
         self.last_post_time, self.thread_to_messages, self.delete_timestamps = self.load_datas()
         self.last_notification_time = {}
+        self.thread_timers = {}
+        self.inactivity_timers = {}
 
         self.bot.add_view(ActionsView(self.thread_to_messages, self.delete_timestamps))
 
@@ -300,7 +251,6 @@ class ImageForwarder(commands.Cog):
                 delete_timestamps = json.load(f)
         except FileNotFoundError:
             pass
-        # print("Données chargées : ", message_to_thread)
         return last_post_time, thread_to_messages, delete_timestamps
 
     def save_datas(self):
@@ -310,30 +260,27 @@ class ImageForwarder(commands.Cog):
             json.dump(self.thread_to_messages, f)
         with open(self.delete_timestamps_path, "w") as f:
             json.dump(self.delete_timestamps, f)
-        # print("Données sauvegardées : ", self.message_to_thread)
+
+    async def inactivity_timer(self, thread: discord.Thread, reason: str):
+        await asyncio.sleep(600)
+        await thread.delete()
+        await thread.owner.send(f"Votre fil '{thread.name}' a été supprimé car {reason}")
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         author = message.author
         channel = message.channel
 
-        # print(f"Message reçu de {message.author.name}: {message.content}")
         if author.bot:
             return
 
         if channel.type == discord.ChannelType.public_thread:
             num_tags = len(channel.applied_tags)
             if channel.parent_id == ACTIVITES_ID:
-                # print(f"Traitement du message dans un thread public dans ACTIVITES_ID : {message.channel.id}")
-                # print(f"Tags appliqués : {[tag.name for tag in channel.applied_tags]}")
-
                 if num_tags > 1:
-                    # print(f"Suppression du thread {channel.id} pour cause de multiples tags.")
                     warning_msg = f"<:no_valide:1125533828602150972> {channel.owner.mention}, votre fil dans le salon des activités va être supprimé car il utilise plusieurs tags. Veuillez n'utiliser qu'un seul tag par fil. Votre fil sera supprimé dans 5 minutes."
                     await channel.send(warning_msg)
-
                     await asyncio.sleep(300)
-
                     try:
                         await channel.delete()
                     except Exception as e:
@@ -343,9 +290,7 @@ class ImageForwarder(commands.Cog):
                 if num_tags > 4:
                     warning_msg = f"<:no_valide:1125533828602150972> {channel.owner.mention}, votre fil va être supprimé car il utilise trop de tags. Veuillez n'utiliser qu'au maximum 4 tags. Votre fil sera supprimé dans 5 minutes."
                     await channel.send(warning_msg)
-
                     await asyncio.sleep(300)
-
                     try:
                         await channel.delete()
                     except Exception as e:
@@ -375,6 +320,10 @@ class ImageForwarder(commands.Cog):
         if channel.type == discord.ChannelType.public_thread and channel.parent_id in {COMMERCES_ID, ACTIVITES_ID}:
             await self.handle_post_logic(message)
 
+            if channel.id in self.thread_timers:
+                self.thread_timers[channel.id].cancel()
+            self.thread_timers[channel.id] = asyncio.create_task(self.inactivity_timer(channel, "vous n'avez pas appuyé sur les boutons `Achat` ou `Vente` pour republier votre post dans les 10 minutes."))
+
     async def repost_message(self, msg: discord.Message, is_initial_post: bool, msg_type: str, server: str = None, selected_raids: list | None = None, trade_type: str | None = None, activity_type: str | None = None) -> tuple[int, dict[str, list[int]], dict[str, int]]:
         thread = msg.channel
         guild = msg.guild
@@ -394,76 +343,7 @@ class ImageForwarder(commands.Cog):
         if not target_channel:
             raise Exception(f"Est-ce que le salon {target_channel_id=} existe bien sur {guild.name} ?")
 
-        # - V1:
-
-        # action = "🆕 Nouvelle annonce" if is_initial_post else "♻️ Annonce republiée"
-        # header = f"{action} par {first_message.author.mention} dans {thread.mention}."
-
-        # # title = f"**Titre :** {thread.name}"
-        # tags_string = get_tags_string(thread)
-
-        # raids_mentions = ""
-        # if selected_raids and msg_type == "raid":
-        #     raids_mentions = " | **Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids])
-        
-        # header_and_metadata = f"{header} [{tags_string}{raids_mentions}]".rstrip(" |")
-        # if first_message.content.strip():
-        #     # S'il y a du texte, ajoutez '> ' au début de chaque ligne.
-        #     content_formatted = f"\n".join([f"> {line}" for line in first_message.content.strip().split('\n')])
-        # else:
-        #     # S'il n'y a pas de texte (image uniquement), ne modifiez pas le contenu.
-        #     content_formatted = first_message.content
-
-        # final_msg_content = "\n".join([header_and_metadata, content_formatted])
-
-        # # actions_view = ActionsView(thread.id) 
-        # # Les membres n'aiment pas cette fonctionnalité
-
-        # tags_string = get_tags_string(thread)
-        # raids_mentions = "**Raids :** " + ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
-
-        # - V2:
-
-        # action = "🆕" if is_initial_post else "♻️"
-
-        # message_content = ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
-
-        # embed = None
-        # files = []
-
-        # if trade_type == "Vente":
-        #     header_vente = f"{action} {thread.mention}"
-        #     if first_message.content.strip():
-        #         content_formatted_vente = "\n".join([f"> {line}" for line in first_message.content.strip().split('\n')])
-        #     else:
-        #         content_formatted_vente = ""
-        #     files = [await attachment.to_file() for attachment in first_message.attachments if 'image' in attachment.content_type]
-        #     message_content = f"{header_vente}\n{content_formatted_vente}"
-        # else:
-        #     embed = discord.Embed(
-        #         title=f"{action} {thread.mention}",
-        #         description=first_message.content,
-        #         color=discord.Color.blue() if is_initial_post else discord.Color.green(),
-        #     )
-
-        # webhooks = await target_channel.webhooks()
-        # webhook = discord.utils.find(lambda wh: wh.user == guild.me, webhooks)
-        # if webhook is None:
-        #     webhook = await target_channel.create_webhook(name=guild.me.name, reason="Pour reposter les messages")
-
-        # sent_msg = await webhook.send(
-        #     content=message_content,
-        #     username=msg.author.display_name,
-        #     avatar_url=msg.author.display_avatar.url,
-        #     files=files,
-        #     embed=embed,
-        #     wait=True
-        # )
-
-        # - V3:
-
         action = "🆕" if is_initial_post else "♻️"
-
         message_content = ", ".join([f"<@&{RAID_ROLE_MAPPING[server].get(raid, '')}>" for raid in selected_raids]) if selected_raids and msg_type == "raid" else ""
 
         embed = discord.Embed(
@@ -472,21 +352,14 @@ class ImageForwarder(commands.Cog):
             color=discord.Color.blue() if is_initial_post else discord.Color.green(),
         )
 
-        images = []
-        view = None
-
         images = [attachment.url for attachment in first_message.attachments if 'image' in attachment.content_type]
+        view = None
 
         if trade_type == "Vente" and images:
             embed.set_image(url=images[0])
-
             if len(images) > 1:
                 embed.set_footer(text=f"1 / {len(images)}")
                 view = ImageNavigator(images, title=f"{action} {thread.mention}", description=first_message.content, color=embed.color)
-            else:
-                view = None
-        else:
-            view = None
 
         webhooks = await target_channel.webhooks()
         webhook = discord.utils.find(lambda wh: wh.user == guild.me, webhooks) or await target_channel.create_webhook(name="ImageForwarder", reason="Pour reposter les messages")
@@ -503,25 +376,6 @@ class ImageForwarder(commands.Cog):
             kwargs["view"] = view
 
         sent_msg = await webhook.send(**kwargs)
-
-        # if not is_initial_post:
-        #     msg_ids, thread_ids = tuple(self.message_to_thread), tuple(self.message_to_thread.values())
-        #     try:
-        #         msg_index = thread_ids.index(thread.id)
-        #         msg_id = msg_ids[msg_index]
-        #         del self.message_to_thread[msg_id]
-        #         # await target_channel.get_partial_message(msg_id).edit(view=None)
-        #     except ValueError:
-        #         pass
-        #     except discord.NotFound as e:
-        #         if e.code == 10008:
-        #             pass
-        #         else:
-        #             raise e
-
-        # if not is_initial_post:
-        #     confirmation_message = await thread.send(f":white_check_mark: Annonce repostée dans <#{target_channel_id}>. Ce message sera supprimé dans 5 minutes.")
-        #     await confirmation_message.delete(delay=300)
 
         if not is_initial_post:
             confirmation_message = await thread.send(
@@ -543,7 +397,7 @@ class ImageForwarder(commands.Cog):
 
         if author != thread.owner:
             return
-        
+
         is_initial_post = message.id == thread.id
 
         current_time = datetime.now(tz=FRA)
@@ -556,19 +410,12 @@ class ImageForwarder(commands.Cog):
         activity_type = get_activity_type(thread_tags)
         trade_type = get_trade_type(thread_tags)
         if thread.parent_id == COMMERCES_ID and trade_type:
-            # trade_type = "achat" if "achat" in thread.name else "vente"
-            # server = "nosfire" if "nosfire" in thread.name else "cosmos"
             timer_hours = TRADE_CHANNELS.get(f"{trade_type}_{server}", {}).get("timer_hours", 24)
         elif thread.parent_id == ACTIVITES_ID and activity_type:
-            # for tag in thread_tags:
-            #     if tag in ACTIVITY_TYPES:
-            #         timer_hours = ACTIVITY_CHANNELS[f"{tag}_{server}"].get("timer_hours")
-            #         break
             timer_hours = ACTIVITY_CHANNELS[f"{activity_type}_{server}"].get("timer_hours")
 
         if timer_hours is None:
             timer_hours = 24
-            #print(f"Aucun timer_hours spécifique trouvé, utilisation de la valeur par défaut (24h). Faut verifier pourquoi {thread=}")
 
         if last_post_time + timedelta(hours=timer_hours) > current_time and not is_initial_post:
             user_thread_key = (author.id, thread.id)
@@ -596,41 +443,25 @@ class ImageForwarder(commands.Cog):
                 await self.repost_message(message, False, "commerce")
 
         if thread.parent_id == ACTIVITES_ID:
-            # detected_tags = {tag.name for tag in thread.applied_tags} & ACTIVITY_TYPES
             if not activity_type:
                 raise Exception(f"Aucun tag d'activités pour {thread=}")
             if is_initial_post:
                 if activity_type == "Recherche-raid":
                     select_view = RaidSelectView(author_id=author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
                     await message.reply("Sélectionnez les types de raids :", view=select_view)
+
+                    if thread.id in self.inactivity_timers:
+                        self.inactivity_timers[thread.id].cancel()
+                    self.inactivity_timers[thread.id] = asyncio.create_task(self.inactivity_timer(thread, "vous n'avez pas sélectionné de raid pour republier votre post dans les 10 minutes."))
                 else:
-                    # await message.reply(
-                    #     "Sur quel serveur souhaitez-vous poster votre activité ?",
-                    #     view=ServerChoiceView(
-                    #         repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
-                    #         author_id=author.id
-                    #     )
-                    # )
                     await end_view_chain(thread, partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=activity_type))
             else:
                 if activity_type == "Recherche-raid":
-                    #print("tentative d'up de raid, pour l'instant ça ignore juste le message")
+                    if thread.id in self.inactivity_timers:
+                        self.inactivity_timers[thread.id].cancel()
+                        del self.inactivity_timers[thread.id]
                     return
                 await self.repost_message(message, False, "activité")
-
-
-# def get_tags_string(thread: discord.Thread) -> str:
-#     tags_list = thread.applied_tags
-#     tags_names = ", ".join([f"{tag.emoji} `{tag.name}`" for tag in tags_list])
-#     return f"**Tags :** {tags_names}" if tags_names else ""
-
-
-# def format_remaining_time(remaining_time: timedelta) -> str:
-#     total_seconds = remaining_time.total_seconds()
-#     days, remainder = divmod(total_seconds, 86400)
-#     hours, remainder = divmod(remainder, 3600)
-#     minutes, seconds = divmod(remainder, 60)
-#     return f"{int(days)}j {int(hours)}h {int(minutes)}min"
 
 
 async def add_tag_to_thread(thread: discord.Thread, tag_name: str):
@@ -692,7 +523,6 @@ async def get_target_channel_id_and_add_tags(thread: discord.Thread, msg_type: s
         if channel_info:
             target_channel_id = channel_info["id"]
         await add_tag_to_thread(thread, activity_type)
-    # await add_tag_to_thread(thread, server)
     return target_channel_id
 
 

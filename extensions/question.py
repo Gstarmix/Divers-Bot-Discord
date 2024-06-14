@@ -8,7 +8,7 @@ from constants import *
 TAG_OPTIONS = [
     discord.SelectOption(label="Stuff | Rune", emoji="🏹"),
     discord.SelectOption(label="Carte SP", emoji="🃏"),
-    discord.SelectOption(label="Ekipment | Accessoir", emoji="💎"),
+    discord.SelectOption(label="Equipment|Accessoire", emoji="💎"),
     discord.SelectOption(label="Pet | Partner", emoji="🐶"),
     discord.SelectOption(label="Buff | Debuff", emoji="🌠"),
     discord.SelectOption(label="XP | Quête | TS", emoji="📈"),
@@ -389,7 +389,8 @@ class Question(commands.Cog):
                         "   - Commencer par une majuscule.\n"
                         "   - Utiliser un mot ou une expression interrogative.\n"
                         "   - Avoir entre 20 et 100 caractères.\n"
-                        "   - Terminer par un point d'interrogation (?).\n\n"
+                        "   - Terminer par un point d'interrogation (?).\n"
+                        "   - Sélectionner au moins un tag approprié pour votre question.\n\n"
                         "3. **Une fois le titre validé, tous les membres pourront participer à la discussion.**"
                     ),
                     color=discord.Color.blue()
