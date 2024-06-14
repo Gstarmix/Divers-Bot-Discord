@@ -110,7 +110,7 @@ class TagSelect(discord.ui.Select):
         if interaction.user.id != self.author_id:
             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
             return
-        self.selected_tags[:] = self.values  # Update the selected tags
+        self.selected_tags[:] = self.values
 
         error_types = self.get_question_error(self.thread.name, self.selected_tags)
         try:
@@ -375,7 +375,7 @@ class Question(commands.Cog):
             content = message.content.lower()
             if message.channel.id == DISCUSSION_CHANNEL_ID and len(message.content) > 10 and message.content.endswith('?'):
                 last_asked_time = self.last_asked.get(message.author.id)
-                if last_asked_time and (datetime.now() - last_asked_time).total_seconds() < 86400:
+                if last_asked_time and (datetime.now() - last_asked_time).total_seconds() < 259200:
                     return
                 self.last_asked[message.author.id] = datetime.now()
 
