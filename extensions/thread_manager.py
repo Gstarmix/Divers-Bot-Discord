@@ -191,7 +191,7 @@ class SimilarThreadsView(discord.ui.View):
     def create_embed(self, threads, current_page, max_page):
         description = "\n".join([f"- [{t['name']}]({t['link']}) - `{self.format_date_french(t['created_at'])}` - `{t['message_count']} messages`" for t in threads])
         embed = discord.Embed(
-            title="Voici des questions similaires trouvées :",
+            title="Voici des questions similaires triées par pertinence :",
             description=description,
             color=discord.Color.blue()
         )
