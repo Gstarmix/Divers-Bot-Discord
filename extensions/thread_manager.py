@@ -63,7 +63,7 @@ class ThreadManager(commands.Cog):
                 continue
             clean_existing_name = self.clean_title(thread["name"])
             similarity = SequenceMatcher(None, clean_thread_name, clean_existing_name).ratio()
-            if similarity > 0.8:
+            if similarity > 0.5:
                 thread_with_similarity = thread.copy()
                 thread_with_similarity["similarity"] = similarity
                 similar_threads.append(thread_with_similarity)
