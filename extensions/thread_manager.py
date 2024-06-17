@@ -13,15 +13,8 @@ DATA_PATH = "extensions/threads.json"
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Liste des mots et expressions interrogatifs
-INTERROGATIVE_WORDS = [
-    "qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment",
-    "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel",
-    "laquelle", "lesquels", "lesquelles"
-]
-INTERROGATIVE_EXPRESSIONS = [
-    "-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"
-]
+INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
+INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
 
 class ThreadManager(commands.Cog):
     def __init__(self, bot):
@@ -71,8 +64,10 @@ class ThreadManager(commands.Cog):
             clean_existing_name = self.clean_title(thread["name"])
             similarity = SequenceMatcher(None, clean_thread_name, clean_existing_name).ratio()
             if similarity > 0.8:
-                similar_threads.append(thread)
-        similar_threads.sort(key=lambda x: x['created_at'], reverse=True)
+                thread_with_similarity = thread.copy()
+                thread_with_similarity["similarity"] = similarity
+                similar_threads.append(thread_with_similarity)
+        similar_threads.sort(key=lambda x: x['similarity'], reverse=True)
         return similar_threads
 
     async def add_thread_info(self, thread):

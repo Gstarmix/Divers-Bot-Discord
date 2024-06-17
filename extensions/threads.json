@@ -6238,5 +6238,25 @@
         "created_at": "2024-06-17 15:08:16.441000+00:00",
         "message_count": 1,
         "link": "https://discord.com/channels/871965787420782642/1252278650288476210/1252278650288476210"
+    },
+    {
+        "id": 1252280670902816889,
+        "name": "Quels sont les cuisine et les puella font-ils bons m\u00e9nage ?",
+        "author_id": 200750717437345792,
+        "guild_id": 871965787420782642,
+        "channel_id": 1248296732865855519,
+        "created_at": "2024-06-17 15:16:18.193000+00:00",
+        "message_count": 1,
+        "link": "https://discord.com/channels/871965787420782642/1252280670902816889/1252280670902816889"
+    },
+    {
+        "id": 1252280907386060800,
+        "name": "Est-ce que les livres pour cuisines ?",
+        "author_id": 200750717437345792,
+        "guild_id": 871965787420782642,
+        "channel_id": 1248296732865855519,
+        "created_at": "2024-06-17 15:17:14.575000+00:00",
+        "message_count": 1,
+        "link": "https://discord.com/channels/871965787420782642/1252280907386060800/1252280907386060800"
     }
 ]
