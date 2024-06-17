@@ -133,6 +133,9 @@ class TagSelect(discord.ui.Select):
                 await webhook.edit_message(self.message_id, content=message.author.mention, embed=error_embed, thread=self.thread)
             await interaction.response.send_message("Les tags ont été mis à jour mais le titre contient encore des erreurs.", ephemeral=True)
         else:
+            forum_tags = [tag for tag in self.thread.parent.available_tags if tag.name in self.selected_tags]
+            await self.thread.edit(applied_tags=forum_tags)
+            
             success_embed = send_success_message(self.thread.name)
             if message.author.id == self.bot.user.id:
                 await message.edit(content=message.author.mention, embed=success_embed)
