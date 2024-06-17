@@ -6,9 +6,9 @@ from difflib import SequenceMatcher
 
 import discord
 from discord.ext import commands
-from constants import QUESTION_CHANNEL_ID, GUILD_ID_TEST
+from constants import QUESTION_CHANNEL_ID
 
-DATA_PATH = "extensions/threads.json"  # Chemin vers le fichier JSON pour stocker les threads
+DATA_PATH = "extensions/threads.json"
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -29,17 +29,18 @@ class ThreadManager(commands.Cog):
                     if content:
                         self.threads_data = json.loads(content)
                         self.existing_thread_ids = {thread["id"] for thread in self.threads_data}
-                        logger.info(f"Loaded {len(self.threads_data)} threads from {DATA_PATH}")
+                        # logger.info(f"Loaded {len(self.threads_data)} threads from {DATA_PATH}")
                     else:
-                        logger.info(f"{DATA_PATH} is empty, starting with an empty list")
+                        # logger.info(f"{DATA_PATH} is empty, starting with an empty list")
+                        pass
         except FileNotFoundError:
-            logger.info(f"{DATA_PATH} not found, starting with an empty list")
+            # logger.info(f"{DATA_PATH} not found, starting with an empty list")
             self.threads_data = []
 
     def save_threads_data(self):
         with open(DATA_PATH, "w") as f:
             json.dump(self.threads_data, f, indent=4)
-            logger.info(f"Saved {len(self.threads_data)} threads to {DATA_PATH}")
+            # logger.info(f"Saved {len(self.threads_data)} threads to {DATA_PATH}")
 
     def find_similar_threads(self, thread_name, current_thread_id):
         similar_threads = []
@@ -47,7 +48,7 @@ class ThreadManager(commands.Cog):
             if thread["id"] == current_thread_id:
                 continue
             similarity = SequenceMatcher(None, thread_name, thread["name"]).ratio()
-            if similarity > 0.5:
+            if similarity > 0.6:
                 similar_threads.append(thread)
         similar_threads.sort(key=lambda x: x['created_at'], reverse=True)
         return similar_threads
@@ -67,36 +68,29 @@ class ThreadManager(commands.Cog):
         if thread.id not in self.existing_thread_ids:
             self.threads_data.append(thread_info)
             self.existing_thread_ids.add(thread.id)
-            logger.info(f"Thread info added: {thread_info}")
+            # logger.info(f"Thread info added: {thread_info}")
         else:
             for existing_thread in self.threads_data:
                 if existing_thread["id"] == thread.id:
                     existing_thread.update(thread_info)
-                    logger.info(f"Thread info updated: {thread_info}")
+                    # logger.info(f"Thread info updated: {thread_info}")
                     break
 
     async def delete_thread_info(self, thread_id):
         self.threads_data = [thread for thread in self.threads_data if thread["id"] != thread_id]
         self.existing_thread_ids.discard(thread_id)
-        logger.info(f"Thread info deleted: {thread_id}")
+        # logger.info(f"Thread info deleted: {thread_id}")
 
     async def fetch_all_threads(self):
-        guild = self.bot.get_guild(GUILD_ID_TEST)
-        if guild is None:
-            logger.error(f"Could not find guild with id {GUILD_ID_TEST}")
-            return
-        
-        question_channel = guild.get_channel(QUESTION_CHANNEL_ID)
+        question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
         if question_channel is None:
-            logger.error(f"Could not find channel with id {QUESTION_CHANNEL_ID} in guild {guild.name}")
+            # logger.error(f"Could not find channel with id {QUESTION_CHANNEL_ID}")
             return
         
-        # Fetching active threads
         for thread in question_channel.threads:
             if thread.id not in self.existing_thread_ids:
                 await self.add_thread_info(thread)
 
-        # Fetching archived threads
         async for thread in question_channel.archived_threads(limit=None):
             if thread.id not in self.existing_thread_ids:
                 await self.add_thread_info(thread)
@@ -104,7 +98,7 @@ class ThreadManager(commands.Cog):
         self.save_threads_data()
 
     async def cog_load(self):
-        logger.info("Cog loaded successfully")
+        # logger.info("Cog loaded successfully")
         await self.fetch_all_threads()
 
     @commands.Cog.listener()
@@ -119,6 +113,8 @@ class ThreadManager(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if isinstance(message.channel, discord.Thread):
+            if message.channel.parent_id != QUESTION_CHANNEL_ID:
+                return
             if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id].owner_id:
                 await self.add_thread_info(message.channel)
                 self.save_threads_data()
@@ -145,6 +141,8 @@ class ThreadManager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_thread_delete(self, thread):
+        if thread.parent_id != QUESTION_CHANNEL_ID:
+            return
         await self.delete_thread_info(thread.id)
         self.save_threads_data()
 

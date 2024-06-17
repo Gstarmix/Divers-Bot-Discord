@@ -270,7 +270,7 @@ class ConfirmView(discord.ui.View):
     async def handle_timeout(self):
         try:
             await self.confirmation_message.delete()
-            await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Le temps est écoulé, votre question n'a pas été déplacée.")
+            await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Le temps est écoulé. Votre question n'a pas été déplacée.")
         except discord.NotFound:
             pass
 
