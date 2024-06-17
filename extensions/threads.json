@@ -6218,5 +6218,25 @@
         "created_at": "2024-06-17 14:51:55.881000+00:00",
         "message_count": 1,
         "link": "https://discord.com/channels/871965787420782642/1252274537521746011/1252274537521746011"
+    },
+    {
+        "id": 1252276378708217876,
+        "name": "Comment avoir les livres pour cuisines ?",
+        "author_id": 200750717437345792,
+        "guild_id": 871965787420782642,
+        "channel_id": 1248296732865855519,
+        "created_at": "2024-06-17 14:59:14.854000+00:00",
+        "message_count": 1,
+        "link": "https://discord.com/channels/871965787420782642/1252276378708217876/1252276378708217876"
+    },
+    {
+        "id": 1252278650288476210,
+        "name": "Quel sont les livres pour cuisines ?",
+        "author_id": 200750717437345792,
+        "guild_id": 871965787420782642,
+        "channel_id": 1248296732865855519,
+        "created_at": "2024-06-17 15:08:16.441000+00:00",
+        "message_count": 1,
+        "link": "https://discord.com/channels/871965787420782642/1252278650288476210/1252278650288476210"
     }
 ]
