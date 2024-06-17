@@ -77,12 +77,17 @@ class TitleModal(discord.ui.Modal):
                 await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=error_embed, thread=self.thread)
             await interaction.response.send_message("Le titre contient encore des erreurs.", ephemeral=True)
         else:
-            await self.thread.edit(name=new_title)
+            forum_tags = [tag for tag in self.thread.parent.available_tags if tag.name in self.selected_tags]
+            await self.thread.edit(name=new_title, applied_tags=forum_tags)
+            
             success_embed = send_success_message(new_title)
+            view = self.bot.get_cog('Question').create_answer_view(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author, self.webhook)
+            view.remove_tag_select()
+            
             if message.author.id == self.bot.user.id:
-                await message.edit(content=self.author.mention, embed=success_embed)
+                await message.edit(content=self.author.mention, embed=success_embed, view=view)
             else:
-                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, thread=self.thread)
+                await self.webhook.edit_message(self.message_id, content=self.author.mention, embed=success_embed, view=view, thread=self.thread)
             await interaction.response.send_message("Le titre du fil a été mis à jour.", ephemeral=True)
             self.bot.get_cog('Question').delete_messages[self.thread.id] = False
 
@@ -142,6 +147,12 @@ class TagSelectView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(TagSelect(author_id, selected_tags, message_id, get_question_error, thread, bot))
 
+    def remove_tag_select(self):
+        for item in self.children:
+            if isinstance(item, TagSelect):
+                self.remove_item(item)
+                break
+
 class AnswerView(discord.ui.View):
     def __init__(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
         super().__init__(timeout=None)
@@ -155,6 +166,11 @@ class AnswerView(discord.ui.View):
         self.selected_tags = [tag.name for tag in thread.applied_tags]
         if not self.selected_tags:
             self.add_item(TagSelect(author.id, self.selected_tags, message_id, get_question_error, thread, bot))
+
+    def remove_tag_select(self):
+        for item in self.children:
+            if isinstance(item, TagSelect):
+                self.remove_item(item)
 
     @discord.ui.button(label="Modifier le titre", style=discord.ButtonStyle.grey)
     async def modify_title(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -251,6 +267,7 @@ class ConfirmView(discord.ui.View):
     async def handle_timeout(self):
         try:
             await self.confirmation_message.delete()
+            await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Le temps est écoulé, votre question n'a pas été déplacée.")
         except discord.NotFound:
             pass
 
@@ -262,7 +279,6 @@ class ConfirmView(discord.ui.View):
 
     async def on_timeout(self):
         await self.handle_timeout()
-
         self.stop()
 
 class Question(commands.Cog):
@@ -317,6 +333,9 @@ class Question(commands.Cog):
         else:
             await thread.send("Le temps est écoulé, mais votre question n'a pas été déplacée.")
 
+    def create_answer_view(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
+        return AnswerView(thread, message_id, get_question_error, bot, original_message, author, webhook)
+
     async def monitor_thread(self, thread):
         await asyncio.sleep(600)
         if self.delete_messages.get(thread.id, False):
@@ -339,7 +358,9 @@ class Question(commands.Cog):
         
         if not error_types:
             success_embed = send_success_message(thread.name)
-            embed_message = await thread.send(content=message.author.mention if message.author else "", embed=success_embed)
+            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, message.author, await get_webhook(thread.parent))
+            view.remove_tag_select()
+            embed_message = await thread.send(content=message.author.mention if message.author else "", embed=success_embed, view=view)
             self.embed_messages[thread.id] = embed_message.id
             self.delete_messages[thread.id] = False
         else:
@@ -422,7 +443,9 @@ class Question(commands.Cog):
                 await after.owner.add_roles(role)
         else:
             success_embed = send_success_message(after.name)
-            await embed_message.edit(content=after.owner.mention, embed=success_embed)
+            view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
+            view.remove_tag_select()
+            await embed_message.edit(content=after.owner.mention, embed=success_embed, view=view)
             self.delete_messages[after.id] = False
 
             role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
