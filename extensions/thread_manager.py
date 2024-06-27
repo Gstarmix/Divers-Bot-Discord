@@ -7,6 +7,7 @@ from difflib import SequenceMatcher
 import discord
 from discord.ext import commands
 from constants import QUESTION_CHANNEL_ID
+from threading import Lock
 
 DATA_PATH = "extensions/threads"
 THREADS_DATA_PATH = f"{DATA_PATH}/threads.json"
@@ -17,6 +18,28 @@ logger = logging.getLogger(__name__)
 
 INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
 INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
+
+# Global dictionaries for thread management
+active_threads = {}
+thread_locks = {}
+
+def load_active_threads():
+    try:
+        if os.path.exists(THREADS_DATA_PATH):
+            with open(THREADS_DATA_PATH, "r") as f:
+                content = f.read().strip()
+                if content:
+                    threads_data = json.loads(content)
+                    for thread in threads_data:
+                        active_threads[thread["id"]] = thread
+        logger.info("👍 Active threads loaded from the data file.")
+    except Exception as e:
+        logger.error(f"❗ Error loading active threads: {e}")
+
+def get_thread_lock(thread_id):
+    if thread_id not in thread_locks:
+        thread_locks[thread_id] = Lock()
+    return thread_locks[thread_id]
 
 class ThreadManager(commands.Cog):
     def __init__(self, bot):
@@ -127,6 +150,8 @@ class ThreadManager(commands.Cog):
 
     async def cog_load(self):
         await self.fetch_all_threads()
+        load_active_threads()  # Load active threads on startup
+        # Registering the view for the buttons with no threads initially
         self.bot.add_view(SimilarThreadsView([]))
 
     @commands.Cog.listener()
@@ -143,6 +168,7 @@ class ThreadManager(commands.Cog):
             "channel_id": thread.parent_id,
             "created_at": str(thread.created_at)
         }
+        active_threads[thread.id] = self.pending_threads[thread.id]  # Add to active threads
         self.save_pending_threads_data()
         self.save_threads_data()
 
@@ -188,6 +214,8 @@ class ThreadManager(commands.Cog):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
         await self.delete_thread_info(thread.id)
+        if thread.id in active_threads:
+            del active_threads[thread.id]  # Remove from active threads
         self.save_threads_data()
 
     async def send_paginated_similar_threads(self, thread, similar_threads):
