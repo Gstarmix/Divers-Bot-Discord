@@ -57,6 +57,9 @@ class ThreadManager(commands.Cog):
         self.load_threads_data()
         self.load_pending_threads_data()
 
+        for thread_id, thread_data in active_threads.items():
+            self.bot.add_view(SimilarThreadsView([]), message_id=thread_data['message_id'])
+
     def load_threads_data(self):
         try:
             if os.path.exists(THREADS_DATA_PATH):
@@ -122,8 +125,7 @@ class ThreadManager(commands.Cog):
             "channel_id": thread.parent_id,
             "created_at": str(thread.created_at),
             "message_count": thread.message_count,
-            "link": f"https://discord.com/channels/{thread.guild.id}/{thread.id}/{thread.id}",
-            "message_id": thread.last_message_id
+            "link": f"https://discord.com/channels/{thread.guild.id}/{thread.id}/{thread.id}"
         }
 
         if thread.id not in self.existing_thread_ids:
@@ -135,16 +137,15 @@ class ThreadManager(commands.Cog):
                     existing_thread.update(thread_info)
                     break
         self.save_threads_data()
-        active_threads[thread.id] = thread_info
         save_active_threads()
 
     async def delete_thread_info(self, thread_id):
         self.threads_data = [thread for thread in self.threads_data if thread["id"] != thread_id]
         self.existing_thread_ids.discard(thread_id)
-        self.save_threads_data()
         if thread_id in active_threads:
             del active_threads[thread_id]
-            save_active_threads()
+        self.save_threads_data()
+        save_active_threads()
 
     async def fetch_all_threads(self):
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
@@ -196,6 +197,7 @@ class ThreadManager(commands.Cog):
                 del self.pending_threads[message.channel.id]
                 self.save_pending_threads_data()
                 self.save_threads_data()
+                save_active_threads()
             if message.embeds:
                 for embed in message.embeds:
                     if embed.title == "Titre validé":
@@ -215,6 +217,7 @@ class ThreadManager(commands.Cog):
         
         await self.add_thread_info(after)
         self.save_threads_data()
+        save_active_threads()
 
         similar_threads = self.find_similar_threads(after.name, after.id)
         if similar_threads:
@@ -230,8 +233,8 @@ class ThreadManager(commands.Cog):
         await self.delete_thread_info(thread.id)
         if thread.id in active_threads:
             del active_threads[thread.id]
-            save_active_threads()
         self.save_threads_data()
+        save_active_threads()
 
     async def send_paginated_similar_threads(self, thread, similar_threads):
         view = SimilarThreadsView(similar_threads)

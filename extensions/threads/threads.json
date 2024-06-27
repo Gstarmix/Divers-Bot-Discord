@@ -6419,5 +6419,14 @@
         "message_count": 0,
         "link": "https://discord.com/channels/871965787420782642/1256012495341097030/1256012495341097030",
         "message_id": 1256012495341097030
+    },
+    {
+        "id": 1256032841762996295,
+        "name": "Comment on appelle un ventilateur ?",
+        "author_id": 200750717437345792,
+        "guild_id": 871965787420782642,
+        "channel_id": 1248296732865855519,
+        "created_at": "2024-06-27 23:46:05.438000+00:00",
+        "message_id": null
     }
 ]
