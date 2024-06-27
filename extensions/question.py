@@ -54,7 +54,14 @@ class TitleModal(discord.ui.Modal):
         self.author = author
         self.webhook = webhook
         self.selected_tags = selected_tags
-        self.add_item(discord.ui.TextInput(label="Nouveau titre", style=discord.TextStyle.short, placeholder="Entrez le nouveau titre du fil...", custom_id="new_title", max_length=100))
+        self.add_item(discord.ui.TextInput(
+            label="Nouveau titre",
+            style=discord.TextStyle.short,
+            placeholder="Entrez le nouveau titre du fil...",
+            custom_id="new_title",
+            min_length=20,
+            max_length=100
+        ))
 
     async def on_submit(self, interaction: discord.Interaction):
         if interaction.user != self.author:
@@ -62,6 +69,7 @@ class TitleModal(discord.ui.Modal):
             return
         
         new_title = self.children[0].value
+
         error_types = self.get_question_error(new_title, self.selected_tags)
         try:
             message = await self.thread.fetch_message(self.message_id)

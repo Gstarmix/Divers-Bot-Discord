@@ -8,7 +8,9 @@ import discord
 from discord.ext import commands
 from constants import QUESTION_CHANNEL_ID
 
-DATA_PATH = "extensions/threads.json"
+DATA_PATH = "extensions/threads"
+THREADS_DATA_PATH = f"{DATA_PATH}/threads.json"
+PENDING_THREADS_PATH = f"{DATA_PATH}/pending_threads.json"
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -21,29 +23,40 @@ class ThreadManager(commands.Cog):
         self.bot = bot
         self.threads_data = []
         self.existing_thread_ids = set()
-        self.load_threads_data()
         self.pending_threads = {}
+        self.load_threads_data()
+        self.load_pending_threads_data()
 
     def load_threads_data(self):
         try:
-            if os.path.exists(DATA_PATH):
-                with open(DATA_PATH, "r") as f:
+            if os.path.exists(THREADS_DATA_PATH):
+                with open(THREADS_DATA_PATH, "r") as f:
                     content = f.read().strip()
                     if content:
                         self.threads_data = json.loads(content)
                         self.existing_thread_ids = {thread["id"] for thread in self.threads_data}
-                        # logger.info(f"Loaded {len(self.threads_data)} threads from {DATA_PATH}")
-                    else:
-                        # logger.info(f"{DATA_PATH} is empty, starting with an empty list")
-                        pass
         except FileNotFoundError:
-            # logger.info(f"{DATA_PATH} not found, starting with an empty list")
             self.threads_data = []
 
     def save_threads_data(self):
-        with open(DATA_PATH, "w") as f:
+        os.makedirs(DATA_PATH, exist_ok=True)
+        with open(THREADS_DATA_PATH, "w") as f:
             json.dump(self.threads_data, f, indent=4)
-            # logger.info(f"Saved {len(self.threads_data)} threads to {DATA_PATH}")
+
+    def load_pending_threads_data(self):
+        try:
+            if os.path.exists(PENDING_THREADS_PATH):
+                with open(PENDING_THREADS_PATH, "r") as f:
+                    content = f.read().strip()
+                    if content:
+                        self.pending_threads = json.loads(content)
+        except FileNotFoundError:
+            self.pending_threads = {}
+
+    def save_pending_threads_data(self):
+        os.makedirs(DATA_PATH, exist_ok=True)
+        with open(PENDING_THREADS_PATH, "w") as f:
+            json.dump(self.pending_threads, f, indent=4)
 
     def clean_title(self, title):
         words = title.lower().split()
@@ -85,23 +98,21 @@ class ThreadManager(commands.Cog):
         if thread.id not in self.existing_thread_ids:
             self.threads_data.append(thread_info)
             self.existing_thread_ids.add(thread.id)
-            # logger.info(f"Thread info added: {thread_info}")
         else:
             for existing_thread in self.threads_data:
                 if existing_thread["id"] == thread.id:
                     existing_thread.update(thread_info)
-                    # logger.info(f"Thread info updated: {thread_info}")
                     break
+        self.save_threads_data()
 
     async def delete_thread_info(self, thread_id):
         self.threads_data = [thread for thread in self.threads_data if thread["id"] != thread_id]
         self.existing_thread_ids.discard(thread_id)
-        # logger.info(f"Thread info deleted: {thread_id}")
+        self.save_threads_data()
 
     async def fetch_all_threads(self):
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
         if question_channel is None:
-            # logger.error(f"Could not find channel with id {QUESTION_CHANNEL_ID}")
             return
         
         for thread in question_channel.threads:
@@ -115,7 +126,6 @@ class ThreadManager(commands.Cog):
         self.save_threads_data()
 
     async def cog_load(self):
-        # logger.info("Cog loaded successfully")
         await self.fetch_all_threads()
 
     @commands.Cog.listener()
@@ -124,7 +134,15 @@ class ThreadManager(commands.Cog):
             return
 
         await self.add_thread_info(thread)
-        self.pending_threads[thread.id] = thread
+        self.pending_threads[thread.id] = {
+            "id": thread.id,
+            "name": thread.name,
+            "author_id": thread.owner_id,
+            "guild_id": thread.guild.id,
+            "channel_id": thread.parent_id,
+            "created_at": str(thread.created_at)
+        }
+        self.save_pending_threads_data()
         self.save_threads_data()
 
     @commands.Cog.listener()
@@ -132,13 +150,18 @@ class ThreadManager(commands.Cog):
         if isinstance(message.channel, discord.Thread):
             if message.channel.parent_id != QUESTION_CHANNEL_ID:
                 return
-            if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id].owner_id:
+            if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id]["author_id"]:
                 await self.add_thread_info(message.channel)
+                del self.pending_threads[message.channel.id]
+                self.save_pending_threads_data()
                 self.save_threads_data()
             if message.embeds:
                 for embed in message.embeds:
                     if embed.title == "Titre validé":
                         thread = message.channel
+                        async for msg in thread.history(limit=100):
+                            if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+                                return
                         similar_threads = self.find_similar_threads(thread.name, thread.id)
                         if similar_threads:
                             await self.send_paginated_similar_threads(thread, similar_threads)
@@ -154,6 +177,9 @@ class ThreadManager(commands.Cog):
 
         similar_threads = self.find_similar_threads(after.name, after.id)
         if similar_threads:
+            async for msg in after.history(limit=100):
+                if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+                    return
             await self.send_paginated_similar_threads(after, similar_threads)
 
     @commands.Cog.listener()
@@ -189,7 +215,7 @@ class SimilarThreadsView(discord.ui.View):
         return date.strftime('%d/%m/%Y')
 
     def create_embed(self, threads, current_page, max_page):
-        description = "\n".join([f"- [{t['name']}]({t['link']}) - `{self.format_date_french(t['created_at'])}` - `{t['message_count']} messages`" for t in threads])
+        description = "\n".join([f"- `{self.format_date_french(t['created_at'])}` : [{t['name']}]({t['link']}) ({t['message_count']} msg)" for t in threads])
         embed = discord.Embed(
             title="Questions similaires triées par pertinence :",
             description=description,
