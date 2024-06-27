@@ -127,6 +127,7 @@ class ThreadManager(commands.Cog):
 
     async def cog_load(self):
         await self.fetch_all_threads()
+        self.bot.add_view(SimilarThreadsView([]))
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -206,9 +207,9 @@ class SimilarThreadsView(discord.ui.View):
     def update_buttons(self):
         self.clear_items()
         if self.current_page > 0:
-            self.add_item(PreviousPageButton())
+            self.add_item(PreviousPageButton(custom_id=f'persistent_view:previous_page:{self.current_page}'))
         if self.current_page < len(self.pages) - 1:
-            self.add_item(NextPageButton())
+            self.add_item(NextPageButton(custom_id=f'persistent_view:next_page:{self.current_page}'))
 
     def format_date_french(self, date_str):
         date = datetime.fromisoformat(date_str)
@@ -225,8 +226,8 @@ class SimilarThreadsView(discord.ui.View):
         return embed
 
 class PreviousPageButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="◀️ Page précédente", style=discord.ButtonStyle.secondary)
+    def __init__(self, custom_id: str):
+        super().__init__(label="◀️ Page précédente", style=discord.ButtonStyle.secondary, custom_id=custom_id)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
@@ -237,8 +238,8 @@ class PreviousPageButton(discord.ui.Button):
             await interaction.response.edit_message(embed=embed, view=view)
 
 class NextPageButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(label="Page suivante ▶️", style=discord.ButtonStyle.secondary)
+    def __init__(self, custom_id: str):
+        super().__init__(label="Page suivante ▶️", style=discord.ButtonStyle.secondary, custom_id=custom_id)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
