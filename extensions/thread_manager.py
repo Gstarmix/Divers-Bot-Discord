@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
 INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
 
-# Global dictionaries for thread management
 active_threads = {}
 thread_locks = {}
 
@@ -150,8 +149,7 @@ class ThreadManager(commands.Cog):
 
     async def cog_load(self):
         await self.fetch_all_threads()
-        load_active_threads()  # Load active threads on startup
-        # Registering the view for the buttons with no threads initially
+        load_active_threads()
         self.bot.add_view(SimilarThreadsView([]))
 
     @commands.Cog.listener()
@@ -168,7 +166,7 @@ class ThreadManager(commands.Cog):
             "channel_id": thread.parent_id,
             "created_at": str(thread.created_at)
         }
-        active_threads[thread.id] = self.pending_threads[thread.id]  # Add to active threads
+        active_threads[thread.id] = self.pending_threads[thread.id]
         self.save_pending_threads_data()
         self.save_threads_data()
 
@@ -215,7 +213,7 @@ class ThreadManager(commands.Cog):
             return
         await self.delete_thread_info(thread.id)
         if thread.id in active_threads:
-            del active_threads[thread.id]  # Remove from active threads
+            del active_threads[thread.id]
         self.save_threads_data()
 
     async def send_paginated_similar_threads(self, thread, similar_threads):
