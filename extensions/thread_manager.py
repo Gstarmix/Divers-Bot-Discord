@@ -122,7 +122,8 @@ class ThreadManager(commands.Cog):
             "channel_id": thread.parent_id,
             "created_at": str(thread.created_at),
             "message_count": thread.message_count,
-            "link": f"https://discord.com/channels/{thread.guild.id}/{thread.id}/{thread.id}"
+            "link": f"https://discord.com/channels/{thread.guild.id}/{thread.id}/{thread.id}",
+            "message_id": thread.last_message_id
         }
 
         if thread.id not in self.existing_thread_ids:
@@ -177,7 +178,8 @@ class ThreadManager(commands.Cog):
             "author_id": thread.owner_id,
             "guild_id": thread.guild.id,
             "channel_id": thread.parent_id,
-            "created_at": str(thread.created_at)
+            "created_at": str(thread.created_at),
+            "message_id": thread.last_message_id
         }
         active_threads[thread.id] = self.pending_threads[thread.id]
         self.save_pending_threads_data()
@@ -194,7 +196,6 @@ class ThreadManager(commands.Cog):
                 del self.pending_threads[message.channel.id]
                 self.save_pending_threads_data()
                 self.save_threads_data()
-                save_active_threads()
             if message.embeds:
                 for embed in message.embeds:
                     if embed.title == "Titre validé":
@@ -214,7 +215,6 @@ class ThreadManager(commands.Cog):
         
         await self.add_thread_info(after)
         self.save_threads_data()
-        save_active_threads()
 
         similar_threads = self.find_similar_threads(after.name, after.id)
         if similar_threads:
@@ -231,6 +231,7 @@ class ThreadManager(commands.Cog):
         if thread.id in active_threads:
             del active_threads[thread.id]
             save_active_threads()
+        self.save_threads_data()
 
     async def send_paginated_similar_threads(self, thread, similar_threads):
         view = SimilarThreadsView(similar_threads)
