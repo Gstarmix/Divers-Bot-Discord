@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime
 from difflib import SequenceMatcher
 
@@ -58,11 +59,6 @@ class ThreadManager(commands.Cog):
         self.pagination_state = self.load_pagination_state()
         self.load_threads_data()
         self.load_pending_threads_data()
-
-        for thread_id, thread_data in active_threads.items():
-            similar_threads = self.find_similar_threads(thread_data["name"], thread_id)
-            current_page = self.pagination_state.get(thread_id, 0)
-            self.bot.add_view(SimilarThreadsView(similar_threads, thread_id, self.bot, current_page), message_id=thread_data['message_id'])
 
     def load_threads_data(self):
         try:
@@ -174,7 +170,6 @@ class ThreadManager(commands.Cog):
     async def cog_load(self):
         await self.fetch_all_threads()
         load_active_threads()
-        self.bot.add_view(SimilarThreadsView([], "default_thread_id", self.bot))
 
     def save_pagination_state(self, thread_id, current_page):
         pagination_state_path = PAGINATION_STATE_PATH
@@ -204,8 +199,8 @@ class ThreadManager(commands.Cog):
             return {}
 
     async def send_paginated_similar_threads(self, thread, similar_threads, current_page=0):
-        view = SimilarThreadsView(similar_threads, thread.id, self.bot, current_page)
-        embed = view.create_embed(similar_threads[:15], current_page + 1, len(view.pages))
+        view = SimilarThreadsView(thread.id, similar_threads, current_page)
+        embed = view.create_embed(current_page + 1, len(view.pages))
         await thread.send(embed=embed, view=view)
         self.save_pagination_state(thread.id, current_page)
 
@@ -249,7 +244,7 @@ class ThreadManager(commands.Cog):
                                 return
                         similar_threads = self.find_similar_threads(thread.name, thread.id)
                         if similar_threads:
-                            await self.send_paginated_similar_threads(thread, similar_threads)
+                            await self.send_paginated_similar_threads(thread, similar_threads, current_page=0)
                             return
 
     @commands.Cog.listener()
@@ -266,7 +261,7 @@ class ThreadManager(commands.Cog):
             async for msg in after.history(limit=100):
                 if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
                     return
-            await self.send_paginated_similar_threads(after, similar_threads)
+            await self.send_paginated_similar_threads(after, similar_threads, current_page=0)
 
     @commands.Cog.listener()
     async def on_thread_delete(self, thread):
@@ -279,31 +274,30 @@ class ThreadManager(commands.Cog):
         save_active_threads()
 
 class SimilarThreadsView(discord.ui.View):
-    def __init__(self, threads, thread_id, bot, current_page=0):
+    def __init__(self, thread_id, threads, current_page=0):
         super().__init__(timeout=None)
+        self.thread_id = thread_id
         self.threads = threads
         self.pages = [threads[i:i + 15] for i in range(0, len(threads), 15)]
         self.current_page = current_page
-        self.thread_id = thread_id
-        self.bot = bot
 
         self.update_buttons()
 
     def update_buttons(self):
         self.clear_items()
         if self.current_page > 0:
-            self.add_item(PreviousPageButton(custom_id=f'persistent_view:previous_page:{self.thread_id}:{self.current_page}'))
+            self.add_item(PreviousPageButton(self.thread_id, self.current_page))
         if self.current_page < len(self.pages) - 1:
-            self.add_item(NextPageButton(custom_id=f'persistent_view:next_page:{self.thread_id}:{self.current_page}'))
+            self.add_item(NextPageButton(self.thread_id, self.current_page))
 
     def format_date_french(self, date_str):
         date = datetime.fromisoformat(date_str)
         return date.strftime('%d/%m/%Y')
 
-    def create_embed(self, threads, current_page, max_page):
+    def create_embed(self, current_page, max_page):
         description = "\n".join([
             f"- `{self.format_date_french(t['created_at'])}` : [{t['name']}]({t.get('link', '#')}) ({t.get('message_count', 0)} msg)"
-            for t in threads
+            for t in self.pages[self.current_page]
         ])
         embed = discord.Embed(
             title="Questions similaires triées par pertinence :",
@@ -313,33 +307,68 @@ class SimilarThreadsView(discord.ui.View):
         embed.set_footer(text=f"Page {current_page} sur {max_page}")
         return embed
 
-class PreviousPageButton(discord.ui.Button):
-    def __init__(self, custom_id: str):
-        super().__init__(label="◀️ Page précédente", style=discord.ButtonStyle.secondary, custom_id=custom_id)
+class PreviousPageButton(
+    discord.ui.DynamicItem[discord.ui.Button],
+    template=r'previous_page:(?P<thread_id>[0-9]+):page:(?P<current_page>[0-9]+)',
+):
+    def __init__(self, thread_id: int, current_page: int):
+        self.thread_id = thread_id
+        self.current_page = current_page
+        super().__init__(
+            discord.ui.Button(
+                label="◀️ Page précédente",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f'previous_page:{thread_id}:page:{current_page}',
+            )
+        )
 
-    async def callback(self, interaction: discord.Interaction):
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Button, match: re.Match[str], /):
+        thread_id = int(match['thread_id'])
+        current_page = int(match['current_page'])
+        return cls(thread_id, current_page)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
         view = self.view
-        if view:
+        if view and isinstance(view, SimilarThreadsView):
             view.current_page = max(view.current_page - 1, 0)
             view.update_buttons()
-            embed = view.create_embed(view.pages[view.current_page], view.current_page + 1, len(view.pages))
+            embed = view.create_embed(view.current_page + 1, len(view.pages))
             await interaction.response.edit_message(embed=embed, view=view)
-            view.bot.get_cog("ThreadManager").save_pagination_state(view.thread_id, view.current_page)
+            self.view.bot.get_cog("ThreadManager").save_pagination_state(view.thread_id, view.current_page)
             print(f"Previous page button clicked. New current page: {view.current_page}")
 
-class NextPageButton(discord.ui.Button):
-    def __init__(self, custom_id: str):
-        super().__init__(label="Page suivante ▶️", style=discord.ButtonStyle.secondary, custom_id=custom_id)
+class NextPageButton(
+    discord.ui.DynamicItem[discord.ui.Button],
+    template=r'next_page:(?P<thread_id>[0-9]+):page:(?P<current_page>[0-9]+)',
+):
+    def __init__(self, thread_id: int, current_page: int):
+        self.thread_id = thread_id
+        self.current_page = current_page
+        super().__init__(
+            discord.ui.Button(
+                label="Page suivante ▶️",
+                style=discord.ButtonStyle.secondary,
+                custom_id=f'next_page:{thread_id}:page:{current_page}',
+            )
+        )
 
-    async def callback(self, interaction: discord.Interaction):
+    @classmethod
+    async def from_custom_id(cls, interaction: discord.Interaction, item: discord.ui.Button, match: re.Match[str], /):
+        thread_id = int(match['thread_id'])
+        current_page = int(match['current_page'])
+        return cls(thread_id, current_page)
+
+    async def callback(self, interaction: discord.Interaction) -> None:
         view = self.view
-        if view:
+        if view and isinstance(view, SimilarThreadsView):
             view.current_page = min(view.current_page + 1, len(view.pages) - 1)
             view.update_buttons()
-            embed = view.create_embed(view.pages[view.current_page], view.current_page + 1, len(view.pages))
+            embed = view.create_embed(view.current_page + 1, len(view.pages))
             await interaction.response.edit_message(embed=embed, view=view)
-            view.bot.get_cog("ThreadManager").save_pagination_state(view.thread_id, view.current_page)
+            self.view.bot.get_cog("ThreadManager").save_pagination_state(view.thread_id, view.current_page)
             print(f"Next page button clicked. New current page: {view.current_page}")
 
 async def setup(bot):
     await bot.add_cog(ThreadManager(bot))
+    bot.add_dynamic_items(PreviousPageButton, NextPageButton)
