@@ -12,6 +12,7 @@ from threading import Lock
 DATA_PATH = "extensions/threads"
 THREADS_DATA_PATH = f"{DATA_PATH}/threads.json"
 PENDING_THREADS_PATH = f"{DATA_PATH}/pending_threads.json"
+PAGINATION_STATE_PATH = f"{DATA_PATH}/pagination_state.json"
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -54,12 +55,14 @@ class ThreadManager(commands.Cog):
         self.threads_data = []
         self.existing_thread_ids = set()
         self.pending_threads = {}
+        self.pagination_state = self.load_pagination_state()
         self.load_threads_data()
         self.load_pending_threads_data()
 
         for thread_id, thread_data in active_threads.items():
             similar_threads = self.find_similar_threads(thread_data["name"], thread_id)
-            self.bot.add_view(SimilarThreadsView(similar_threads, thread_id), message_id=thread_data['message_id'])
+            current_page = self.pagination_state.get(thread_id, 0)
+            self.bot.add_view(SimilarThreadsView(similar_threads, thread_id, self.bot, current_page), message_id=thread_data['message_id'])
 
     def load_threads_data(self):
         try:
@@ -171,7 +174,40 @@ class ThreadManager(commands.Cog):
     async def cog_load(self):
         await self.fetch_all_threads()
         load_active_threads()
-        self.bot.add_view(SimilarThreadsView([], "default_thread_id"))
+        self.bot.add_view(SimilarThreadsView([], "default_thread_id", self.bot))
+
+    def save_pagination_state(self, thread_id, current_page):
+        pagination_state_path = PAGINATION_STATE_PATH
+        try:
+            if os.path.exists(pagination_state_path):
+                with open(pagination_state_path, "r") as f:
+                    pagination_state = json.loads(f.read().strip() or "{}")
+            else:
+                pagination_state = {}
+
+            pagination_state[thread_id] = current_page
+
+            with open(pagination_state_path, "w") as f:
+                json.dump(pagination_state, f, indent=4)
+        except Exception as e:
+            logger.error(f"❗ Error saving pagination state: {e}")
+
+    def load_pagination_state(self):
+        pagination_state_path = PAGINATION_STATE_PATH
+        try:
+            if os.path.exists(pagination_state_path):
+                with open(pagination_state_path, "r") as f:
+                    return json.loads(f.read().strip() or "{}")
+            return {}
+        except Exception as e:
+            logger.error(f"❗ Error loading pagination state: {e}")
+            return {}
+
+    async def send_paginated_similar_threads(self, thread, similar_threads, current_page=0):
+        view = SimilarThreadsView(similar_threads, thread.id, self.bot, current_page)
+        embed = view.create_embed(similar_threads[:15], current_page + 1, len(view.pages))
+        await thread.send(embed=embed, view=view)
+        self.save_pagination_state(thread.id, current_page)
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -242,18 +278,14 @@ class ThreadManager(commands.Cog):
         self.save_threads_data()
         save_active_threads()
 
-    async def send_paginated_similar_threads(self, thread, similar_threads):
-        view = SimilarThreadsView(similar_threads, thread.id)
-        embed = view.create_embed(similar_threads[:15], 1, len(view.pages))
-        await thread.send(embed=embed, view=view)
-
 class SimilarThreadsView(discord.ui.View):
-    def __init__(self, threads, thread_id):
+    def __init__(self, threads, thread_id, bot, current_page=0):
         super().__init__(timeout=None)
         self.threads = threads
         self.pages = [threads[i:i + 15] for i in range(0, len(threads), 15)]
-        self.current_page = 0
+        self.current_page = current_page
         self.thread_id = thread_id
+        self.bot = bot
 
         self.update_buttons()
 
@@ -288,10 +320,12 @@ class PreviousPageButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         view = self.view
         if view:
-            view.current_page -= 1
+            view.current_page = max(view.current_page - 1, 0)
             view.update_buttons()
             embed = view.create_embed(view.pages[view.current_page], view.current_page + 1, len(view.pages))
             await interaction.response.edit_message(embed=embed, view=view)
+            view.bot.get_cog("ThreadManager").save_pagination_state(view.thread_id, view.current_page)
+            print(f"Previous page button clicked. New current page: {view.current_page}")
 
 class NextPageButton(discord.ui.Button):
     def __init__(self, custom_id: str):
@@ -300,10 +334,12 @@ class NextPageButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         view = self.view
         if view:
-            view.current_page += 1
+            view.current_page = min(view.current_page + 1, len(view.pages) - 1)
             view.update_buttons()
             embed = view.create_embed(view.pages[view.current_page], view.current_page + 1, len(view.pages))
             await interaction.response.edit_message(embed=embed, view=view)
+            view.bot.get_cog("ThreadManager").save_pagination_state(view.thread_id, view.current_page)
+            print(f"Next page button clicked. New current page: {view.current_page}")
 
 async def setup(bot):
     await bot.add_cog(ThreadManager(bot))
