@@ -7,11 +7,8 @@ from difflib import SequenceMatcher
 import discord
 from discord.ext import commands
 from constants import QUESTION_CHANNEL_ID
-from threading import Lock
 
-DATA_PATH = "extensions/threads"
-THREADS_DATA_PATH = f"{DATA_PATH}/threads.json"
-PENDING_THREADS_PATH = f"{DATA_PATH}/pending_threads.json"
+DATA_PATH = "extensions/threads.json"
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -19,77 +16,34 @@ logger = logging.getLogger(__name__)
 INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
 INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
 
-active_threads = {}
-thread_locks = {}
-
-def load_active_threads():
-    try:
-        if os.path.exists(THREADS_DATA_PATH):
-            with open(THREADS_DATA_PATH, "r") as f:
-                content = f.read().strip()
-                if content:
-                    threads_data = json.loads(content)
-                    for thread in threads_data:
-                        active_threads[thread["id"]] = thread
-        logger.info("👍 Active threads loaded from the data file.")
-    except Exception as e:
-        logger.error(f"❗ Error loading active threads: {e}")
-
-def save_active_threads():
-    try:
-        with open(THREADS_DATA_PATH, "w") as f:
-            json.dump(list(active_threads.values()), f, indent=4)
-        logger.info("👍 Active threads saved to the data file.")
-    except Exception as e:
-        logger.error(f"❗ Error saving active threads: {e}")
-
-def get_thread_lock(thread_id):
-    if thread_id not in thread_locks:
-        thread_locks[thread_id] = Lock()
-    return thread_locks[thread_id]
-
 class ThreadManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.threads_data = []
         self.existing_thread_ids = set()
-        self.pending_threads = {}
         self.load_threads_data()
-        self.load_pending_threads_data()
-
-        for thread_id, thread_data in active_threads.items():
-            self.bot.add_view(SimilarThreadsView([]), message_id=thread_data['message_id'])
+        self.pending_threads = {}
 
     def load_threads_data(self):
         try:
-            if os.path.exists(THREADS_DATA_PATH):
-                with open(THREADS_DATA_PATH, "r") as f:
+            if os.path.exists(DATA_PATH):
+                with open(DATA_PATH, "r") as f:
                     content = f.read().strip()
                     if content:
                         self.threads_data = json.loads(content)
                         self.existing_thread_ids = {thread["id"] for thread in self.threads_data}
+                        # logger.info(f"Loaded {len(self.threads_data)} threads from {DATA_PATH}")
+                    else:
+                        # logger.info(f"{DATA_PATH} is empty, starting with an empty list")
+                        pass
         except FileNotFoundError:
+            # logger.info(f"{DATA_PATH} not found, starting with an empty list")
             self.threads_data = []
 
     def save_threads_data(self):
-        os.makedirs(DATA_PATH, exist_ok=True)
-        with open(THREADS_DATA_PATH, "w") as f:
+        with open(DATA_PATH, "w") as f:
             json.dump(self.threads_data, f, indent=4)
-
-    def load_pending_threads_data(self):
-        try:
-            if os.path.exists(PENDING_THREADS_PATH):
-                with open(PENDING_THREADS_PATH, "r") as f:
-                    content = f.read().strip()
-                    if content:
-                        self.pending_threads = json.loads(content)
-        except FileNotFoundError:
-            self.pending_threads = {}
-
-    def save_pending_threads_data(self):
-        os.makedirs(DATA_PATH, exist_ok=True)
-        with open(PENDING_THREADS_PATH, "w") as f:
-            json.dump(self.pending_threads, f, indent=4)
+            # logger.info(f"Saved {len(self.threads_data)} threads to {DATA_PATH}")
 
     def clean_title(self, title):
         words = title.lower().split()
@@ -131,25 +85,23 @@ class ThreadManager(commands.Cog):
         if thread.id not in self.existing_thread_ids:
             self.threads_data.append(thread_info)
             self.existing_thread_ids.add(thread.id)
+            # logger.info(f"Thread info added: {thread_info}")
         else:
             for existing_thread in self.threads_data:
                 if existing_thread["id"] == thread.id:
                     existing_thread.update(thread_info)
+                    # logger.info(f"Thread info updated: {thread_info}")
                     break
-        self.save_threads_data()
-        save_active_threads()
 
     async def delete_thread_info(self, thread_id):
         self.threads_data = [thread for thread in self.threads_data if thread["id"] != thread_id]
         self.existing_thread_ids.discard(thread_id)
-        if thread_id in active_threads:
-            del active_threads[thread_id]
-        self.save_threads_data()
-        save_active_threads()
+        # logger.info(f"Thread info deleted: {thread_id}")
 
     async def fetch_all_threads(self):
         question_channel = self.bot.get_channel(QUESTION_CHANNEL_ID)
         if question_channel is None:
+            # logger.error(f"Could not find channel with id {QUESTION_CHANNEL_ID}")
             return
         
         for thread in question_channel.threads:
@@ -163,9 +115,8 @@ class ThreadManager(commands.Cog):
         self.save_threads_data()
 
     async def cog_load(self):
+        # logger.info("Cog loaded successfully")
         await self.fetch_all_threads()
-        load_active_threads()
-        self.bot.add_view(SimilarThreadsView([]))
 
     @commands.Cog.listener()
     async def on_thread_create(self, thread):
@@ -173,31 +124,17 @@ class ThreadManager(commands.Cog):
             return
 
         await self.add_thread_info(thread)
-        self.pending_threads[thread.id] = {
-            "id": thread.id,
-            "name": thread.name,
-            "author_id": thread.owner_id,
-            "guild_id": thread.guild.id,
-            "channel_id": thread.parent_id,
-            "created_at": str(thread.created_at),
-            "message_id": thread.last_message_id
-        }
-        active_threads[thread.id] = self.pending_threads[thread.id]
-        self.save_pending_threads_data()
+        self.pending_threads[thread.id] = thread
         self.save_threads_data()
-        save_active_threads()
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if isinstance(message.channel, discord.Thread):
             if message.channel.parent_id != QUESTION_CHANNEL_ID:
                 return
-            if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id]["author_id"]:
+            if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id].owner_id:
                 await self.add_thread_info(message.channel)
-                del self.pending_threads[message.channel.id]
-                self.save_pending_threads_data()
                 self.save_threads_data()
-                save_active_threads()
             if message.embeds:
                 for embed in message.embeds:
                     if embed.title == "Titre validé":
@@ -217,7 +154,6 @@ class ThreadManager(commands.Cog):
         
         await self.add_thread_info(after)
         self.save_threads_data()
-        save_active_threads()
 
         similar_threads = self.find_similar_threads(after.name, after.id)
         if similar_threads:
@@ -231,10 +167,7 @@ class ThreadManager(commands.Cog):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
         await self.delete_thread_info(thread.id)
-        if thread.id in active_threads:
-            del active_threads[thread.id]
         self.save_threads_data()
-        save_active_threads()
 
     async def send_paginated_similar_threads(self, thread, similar_threads):
         view = SimilarThreadsView(similar_threads)
@@ -253,9 +186,9 @@ class SimilarThreadsView(discord.ui.View):
     def update_buttons(self):
         self.clear_items()
         if self.current_page > 0:
-            self.add_item(PreviousPageButton(custom_id=f'persistent_view:previous_page:{self.current_page}'))
+            self.add_item(PreviousPageButton())
         if self.current_page < len(self.pages) - 1:
-            self.add_item(NextPageButton(custom_id=f'persistent_view:next_page:{self.current_page}'))
+            self.add_item(NextPageButton())
 
     def format_date_french(self, date_str):
         date = datetime.fromisoformat(date_str)
@@ -272,8 +205,8 @@ class SimilarThreadsView(discord.ui.View):
         return embed
 
 class PreviousPageButton(discord.ui.Button):
-    def __init__(self, custom_id: str):
-        super().__init__(label="◀️ Page précédente", style=discord.ButtonStyle.secondary, custom_id=custom_id)
+    def __init__(self):
+        super().__init__(label="◀️ Page précédente", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
@@ -284,8 +217,8 @@ class PreviousPageButton(discord.ui.Button):
             await interaction.response.edit_message(embed=embed, view=view)
 
 class NextPageButton(discord.ui.Button):
-    def __init__(self, custom_id: str):
-        super().__init__(label="Page suivante ▶️", style=discord.ButtonStyle.secondary, custom_id=custom_id)
+    def __init__(self):
+        super().__init__(label="Page suivante ▶️", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction):
         view = self.view
