@@ -213,6 +213,9 @@ class StopConfirmView(discord.ui.View):
 
     @discord.ui.button(label="Confirmer", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.message.author:
+            await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
+            return
         await interaction.response.send_message("Vous ne recevrez plus de notifications pour les questions détectées.", ephemeral=True)
         self.disable_buttons()
         try:
@@ -226,6 +229,9 @@ class StopConfirmView(discord.ui.View):
 
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.message.author:
+            await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
+            return
         stop_file = "stop_users.json"
         if os.path.exists(stop_file):
             with open(stop_file, "r") as f:
@@ -377,7 +383,8 @@ class QuestionDetectedView(discord.ui.View):
             ),
             color=discord.Color.orange()
         )
-        await interaction.response.send_message(embed=confirm_embed, view=confirm_view, ephemeral=False)
+        confirmation_message = await interaction.response.send_message(embed=confirm_embed, view=confirm_view, ephemeral=False)
+        confirm_view.confirmation_message = confirmation_message
 
     async def handle_timeout(self):
         try:
@@ -534,7 +541,7 @@ class Question(commands.Cog):
                     title="Question détectée",
                     description=(
                         "Nous avons détecté une question. Conformément au [**règlement**](https://discord.com/channels/684734347177230451/724737757427269702), assurez-vous que votre question soit liée à NosTale. Ensuite, suivez les étapes suivantes :\n\n"
-                        "1. **Cliquez sur le bouton 'Oui' pour déplacer le message vers [Questions](https://discord.com/channels/684734347177230451/1055993732505284690).**\n\n"
+                        "1. **Cliquez sur le bouton Oui pour déplacer le message vers [Questions](https://discord.com/channels/684734347177230451/1055993732505284690).**\n\n"
                         "2. **Modifiez le titre de votre fil pour qu'il soit conforme aux règles suivantes :**\n"
                         "   - Commencer par une majuscule.\n"
                         "   - Utiliser un mot ou une expression interrogative.\n"
