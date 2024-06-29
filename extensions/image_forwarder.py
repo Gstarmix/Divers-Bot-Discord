@@ -108,10 +108,12 @@ class DeleteView(discord.ui.View):
 
 
 class CommerceTypeView(discord.ui.View):
-    def __init__(self, callback: Callable[[str], Awaitable[None]], author_id: int):
-        super().__init__(timeout=None)
+    def __init__(self, callback: Callable[[str], Awaitable[None]], author_id: int, thread: discord.Thread):
+        super().__init__(timeout=300)
         self.callback = callback
         self.author_id = author_id
+        self.thread = thread
+        self.interaction_received = False
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
@@ -121,16 +123,25 @@ class CommerceTypeView(discord.ui.View):
 
     @discord.ui.button(label="Achat", style=discord.ButtonStyle.green, custom_id="buy")
     async def buy(self, interaction: discord.Interaction, _: discord.ui.Button):
+        self.interaction_received = True
         new_callback = partial(self.callback, trade_type="Achat")
         await end_view_chain(interaction, new_callback)
-        # await interaction.followup.send("Veuillez choisir le serveur pour votre achat :", view=ServerChoiceView(new_callback, self.author_id))
 
     @discord.ui.button(label="Vente", style=discord.ButtonStyle.blurple, custom_id="sell")
     async def sell(self, interaction: discord.Interaction, _: discord.ui.Button):
+        self.interaction_received = True
         new_callback = partial(self.callback, trade_type="Vente")
         await end_view_chain(interaction, new_callback)
-        # await interaction.followup.send("Veuillez choisir le serveur pour votre vente :", view=ServerChoiceView(new_callback, self.author_id))
 
+    async def on_timeout(self):
+        if not self.interaction_received:
+            try:
+                print(f"Timeout reached for thread {self.thread.id}")
+                thread_title = self.thread.name
+                await self.thread.delete()
+                await self.thread.owner.send(f"Votre fil '{thread_title}' a été supprimé car vous n'avez pas appuyé sur les boutons `Achat` ou `Vente` pour republier votre post dans les 5 minutes.")
+            except Exception as e:
+                print(f"Erreur lors de la suppression du fil ou de l'envoi du message privé : {e}")
 
 # class ServerChoiceView(discord.ui.View):
 #     def __init__(self, repost_message_func, author_id: int):
@@ -160,23 +171,25 @@ class CommerceTypeView(discord.ui.View):
 #         await end_view_chain(interaction, self.repost_message_func, "nosfire")
 
 class RaidSelectView(discord.ui.View):
-    def __init__(self, author_id: int, repost_message, *, page=0):
-        super().__init__(timeout=None)
+    def __init__(self, author_id: int, repost_message, thread: discord.Thread, *, page=0):
+        super().__init__(timeout=10)  # Timeout ajusté pour tester rapidement
         self.author_id = author_id
         self.repost_message = repost_message
         self.page = page
+        self.thread = thread
+        self.interaction_received = False
         self.max_page = len(RAIDS_LIST) // 25 + (1 if len(RAIDS_LIST) % 25 > 0 else 0)
-        self.add_item(RaidSelect(author_id, self.repost_message, page=page))
+        self.add_item(RaidSelect(author_id, self.repost_message, thread, page=page))
         if page > 0:
             self.add_item(PageButton(author_id, -1))
         if page < self.max_page - 1:
             self.add_item(PageButton(author_id, 1))
 
-
 class RaidSelect(discord.ui.Select[RaidSelectView]):
-    def __init__(self, author_id: int, repost_message, page=0):
+    def __init__(self, author_id: int, repost_message, thread: discord.Thread, page=0):
         self.author_id = author_id
         self.repost_message = repost_message
+        self.thread = thread
         options = [
             discord.SelectOption(label=raid, value=raid, emoji=RAIDS_EMOTES.get(raid))
             for raid in RAIDS_LIST[page * 25:min((page + 1) * 25, len(RAIDS_LIST))]
@@ -187,6 +200,7 @@ class RaidSelect(discord.ui.Select[RaidSelectView]):
         if interaction.user.id != self.author_id:
             await interaction.response.send_message("Vous n'avez pas l'autorisation de faire cela.", ephemeral=True)
             return
+        self.view.interaction_received = True
         new_callback = partial(self.repost_message, selected_raids=self.values)
         await end_view_chain(interaction, new_callback, is_raid_search=True)
         # view = ServerChoiceView(repost_message_func=new_callback, author_id=self.author_id)
@@ -208,20 +222,23 @@ class PageButton(discord.ui.Button[RaidSelectView]):
             return
         view = self.view
         view.clear_items()
-        new_view = RaidSelectView(self.author_id, self.view.repost_message, page=view.page + self.page_to_add)
+        new_view = RaidSelectView(self.author_id, self.view.repost_message, self.view.thread, page=view.page + self.page_to_add)
         await interaction.response.edit_message(view=new_view)
 
 
 async def end_view_chain(target: discord.Interaction | discord.Thread, callback, server="cosmos", is_raid_search=False):
-    target_channel_id, thread_to_messages, delete_timestamps = await callback(server=server)
-    base_message = f":white_check_mark: Annonce postée dans <#{target_channel_id}>.\n"
-    raid_message = ":warning: Pour être mentionné par les rôles de raid, rendez-vous dans <id:customize>.\n:warning: La republication n'est pas disponible pour les annonces de raid. Vous devrez créer un nouveau post pour mettre à jour votre recherche." if is_raid_search else ""
-    if isinstance(target, discord.Thread):
-        actions_view = ActionsView(thread_to_messages, delete_timestamps)
-        await target.send(content=base_message + raid_message, view=actions_view)
-    else:
-        actions_view = ActionsView(thread_to_messages, delete_timestamps)
-        await target.response.edit_message(content=base_message + raid_message, view=actions_view)
+    try:
+        target_channel_id, thread_to_messages, delete_timestamps = await callback(server=server)
+        base_message = f":white_check_mark: Annonce postée dans <#{target_channel_id}>.\n"
+        raid_message = ":warning: Pour être mentionné par les rôles de raid, rendez-vous dans <id:customize>.\n:warning: La republication n'est pas disponible pour les annonces de raid. Vous devrez créer un nouveau post pour mettre à jour votre recherche." if is_raid_search else ""
+        if isinstance(target, discord.Thread):
+            actions_view = ActionsView(thread_to_messages, delete_timestamps)
+            await target.send(content=base_message + raid_message, view=actions_view)
+        else:
+            actions_view = ActionsView(thread_to_messages, delete_timestamps)
+            await target.response.edit_message(content=base_message + raid_message, view=actions_view)
+    except Exception as e:
+        print(f"Erreur dans end_view_chain: {e}")
 
 # class NextPageButton(discord.ui.Button):
 #     def __init__(self, author_id):
@@ -535,89 +552,82 @@ class ImageForwarder(commands.Cog):
         return target_channel_id, self.thread_to_messages, self.delete_timestamps
 
     async def handle_post_logic(self, message: discord.Message):
-        thread = message.channel
-        author = message.author
+        try:
+            thread = message.channel
+            author = message.author
 
-        if author.bot or thread.type != discord.ChannelType.public_thread or thread.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
-            raise Exception("Condition initiale non remplie (auteur bot, type de canal, parent_id)")
+            if author.bot or thread.type != discord.ChannelType.public_thread or thread.parent_id not in {COMMERCES_ID, ACTIVITES_ID}:
+                raise Exception("Condition initiale non remplie (auteur bot, type de canal, parent_id)")
 
-        if author != thread.owner:
-            return
-        
-        is_initial_post = message.id == thread.id
+            if author != thread.owner:
+                return
 
-        current_time = datetime.now(tz=FRA)
-        last_post_time = datetime.fromtimestamp(self.last_post_time.get(str(thread.id), 0), tz=FRA)
+            is_initial_post = message.id == thread.id
 
-        timer_hours = None
-        thread_tags = {tag.name for tag in thread.applied_tags}
+            current_time = datetime.now(tz=FRA)
+            last_post_time = datetime.fromtimestamp(self.last_post_time.get(str(thread.id), 0), tz=FRA)
 
-        server = get_server(thread_tags)
-        activity_type = get_activity_type(thread_tags)
-        trade_type = get_trade_type(thread_tags)
-        if thread.parent_id == COMMERCES_ID and trade_type:
-            # trade_type = "achat" if "achat" in thread.name else "vente"
-            # server = "nosfire" if "nosfire" in thread.name else "cosmos"
-            timer_hours = TRADE_CHANNELS.get(f"{trade_type}_{server}", {}).get("timer_hours", 24)
-        elif thread.parent_id == ACTIVITES_ID and activity_type:
-            # for tag in thread_tags:
-            #     if tag in ACTIVITY_TYPES:
-            #         timer_hours = ACTIVITY_CHANNELS[f"{tag}_{server}"].get("timer_hours")
-            #         break
-            timer_hours = ACTIVITY_CHANNELS[f"{activity_type}_{server}"].get("timer_hours")
+            timer_hours = None
+            thread_tags = {tag.name for tag in thread.applied_tags}
 
-        if timer_hours is None:
-            timer_hours = 24
-            #print(f"Aucun timer_hours spécifique trouvé, utilisation de la valeur par défaut (24h). Faut verifier pourquoi {thread=}")
+            server = get_server(thread_tags)
+            activity_type = get_activity_type(thread_tags)
+            trade_type = get_trade_type(thread_tags)
+            if thread.parent_id == COMMERCES_ID and trade_type:
+                timer_hours = TRADE_CHANNELS.get(f"{trade_type}_{server}", {}).get("timer_hours", 24)
+            elif thread.parent_id == ACTIVITES_ID and activity_type:
+                timer_hours = ACTIVITY_CHANNELS[f"{activity_type}_{server}"].get("timer_hours")
 
-        if last_post_time + timedelta(hours=timer_hours) > current_time and not is_initial_post:
-            user_thread_key = (author.id, thread.id)
-            if user_thread_key not in self.last_notification_time or (datetime.now() - self.last_notification_time[user_thread_key]).total_seconds() > 300:
-                notification_message = f"🕒 Tu ne pourras reposter ton annonce qu'à partir du {discord.utils.format_dt(last_post_time + timedelta(hours=timer_hours), 'f')}.\n:warning: Ce message sera supprimé dans 5 minutes."
-                bot_message = await thread.send(content=notification_message, reference=message)
-                await bot_message.delete(delay=300)
-                self.last_notification_time[user_thread_key] = datetime.now()
-            return
+            if timer_hours is None:
+                timer_hours = 24
 
-        if activity_type != "Recherche-raid":
-            self.last_post_time[str(thread.id)] = int(current_time.timestamp())
-            self.save_datas()
+            if last_post_time + timedelta(hours=timer_hours) > current_time and not is_initial_post:
+                user_thread_key = (author.id, thread.id)
+                if user_thread_key not in self.last_notification_time or (datetime.now() - self.last_notification_time[user_thread_key]).total_seconds() > 300:
+                    notification_message = f"🕒 Tu ne pourras reposter ton annonce qu'à partir du {discord.utils.format_dt(last_post_time + timedelta(hours=timer_hours), 'f')}.\n:warning: Ce message sera supprimé dans 5 minutes."
+                    bot_message = await thread.send(content=notification_message, reference=message)
+                    await bot_message.delete(delay=300)
+                    self.last_notification_time[user_thread_key] = datetime.now()
+                return
 
-        if thread.parent_id == COMMERCES_ID:
-            if is_initial_post:
-                await message.reply(
-                    "Quel type de commerce souhaitez-vous réaliser ?",
-                    view=CommerceTypeView(
-                        partial(self.repost_message, msg=message, is_initial_post=True, msg_type="commerce"),
-                        author_id=author.id
+            if activity_type != "Recherche-raid":
+                self.last_post_time[str(thread.id)] = int(current_time.timestamp())
+                self.save_datas()
+
+            if thread.parent_id == COMMERCES_ID:
+                if is_initial_post:
+                    await message.reply(
+                        "Quel type de commerce souhaitez-vous réaliser ?",
+                        view=CommerceTypeView(
+                            partial(self.repost_message, msg=message, is_initial_post=True, msg_type="commerce"),
+                            author_id=author.id,
+                            thread=thread
+                        )
                     )
-                )
-            else:
-                await self.repost_message(message, False, "commerce")
-
-        if thread.parent_id == ACTIVITES_ID:
-            # detected_tags = {tag.name for tag in thread.applied_tags} & ACTIVITY_TYPES
-            if not activity_type:
-                raise Exception(f"Aucun tag d'activités pour {thread=}")
-            if is_initial_post:
-                if activity_type == "Recherche-raid":
-                    select_view = RaidSelectView(author_id=author.id, repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), page=0)
-                    await message.reply("Sélectionnez les types de raids :", view=select_view)
                 else:
-                    # await message.reply(
-                    #     "Sur quel serveur souhaitez-vous poster votre activité ?",
-                    #     view=ServerChoiceView(
-                    #         repost_message_func=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=detected_tags.pop()),
-                    #         author_id=author.id
-                    #     )
-                    # )
-                    await end_view_chain(thread, partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=activity_type))
-            else:
-                if activity_type == "Recherche-raid":
-                    #print("tentative d'up de raid, pour l'instant ça ignore juste le message")
-                    return
-                await self.repost_message(message, False, "activité")
+                    await self.repost_message(message, False, "commerce")
 
+            if thread.parent_id == ACTIVITES_ID:
+                if not activity_type:
+                    raise Exception(f"Aucun tag d'activités pour {thread=}")
+                if is_initial_post:
+                    if activity_type == "Recherche-raid":
+                        select_view = RaidSelectView(
+                            author_id=author.id, 
+                            repost_message=partial(self.repost_message, msg=message, is_initial_post=True, msg_type="raid"), 
+                            thread=thread, 
+                            page=0
+                        )
+                        await message.reply("Sélectionnez les types de raids :", view=select_view)
+                    else:
+                        await end_view_chain(thread, partial(self.repost_message, msg=message, is_initial_post=True, msg_type="activité", activity_type=activity_type))
+                else:
+                    if activity_type == "Recherche-raid":
+                        print(f"Recherche-raid detected, not reposting message {message.id}")
+                        return
+                    await self.repost_message(message, False, "activité")
+        except Exception as e:
+            print(f"Erreur dans handle_post_logic: {e}")
 
 # def get_tags_string(thread: discord.Thread) -> str:
 #     tags_list = thread.applied_tags
