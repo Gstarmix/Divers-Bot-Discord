@@ -351,13 +351,22 @@ class QuestionDetectedView(discord.ui.View):
             print("Confirmation message not found, could not delete.")
 
         try:
-            if interaction.message.id == self.message.id:
-                print("Deleting the question detected embed")
+            if interaction.message:
+                print(f"Attempting to delete interaction message ID: {interaction.message.id}")
                 await interaction.message.delete()
+                print("Interaction message deleted.")
             else:
-                print("The message ID does not match the question detected message")
+                print("No interaction message found.")
         except discord.errors.NotFound:
-            print("Question detected message not found, could not delete.")
+            print("Interaction message not found, could not delete.")
+
+        try:
+            if self.message:
+                print(f"Question detected message still exists with ID: {self.message.id}")
+            else:
+                print("Question detected message not found.")
+        except Exception as e:
+            print(f"Error checking question detected message: {str(e)}")
 
         await interaction.response.send_message(content=f"{self.message.author.mention} Votre question n'a pas été déplacée.", ephemeral=False)
         self.stop()
@@ -403,10 +412,10 @@ class QuestionDetectedView(discord.ui.View):
             print("Confirmation message not found, could not delete.")
 
         try:
-            print(f"Deleting question detected message: {self.message.id}")
-            await self.message.delete()
+            print(f"Removing view from question detected message: {self.message.id}")
+            await self.message.edit(view=None)  # This will remove the embed and buttons without deleting the message
         except discord.errors.NotFound:
-            print("Question detected message not found, could not delete.")
+            print("Question detected message not found, could not edit.")
 
         self.stop()
 
