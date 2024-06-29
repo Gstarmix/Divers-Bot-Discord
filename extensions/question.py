@@ -338,26 +338,33 @@ class QuestionDetectedView(discord.ui.View):
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        print(f"Cancel button pressed by: {interaction.user.id}")
         if interaction.user != self.message.author:
             await interaction.response.send_message(f"Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
 
         try:
             if self.confirmation_message:
+                print(f"Deleting confirmation message: {self.confirmation_message.id}")
                 await self.confirmation_message.delete()
         except discord.errors.NotFound:
-            pass
+            print("Confirmation message not found, could not delete.")
 
         try:
-            await self.message.delete()
+            if interaction.message.id == self.message.id:
+                print("Deleting the question detected embed")
+                await interaction.message.delete()
+            else:
+                print("The message ID does not match the question detected message")
         except discord.errors.NotFound:
-            pass
+            print("Question detected message not found, could not delete.")
 
         await interaction.response.send_message(content=f"{self.message.author.mention} Votre question n'a pas été déplacée.", ephemeral=False)
         self.stop()
 
     @discord.ui.button(label="STOP", style=discord.ButtonStyle.grey)
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        print(f"Stop button pressed by: {interaction.user.id}")
         if interaction.user != self.message.author:
             await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
@@ -378,24 +385,28 @@ class QuestionDetectedView(discord.ui.View):
         )
         await interaction.response.send_message(embed=confirm_embed, view=confirm_view, ephemeral=False)
         self.confirmation_message = await interaction.original_response()
+        print(f"Confirmation message set with ID: {self.confirmation_message.id}")
         confirm_view.confirmation_message = self.confirmation_message
         self.confirmation_view = confirm_view
-
+        
     async def on_timeout(self):
+        print("Timeout reached.")
         if self.stop_requested:
+            print("Stop was requested, so not deleting.")
             return
 
         try:
             if self.confirmation_message:
+                print(f"Deleting confirmation message: {self.confirmation_message.id}")
                 await self.confirmation_message.delete()
         except discord.errors.NotFound:
-            pass
+            print("Confirmation message not found, could not delete.")
 
         try:
-            if self.message:
-                await self.message.delete()  # This will delete the embed message "Question détectée"
+            print(f"Deleting question detected message: {self.message.id}")
+            await self.message.delete()
         except discord.errors.NotFound:
-            pass
+            print("Question detected message not found, could not delete.")
 
         self.stop()
 
