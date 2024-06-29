@@ -3,9 +3,11 @@ import logging
 import os
 from datetime import datetime
 from difflib import SequenceMatcher
+import asyncio
 
 import discord
 from discord.ext import commands
+from discord.errors import DiscordServerError
 from constants import QUESTION_CHANNEL_ID
 
 DATA_PATH = "extensions/threads.json"
@@ -99,8 +101,13 @@ class ThreadManager(commands.Cog):
         return similar_threads
 
     async def get_first_message(self, thread):
-        async for message in thread.history(limit=1, oldest_first=True):
-            return message
+        try:
+            async for message in thread.history(limit=1, oldest_first=True):
+                return message
+        except DiscordServerError as e:
+            # logger.error(f"DiscordServerError while fetching first message: {e}")
+            await asyncio.sleep(5)  # wait before retrying
+            return await self.get_first_message(thread)
         return None
 
     async def add_thread_info(self, thread):
@@ -141,13 +148,18 @@ class ThreadManager(commands.Cog):
             # logger.error(f"Could not find channel with id {QUESTION_CHANNEL_ID}")
             return
         
-        for thread in question_channel.threads:
-            if thread.id not in self.existing_thread_ids:
-                await self.add_thread_info(thread)
+        try:
+            for thread in question_channel.threads:
+                if thread.id not in self.existing_thread_ids:
+                    await self.add_thread_info(thread)
 
-        async for thread in question_channel.archived_threads(limit=None):
-            if thread.id not in self.existing_thread_ids:
-                await self.add_thread_info(thread)
+            async for thread in question_channel.archived_threads(limit=None):
+                if thread.id not in self.existing_thread_ids:
+                    await self.add_thread_info(thread)
+        except DiscordServerError as e:
+            # logger.error(f"DiscordServerError while fetching threads: {e}")
+            await asyncio.sleep(5)  # wait before retrying
+            await self.fetch_all_threads()
 
         self.save_threads_data()
 
@@ -160,65 +172,91 @@ class ThreadManager(commands.Cog):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
 
-        await self.add_thread_info(thread)
-        self.pending_threads[thread.id] = thread
-        self.save_threads_data()
+        try:
+            await self.add_thread_info(thread)
+            self.pending_threads[thread.id] = thread
+            self.save_threads_data()
+        except DiscordServerError as e:
+            # logger.error(f"DiscordServerError on thread create: {e}")
+            await asyncio.sleep(5)  # wait before retrying
+            await self.on_thread_create(thread)
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if isinstance(message.channel, discord.Thread):
             if message.channel.parent_id != QUESTION_CHANNEL_ID:
                 return
-            if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id].owner_id:
-                await self.add_thread_info(message.channel)
-                self.save_threads_data()
-            if message.embeds:
-                for embed in message.embeds:
-                    if embed.title == "Titre validé":
-                        thread = message.channel
-                        async for msg in thread.history(limit=100):
-                            if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+            try:
+                if message.channel.id in self.pending_threads and message.author.id == self.pending_threads[message.channel.id].owner_id:
+                    await self.add_thread_info(message.channel)
+                    self.save_threads_data()
+                if message.embeds:
+                    for embed in message.embeds:
+                        if embed.title == "Titre validé":
+                            thread = message.channel
+                            async for msg in thread.history(limit=100):
+                                if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+                                    return
+                            first_message_content = (await self.get_first_message(thread)).content
+                            similar_threads = self.find_similar_threads(thread.name, first_message_content, thread.id)
+                            if similar_threads:
+                                await self.send_paginated_similar_threads(thread, similar_threads)
                                 return
-                        first_message_content = (await self.get_first_message(thread)).content
-                        similar_threads = self.find_similar_threads(thread.name, first_message_content, thread.id)
-                        if similar_threads:
-                            await self.send_paginated_similar_threads(thread, similar_threads)
-                            return
+            except DiscordServerError as e:
+                # logger.error(f"DiscordServerError on message: {e}")
+                await asyncio.sleep(5)  # wait before retrying
+                await self.on_message(message)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         if isinstance(after.channel, discord.Thread):
             if after.channel.parent_id != QUESTION_CHANNEL_ID:
                 return
-            if after.embeds:
-                for embed in after.embeds:
-                    if embed.title == "Titre validé":
-                        thread = after.channel
-                        async for msg in thread.history(limit=100):
-                            if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+            try:
+                if after.embeds:
+                    for embed in after.embeds:
+                        if embed.title == "Titre validé":
+                            thread = after.channel
+                            async for msg in thread.history(limit=100):
+                                if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+                                    return
+                            first_message_content = (await self.get_first_message(thread)).content
+                            similar_threads = self.find_similar_threads(thread.name, first_message_content, thread.id)
+                            if similar_threads:
+                                await self.send_paginated_similar_threads(thread, similar_threads)
                                 return
-                        first_message_content = (await self.get_first_message(thread)).content
-                        similar_threads = self.find_similar_threads(thread.name, first_message_content, thread.id)
-                        if similar_threads:
-                            await self.send_paginated_similar_threads(thread, similar_threads)
-                            return
+            except DiscordServerError as e:
+                # logger.error(f"DiscordServerError on message edit: {e}")
+                await asyncio.sleep(5)  # wait before retrying
+                await self.on_message_edit(before, after)
 
     @commands.Cog.listener()
     async def on_thread_delete(self, thread):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
-        await self.delete_thread_info(thread.id)
-        self.save_threads_data()
+        try:
+            await self.delete_thread_info(thread.id)
+            self.save_threads_data()
+        except DiscordServerError as e:
+            # logger.error(f"DiscordServerError on thread delete: {e}")
+            await asyncio.sleep(5)  # wait before retrying
+            await self.on_thread_delete(thread)
 
     async def send_paginated_similar_threads(self, thread, similar_threads):
-        async for msg in thread.history(limit=100):
-            if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
-                # logger.info("Embed already exists, not sending a new one")
-                return
+        try:
+            # Vérifier si l'embed "Questions similaires triées par pertinence :" existe déjà
+            async for msg in thread.history(limit=100):
+                if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
+                    # logger.info("Embed already exists, not sending a new one")
+                    return
 
-        view = SimilarThreadsView(similar_threads)
-        embed = view.create_embed(similar_threads[:15], 1, len(view.pages))
-        await thread.send(embed=embed, view=view)
+            view = SimilarThreadsView(similar_threads)
+            embed = view.create_embed(similar_threads[:15], 1, len(view.pages))
+            await thread.send(embed=embed, view=view)
+        except DiscordServerError as e:
+            # logger.error(f"DiscordServerError while sending paginated similar threads: {e}")
+            await asyncio.sleep(5)  # wait before retrying
+            await self.send_paginated_similar_threads(thread, similar_threads)
 
 class SimilarThreadsView(discord.ui.View):
     def __init__(self, threads):
