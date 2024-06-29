@@ -258,7 +258,7 @@ async def setup(bot):
 
 class StopConfirmView(discord.ui.View):
     def __init__(self, message, bot, question_view):
-        super().__init__(timeout=6)
+        super().__init__(timeout=60)
         self.message = message
         self.bot = bot
         self.question_view = question_view
