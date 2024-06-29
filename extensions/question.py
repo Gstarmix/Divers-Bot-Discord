@@ -125,10 +125,18 @@ class Question(commands.Cog):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
 
-        async for message in thread.history(limit=1):
+        # Récupérer le premier message du fil
+        message = None
+        async for msg in thread.history(limit=1):
+            message = msg
             await message.pin()
             message_id = message.id
             break
+
+        # Vérifier si un message a été trouvé
+        if message is None:
+            logger.error(f"Aucun message trouvé dans le fil {thread.id}")
+            return
 
         self.threads[thread.id] = message.author.id
         self.delete_messages[thread.id] = True
