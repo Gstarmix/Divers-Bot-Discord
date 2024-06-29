@@ -6,6 +6,7 @@ import asyncio
 import traceback
 from discord.ext import commands
 import discord
+from constants import *
 
 TAG_OPTIONS = [
     discord.SelectOption(label="Stuff | Rune", emoji="🏹"),
@@ -31,13 +32,16 @@ logger = logging.getLogger(__name__)
 INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
 INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
 
-async def delete_embeds(*messages):
+async def delete_embeds(bot, *messages):
     for msg in messages:
         if msg:
             try:
                 logger.debug(f"Tentative de suppression du message ID: {msg.id}")
-                await msg.delete()
-                logger.info(f"Message supprimé ID: {msg.id}")
+                if msg.embeds or msg.author.id == bot.user.id:  # Ensure we're only deleting messages with embeds or sent by the bot
+                    await msg.delete()
+                    logger.info(f"Message supprimé ID: {msg.id}")
+                else:
+                    logger.debug(f"Message ID: {msg.id} n'a pas d'embed ou n'est pas envoyé par le bot, pas de suppression.")
             except discord.NotFound:
                 logger.warning(f"Message ID: {msg.id} non trouvé, impossible de supprimer.")
             except discord.Forbidden:
@@ -237,7 +241,7 @@ class StopConfirmView(discord.ui.View):
         await self.record_stop_user(interaction.user.id)
         await interaction.response.send_message("Vous ne recevrez plus de notifications pour les questions détectées.", ephemeral=True)
         self.disable_buttons()
-        await delete_embeds(self.confirmation_message, self.question_view.confirmation_message, self.question_view.message)
+        await delete_embeds(self.bot, self.confirmation_message, self.question_view.message)
         logger.info(f"Confirmed: Deleted confirmation_message {self.confirmation_message.id} and question_view_message {self.question_view.message.id}")
 
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
@@ -256,11 +260,11 @@ class StopConfirmView(discord.ui.View):
                     json.dump(stop_users, f)
         await interaction.response.send_message("Action annulée. Vous continuerez à recevoir des notifications pour les questions détectées.", ephemeral=True)
         self.disable_buttons()
-        await delete_embeds(self.confirmation_message, self.question_view.confirmation_message, self.question_view.message)
+        await delete_embeds(self.bot, self.confirmation_message, self.question_view.message)
         logger.info(f"Cancelled: Deleted confirmation_message {self.confirmation_message.id} and question_view_message {self.question_view.message.id}")
 
     async def on_timeout(self):
-        await delete_embeds(self.confirmation_message, self.question_view.confirmation_message, self.question_view.message)
+        await delete_embeds(self.bot, self.confirmation_message, self.question_view.message)
         logger.info(f"Timeout: Deleted confirmation_message {self.confirmation_message.id} and question_view_message {self.question_view.message.id}")
         self.stop()
 
@@ -275,7 +279,7 @@ class QuestionDetectedView(discord.ui.View):
         self.message = message
         self.bot = bot
         self.confirmation_message = None
-        self.message_id = None
+        self.message_id = message.id
         self.confirmation_view = None
         self.stop_requested = False
 
@@ -323,7 +327,7 @@ class QuestionDetectedView(discord.ui.View):
         if new_thread:
             self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
-            await delete_embeds(self.confirmation_message)
+            await delete_embeds(self.bot, self.confirmation_message)
 
             await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
@@ -365,14 +369,6 @@ class QuestionDetectedView(discord.ui.View):
                 logger.info("No interaction message found.")
         except discord.errors.NotFound:
             logger.warning("Interaction message not found, could not delete.")
-
-        try:
-            if self.message:
-                logger.info(f"Question detected message still exists with ID: {self.message.id}")
-            else:
-                logger.info("Question detected message not found.")
-        except Exception as e:
-            logger.error(f"Error checking question detected message: {str(e)}")
 
         await interaction.response.send_message(content=f"{self.message.author.mention} Votre question n'a pas été déplacée.", ephemeral=False)
         self.stop()
@@ -610,6 +606,15 @@ class Question(commands.Cog):
             role = discord.utils.get(after.guild.roles, id=QUESTION_ROLE_ID)
             if role and not after.owner.bot:
                 await after.owner.remove_roles(role)
+
+    @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        # Vérifiez si le message supprimé est une confirmation de la vue QuestionDetectedView
+        for view in self.bot.persistent_views:
+            if isinstance(view, QuestionDetectedView) and view.confirmation_message and view.confirmation_message.id == message.id:
+                # Supprimez le message "Question détectée" associé
+                await view.message.delete()
+                break
 
 async def setup(bot):
     await bot.add_cog(Question(bot))
