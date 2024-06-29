@@ -1,6 +1,10 @@
+import json
+import logging
+import os
+from datetime import datetime
+from difflib import SequenceMatcher
 import asyncio
 import traceback
-from datetime import datetime
 from discord.ext import commands
 import discord
 from constants import *
@@ -19,6 +23,15 @@ TAG_OPTIONS = [
     discord.SelectOption(label="Informatique | Bug", emoji="🖥"),
     discord.SelectOption(label="Autre", emoji="❓"),
 ]
+
+DATA_PATH = "extensions/threads.json"
+KEYWORDS_PATH = "extensions/nostale_keywords.json"
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
+INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
 
 def send_error_message(title, error_types):
     if error_types is None:
@@ -191,7 +204,61 @@ class AnswerView(discord.ui.View):
         modal = TitleModal(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author, self.webhook, self.selected_tags)
         await interaction.response.send_modal(modal)
 
-class ConfirmView(discord.ui.View):
+class StopConfirmView(discord.ui.View):
+    def __init__(self, message, bot, question_view):
+        super().__init__(timeout=60)
+        self.message = message
+        self.bot = bot
+        self.question_view = question_view
+
+    @discord.ui.button(label="Confirmer", style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("Vous ne recevrez plus de notifications pour les questions détectées.", ephemeral=True)
+        self.disable_buttons()
+        try:
+            await self.question_view.confirmation_message.delete()
+        except discord.NotFound:
+            pass
+        try:
+            await interaction.message.delete()
+        except discord.NotFound:
+            pass
+
+    @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        stop_file = "stop_users.json"
+        if os.path.exists(stop_file):
+            with open(stop_file, "r") as f:
+                stop_users = json.load(f)
+            stop_users.remove(interaction.user.id)
+            with open(stop_file, "w") as f:
+                json.dump(stop_users, f)
+        await interaction.response.send_message("Action annulée. Vous continuerez à recevoir des notifications pour les questions détectées.", ephemeral=True)
+        self.disable_buttons()
+        try:
+            await self.question_view.confirmation_message.delete()
+        except discord.NotFound:
+            pass
+        try:
+            await interaction.message.delete()
+        except discord.NotFound:
+            pass
+
+    def disable_buttons(self):
+        for item in self.children:
+            item.disabled = True
+
+    async def on_timeout(self):
+        try:
+            await self.question_view.confirmation_message.delete()
+        except discord.NotFound:
+            pass
+        try:
+            await self.message.delete()
+        except discord.NotFound:
+            pass
+
+class QuestionDetectedView(discord.ui.View):
     def __init__(self, message, bot):
         super().__init__(timeout=60)
         self.message = message
@@ -238,19 +305,17 @@ class ConfirmView(discord.ui.View):
             if e.code == 50006:
                 pass
             error_embed = discord.Embed(title="Erreur", description=f"Il y a eu une erreur : {e}", color=discord.Color.red())
-            await thread.send(content=self.message.author.mention, embed=error_embed)
+            await question_channel.send(content=self.message.author.mention, embed=error_embed)
 
         if new_thread:
             self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
             try:
-                await self.message.delete()
+                await self.confirmation_message.delete()
             except discord.NotFound:
                 pass
 
             await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
-
-            await self.confirmation_message.delete()
 
             async for msg in new_thread.history(limit=10):
                 if msg.author == self.bot.user and not msg.is_system() and msg.id != thread_message.id:
@@ -272,13 +337,55 @@ class ConfirmView(discord.ui.View):
         if interaction.user != self.message.author:
             await interaction.response.send_message(f"Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
-        await self.confirmation_message.delete()
+        try:
+            await self.confirmation_message.delete()
+        except discord.NotFound:
+            pass
         await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question n'a pas été déplacée.")
+
+    @discord.ui.button(label="STOP", style=discord.ButtonStyle.grey)
+    async def stop(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.message.author:
+            await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
+            return
+        await self.record_stop_user(interaction.user.id)
+        await self.show_confirmation(interaction)
+
+    async def record_stop_user(self, user_id):
+        stop_file = "stop_users.json"
+        if os.path.exists(stop_file):
+            with open(stop_file, "r") as f:
+                stop_users = json.load(f)
+        else:
+            stop_users = []
+
+        if user_id not in stop_users:
+            stop_users.append(user_id)
+
+        with open(stop_file, "w") as f:
+            json.dump(stop_users, f)
+
+    async def show_confirmation(self, interaction):
+        confirm_view = StopConfirmView(self.message, self.bot, self)
+        confirm_embed = discord.Embed(
+            title="Confirmation",
+            description=(
+                "Vous avez choisi de désactiver les notifications pour les questions détectées. "
+                "Cette action est permanente et vous ne recevrez plus ces notifications. "
+                "Voulez-vous confirmer cette action ?\n\n"
+                "Si vous ne faites pas attention, vous risquez des sanctions plus sévères à l'avenir."
+            ),
+            color=discord.Color.orange()
+        )
+        await interaction.response.send_message(embed=confirm_embed, view=confirm_view, ephemeral=False)
 
     async def handle_timeout(self):
         try:
             await self.confirmation_message.delete()
-            await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Le temps est écoulé. Votre question n'a pas été déplacée.")
+        except discord.NotFound:
+            pass
+        try:
+            await self.message.delete()
         except discord.NotFound:
             pass
 
@@ -386,6 +493,14 @@ class Question(commands.Cog):
             view.message_id = embed_message.id
             asyncio.create_task(self.monitor_thread(thread))
 
+    def user_has_stopped(self, user_id):
+        stop_file = "stop_users.json"
+        if os.path.exists(stop_file):
+            with open(stop_file, "r") as f:
+                stop_users = json.load(f)
+            return user_id in stop_users
+        return False
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author.bot:
@@ -404,14 +519,17 @@ class Question(commands.Cog):
                         await message.author.send(f"Veuillez cliquer sur le bouton `Modifier le titre` de votre fil pour corriger le titre : {thread.jump_url}")
 
         if message.channel.id == DISCUSSION_CHANNEL_ID:
+            if self.user_has_stopped(message.author.id):
+                return
+            
             content = message.content.lower()
-            if message.channel.id == DISCUSSION_CHANNEL_ID and len(message.content) > 10 and message.content.endswith('?'):
+            if (any(word in content for word in self.interrogative_words) or content.endswith('?')) and len(content) > 10:
                 last_asked_time = self.last_asked.get(message.author.id)
                 if last_asked_time and (datetime.now() - last_asked_time).total_seconds() < 259200:
                     return
                 self.last_asked[message.author.id] = datetime.now()
 
-                view = ConfirmView(message, self.bot)
+                view = QuestionDetectedView(message, self.bot)
                 embed = discord.Embed(
                     title="Question détectée",
                     description=(
@@ -423,7 +541,8 @@ class Question(commands.Cog):
                         "   - Avoir entre 20 et 100 caractères.\n"
                         "   - Terminer par un point d'interrogation (?).\n"
                         "   - Sélectionner au moins un tag approprié pour votre question.\n\n"
-                        "3. **Une fois le titre validé, tous les membres pourront participer à la discussion.**"
+                        "3. **Une fois le titre validé, tous les membres pourront participer à la discussion.**\n\n"
+                        "Si vous ne souhaitez plus recevoir ces notifications, cliquez sur le bouton **STOP**."
                     ),
                     color=discord.Color.blue()
                 )
