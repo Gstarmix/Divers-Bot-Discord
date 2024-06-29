@@ -37,7 +37,7 @@ async def delete_embeds(bot, *messages):
         if msg:
             try:
                 logger.debug(f"Tentative de suppression du message ID: {msg.id}")
-                if msg.embeds or msg.author.id == bot.user.id:  # Ensure we're only deleting messages with embeds or sent by the bot
+                if msg.embeds or msg.author == bot.user:  # Ensure we're only deleting messages with embeds or sent by the bot
                     await msg.delete()
                     logger.info(f"Message supprimé ID: {msg.id}")
                 else:
@@ -609,12 +609,34 @@ class Question(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
+        logger.info(f"on_message_delete triggered for message ID: {message.id}")
         # Vérifiez si le message supprimé est une confirmation de la vue QuestionDetectedView
         for view in self.bot.persistent_views:
             if isinstance(view, QuestionDetectedView) and view.confirmation_message and view.confirmation_message.id == message.id:
+                logger.info(f"Deleting associated question_detected message with ID: {view.message.id}")
                 # Supprimez le message "Question détectée" associé
-                await view.message.delete()
+                try:
+                    await view.message.delete()
+                    logger.info(f"Associated question_detected message with ID: {view.message.id} deleted")
+                except discord.NotFound:
+                    logger.warning(f"Associated question_detected message with ID: {view.message.id} not found")
+                except discord.Forbidden:
+                    logger.error(f"Forbidden to delete associated question_detected message with ID: {view.message.id}")
                 break
+
+        # Supprimez les messages de confirmation et les messages de détection de questions
+        if message.author == self.bot.user:
+            for view in self.bot.persistent_views:
+                if isinstance(view, QuestionDetectedView) and view.message.id == message.id:
+                    logger.info(f"Deleting question detected message with ID: {view.message.id}")
+                    try:
+                        await view.message.delete()
+                        logger.info(f"Question detected message with ID: {view.message.id} deleted")
+                    except discord.NotFound:
+                        logger.warning(f"Question detected message with ID: {view.message.id} not found")
+                    except discord.Forbidden:
+                        logger.error(f"Forbidden to delete question detected message with ID: {view.message.id}")
+                    break
 
 async def setup(bot):
     await bot.add_cog(Question(bot))
