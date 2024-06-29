@@ -36,10 +36,14 @@ async def delete_embeds(*messages):
     for msg in messages:
         if msg:
             try:
+                print(f"Attempting to delete message ID: {msg.id}")
                 await msg.delete()
+                print(f"Deleted message ID: {msg.id}")
             except discord.NotFound:
-                pass
-
+                print(f"Message ID: {msg.id} not found, could not delete.")
+            except discord.Forbidden:
+                print(f"Do not have permission to delete message ID: {msg.id}")
+                
 def send_error_message(title, error_types):
     if error_types is None:
         error_types = []
@@ -230,18 +234,19 @@ class StopConfirmView(discord.ui.View):
         if interaction.user != self.message.author:
             await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
-        
+
         await self.record_stop_user(interaction.user.id)
 
         await interaction.response.send_message("Vous ne recevrez plus de notifications pour les questions détectées.", ephemeral=True)
         self.disable_buttons()
-        await delete_embeds(self.confirmation_message, self.question_view.message)
+        await delete_embeds(self.confirmation_message, self.question_view.confirmation_message, self.question_view.message)
 
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user != self.message.author:
             await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
+
         stop_file = "stop_users.json"
         if os.path.exists(stop_file):
             with open(stop_file, "r") as f:
@@ -252,15 +257,15 @@ class StopConfirmView(discord.ui.View):
                     json.dump(stop_users, f)
         await interaction.response.send_message("Action annulée. Vous continuerez à recevoir des notifications pour les questions détectées.", ephemeral=True)
         self.disable_buttons()
-        await delete_embeds(self.confirmation_message, self.question_view.message)
+        await delete_embeds(self.confirmation_message, self.question_view.confirmation_message, self.question_view.message)
+
+    async def on_timeout(self):
+        await delete_embeds(self.confirmation_message, self.question_view.confirmation_message, self.question_view.message)
+        self.stop()
 
     def disable_buttons(self):
         for item in self.children:
             item.disabled = True
-        self.stop()
-
-    async def on_timeout(self):
-        await delete_embeds(self.confirmation_message, self.question_view.message)
         self.stop()
 
 class QuestionDetectedView(discord.ui.View):
@@ -270,7 +275,7 @@ class QuestionDetectedView(discord.ui.View):
         self.bot = bot
         self.confirmation_message = None
         self.message_id = None
-        self.confirmation_view = None  # Track the confirmation view
+        self.confirmation_view = None
         self.stop_requested = False
 
     @discord.ui.button(label="Oui", style=discord.ButtonStyle.green)
@@ -397,7 +402,7 @@ class QuestionDetectedView(discord.ui.View):
         print(f"Confirmation message set with ID: {self.confirmation_message.id}")
         confirm_view.confirmation_message = self.confirmation_message
         self.confirmation_view = confirm_view
-        
+
     async def on_timeout(self):
         print("Timeout reached.")
         if self.stop_requested:
@@ -413,9 +418,17 @@ class QuestionDetectedView(discord.ui.View):
 
         try:
             print(f"Removing view from question detected message: {self.message.id}")
-            await self.message.edit(view=None)  # This will remove the embed and buttons without deleting the message
+            await self.message.edit(embed=None, view=None)  # Remove only the embed and view, leaving the base message
+        except discord.errors.Forbidden:
+            print(f"Cannot edit message {self.message.id} as it is authored by another user.")
         except discord.errors.NotFound:
             print("Question detected message not found, could not edit.")
+
+        try:
+            print("Sending notification that the question was not moved.")
+            await self.message.channel.send(f"{self.message.author.mention} Temps écoulé. Votre question n'a pas été déplacée.")
+        except Exception as e:
+            print(f"Failed to send notification message: {str(e)}")
 
         self.stop()
 
@@ -554,7 +567,7 @@ class Question(commands.Cog):
                     title="Question détectée",
                     description=(
                         "Nous avons détecté une question. Conformément au [**règlement**](https://discord.com/channels/684734347177230451/724737757427269702), assurez-vous que votre question soit liée à NosTale. Ensuite, suivez les étapes suivantes :\n\n"
-                        "1. **Cliquez sur le bouton 'Oui' pour déplacer le message vers [Questions](https://discord.com/channels/684734347177230451/1055993732505284690).**\n\n"
+                        "1. **Cliquez sur le bouton Oui pour déplacer le message vers [Questions](https://discord.com/channels/684734347177230451/1055993732505284690).**\n\n"
                         "2. **Modifiez le titre de votre fil pour qu'il soit conforme aux règles suivantes :**\n"
                         "   - Commencer par une majuscule.\n"
                         "   - Utiliser un mot ou une expression interrogative.\n"
