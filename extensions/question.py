@@ -44,13 +44,16 @@ async def delete_recent_bot_messages(bot, channel, exclude_message_ids):
             if message.author == bot.user and naive_datetime(message.created_at) > naive_datetime(time_limit) and message.id not in exclude_message_ids:
                 try:
                     await message.delete()
-                    logger.info(f"Message supprimé ID: {message.id}")
+                    # logger.info(f"Message supprimé ID: {message.id}")
                 except discord.NotFound:
-                    logger.warning(f"Message ID: {message.id} non trouvé, impossible de supprimer.")
+                    # logger.warning(f"Message ID: {message.id} non trouvé, impossible de supprimer.")
+                    pass
                 except discord.Forbidden:
-                    logger.error(f"Pas la permission de supprimer le message ID: {message.id}")
+                    # logger.error(f"Pas la permission de supprimer le message ID: {message.id}")
+                    pass
     except Exception as e:
-        logger.error(f"Une erreur s'est produite lors de la suppression des messages : {e}")
+        # logger.error(f"Une erreur s'est produite lors de la suppression des messages : {e}")
+        pass
 
 class Question(commands.Cog):
     def __init__(self, bot):
@@ -246,11 +249,13 @@ class Question(commands.Cog):
             if isinstance(view, QuestionDetectedView) and view.confirmation_message and view.confirmation_message.id == message.id:
                 try:
                     await view.message.delete()
-                    logger.info(f"Associated question view message deleted ID: {view.message.id}")
+                    # logger.info(f"Associated question view message deleted ID: {view.message.id}")
                 except discord.NotFound:
-                    logger.warning(f"Associated question view message not found, could not delete ID: {view.message.id}")
+                    # logger.warning(f"Associated question view message not found, could not delete ID: {view.message.id}")
+                    pass
                 except discord.Forbidden:
-                    logger.error(f"Pas la permission de supprimer le message ID: {view.message.id}")
+                    # logger.error(f"Pas la permission de supprimer le message ID: {view.message.id}")
+                    pass
                 break
 
 async def setup(bot):
@@ -288,7 +293,7 @@ class StopConfirmView(discord.ui.View):
         self.confirmed_or_cancelled = True
         self.disable_buttons()
         await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
-        logger.info(f"Confirmed: Deleted recent bot messages in channel ID: {self.message.channel.id}")
+        # logger.info(f"Confirmed: Deleted recent bot messages in channel ID: {self.message.channel.id}")
 
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -308,7 +313,7 @@ class StopConfirmView(discord.ui.View):
         self.confirmed_or_cancelled = True
         self.disable_buttons()
         await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
-        logger.info(f"Cancelled: Deleted recent bot messages in channel ID: {self.message.channel.id}")
+        # logger.info(f"Cancelled: Deleted recent bot messages in channel ID: {self.message.channel.id}")
 
     async def on_timeout(self):
         if not self.confirmed_or_cancelled:
@@ -316,7 +321,7 @@ class StopConfirmView(discord.ui.View):
             await delete_recent_bot_messages(self.bot, self.message.channel, [timeout_message.id])
         else:
             await delete_recent_bot_messages(self.bot, self.message.channel, [])
-        logger.info(f"Timeout: Deleted recent bot messages in channel ID: {self.message.channel.id}")
+        # logger.info(f"Timeout: Deleted recent bot messages in channel ID: {self.message.channel.id}")
         self.stop()
 
     def disable_buttons(self):
@@ -331,7 +336,7 @@ class QuestionDetectedView(discord.ui.View):
         self.bot = bot
         self.confirmation_message = None
         self.message_id = message.id
-        self.confirmation_view = None
+        self.confirmation_view = StopConfirmView(self.message, self.bot, self)
         self.stop_requested = False
 
     @discord.ui.button(label="Oui", style=discord.ButtonStyle.green)
@@ -399,34 +404,37 @@ class QuestionDetectedView(discord.ui.View):
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        logger.info(f"Cancel button pressed by: {interaction.user.id}")
+        # logger.info(f"Cancel button pressed by: {interaction.user.id}")
         if interaction.user != self.message.author:
             await interaction.response.send_message(f"Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
 
         try:
             if self.confirmation_message:
-                logger.info(f"Deleting confirmation message: {self.confirmation_message.id}")
+                # logger.info(f"Deleting confirmation message: {self.confirmation_message.id}")
                 await self.confirmation_message.delete()
         except discord.errors.NotFound:
-            logger.warning("Confirmation message not found, could not delete.")
+            # logger.warning("Confirmation message not found, could not delete.")
+            pass
 
         try:
             if interaction.message:
-                logger.info(f"Attempting to delete interaction message ID: {interaction.message.id}")
+                # logger.info(f"Attempting to delete interaction message ID: {interaction.message.id}")
                 await interaction.message.delete()
-                logger.info("Interaction message deleted.")
+                # logger.info("Interaction message deleted.")
             else:
-                logger.info("No interaction message found.")
+                # logger.info("No interaction message found.")
+                pass
         except discord.errors.NotFound:
-            logger.warning("Interaction message not found, could not delete.")
+            # logger.warning("Interaction message not found, could not delete.")
+            pass
 
         await self.message.channel.send(f"{self.message.author.mention} Votre question n'a pas été déplacée.")
         self.stop()
 
     @discord.ui.button(label="STOP", style=discord.ButtonStyle.grey)
     async def stop_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        logger.info(f"Stop button pressed by: {interaction.user.id}")
+        # logger.info(f"Stop button pressed by: {interaction.user.id}")
         if interaction.user != self.message.author:
             await interaction.response.send_message("Seul l'auteur de la question peut effectuer cette action.", ephemeral=True)
             return
@@ -447,29 +455,30 @@ class QuestionDetectedView(discord.ui.View):
         )
         await interaction.response.send_message(embed=confirm_embed, view=confirm_view, ephemeral=False)
         self.confirmation_message = await interaction.original_response()
-        logger.info(f"Confirmation message set with ID: {self.confirmation_message.id}")
+        # logger.info(f"Confirmation message set with ID: {self.confirmation_message.id}")
         confirm_view.confirmation_message = self.confirmation_message
         self.confirmation_view = confirm_view
 
     async def on_timeout(self):
-        logger.info("Timeout reached.")
+        # logger.info("Timeout reached.")
         if self.stop_requested:
-            logger.info("Stop was requested, so not deleting.")
+            # logger.info("Stop was requested, so not deleting.")
             return
 
         try:
             if self.confirmation_message:
-                logger.info(f"Deleting confirmation message: {self.confirmation_message.id}")
+                # logger.info(f"Deleting confirmation message: {self.confirmation_message.id}")
                 await self.confirmation_message.delete()
         except discord.errors.NotFound:
-            logger.warning("Confirmation message not found, could not delete.")
+            # logger.warning("Confirmation message not found, could not delete.")
+            pass
 
         if not self.confirmation_view.confirmed_or_cancelled:
             timeout_message = await self.message.channel.send(f"{self.message.author.mention} Temps écoulé. Votre question n'a pas été déplacée.")
             await delete_recent_bot_messages(self.bot, self.message.channel, [timeout_message.id])
         else:
             await delete_recent_bot_messages(self.bot, self.message.channel, [])
-        logger.info(f"Timeout: Deleted recent bot messages in channel ID: {self.message.channel.id}")
+        # logger.info(f"Timeout: Deleted recent bot messages in channel ID: {self.message.channel.id}")
         self.stop()
 
 class TitleModal(discord.ui.Modal):
