@@ -150,10 +150,14 @@ class ThreadManager(commands.Cog):
                 continue
             clean_existing_name = self.clean_title(thread["name"])
             clean_existing_content = self.clean_title(thread.get("first_message_content", ""))
+            
             title_similarity = SequenceMatcher(None, clean_thread_name, clean_existing_name).ratio()
             content_similarity = SequenceMatcher(None, clean_thread_content, clean_existing_content).ratio()
-            combined_similarity = (title_similarity + content_similarity) / 2
-            if combined_similarity > 0.5 or self.is_nostale_related(clean_thread_name) or self.is_nostale_related(clean_thread_content):
+            
+            keyword_similarity = 1.0 if self.is_nostale_related(thread_name) or self.is_nostale_related(thread_content) else 0.0
+            
+            combined_similarity = (title_similarity + content_similarity + keyword_similarity) / 3
+            if combined_similarity > 0.5:
                 thread_with_similarity = thread.copy()
                 thread_with_similarity["similarity"] = combined_similarity
                 similar_threads.append(thread_with_similarity)
