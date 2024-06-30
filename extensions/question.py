@@ -407,6 +407,11 @@ class QuestionDetectedView(discord.ui.View):
             else:
                 success_embed = send_success_message(new_thread.name)
                 await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, thread=new_thread)
+            
+            try:
+                await interaction.message.delete()
+            except discord.errors.NotFound:
+                pass
         else:
             pass
 
