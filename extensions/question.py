@@ -125,17 +125,22 @@ class Question(commands.Cog):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
 
-        # Récupérer le premier message du fil
+        # Tentative de récupération du message plusieurs fois
         message = None
-        async for msg in thread.history(limit=1):
-            message = msg
-            await message.pin()
-            message_id = message.id
-            break
+        attempts = 3
+        for _ in range(attempts):
+            async for msg in thread.history(limit=1):
+                message = msg
+                await message.pin()
+                message_id = message.id
+                break
+            if message:
+                break
+            await asyncio.sleep(1)  # Attendre une seconde avant de réessayer
 
         # Vérifier si un message a été trouvé
         if message is None:
-            logger.error(f"Aucun message trouvé dans le fil {thread.id}")
+            logger.error(f"Aucun message trouvé dans le fil {thread.id} après {attempts} tentatives")
             return
 
         self.threads[thread.id] = message.author.id

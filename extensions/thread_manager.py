@@ -166,11 +166,12 @@ class ThreadManager(commands.Cog):
 
     async def get_first_message(self, thread):
         try:
-            async for message in thread.history(limit=1, oldest_first=True):
+            async for message in thread.history(limit=100, oldest_first=True):
+                if message.mentions or message.embeds or len(message.content) < 20:
+                    continue 
                 return message
         except DiscordServerError as e:
-            # logger.error(f"DiscordServerError while fetching first message: {e}")
-            await asyncio.sleep(5)  # wait before retrying
+            await asyncio.sleep(5)
             return await self.get_first_message(thread)
         return None
 
