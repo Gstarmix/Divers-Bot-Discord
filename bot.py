@@ -27,6 +27,9 @@ async def on_ready():
     await bot.load_extension("extensions.thread_manager")
     print("thread_manager extension loaded")
 
+    await bot.load_extension("extensions.auto_repost_on_delete")
+    print("auto_repost_on_delete extension loaded")
+
     # await bot.load_extension("extensions.rules")
     # print("Rules extension loaded")
 

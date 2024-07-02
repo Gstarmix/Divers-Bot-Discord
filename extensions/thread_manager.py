@@ -167,9 +167,8 @@ class ThreadManager(commands.Cog):
     async def get_first_message(self, thread):
         try:
             async for message in thread.history(limit=100, oldest_first=True):
-                if message.mentions or message.embeds or len(message.content) < 20:
-                    continue 
-                return message
+                if len(message.content) >= 20:  # Change the condition to allow shorter messages if needed
+                    return message
         except DiscordServerError as e:
             await asyncio.sleep(5)
             return await self.get_first_message(thread)
@@ -177,6 +176,9 @@ class ThreadManager(commands.Cog):
 
     async def add_thread_info(self, thread):
         first_message = await self.get_first_message(thread)
+        if first_message is None:
+            logger.warning(f"First message not found for thread {thread.id}")
+            return
         thread_info = {
             "id": thread.id,
             "name": thread.name,
@@ -185,19 +187,19 @@ class ThreadManager(commands.Cog):
             "channel_id": thread.parent_id,
             "created_at": str(thread.created_at),
             "message_count": thread.message_count,
-            "first_message_content": first_message.content if first_message else "",
+            "first_message_content": first_message.content,
             "link": f"https://discord.com/channels/{thread.guild.id}/{thread.id}/{thread.id}"
         }
 
         if thread.id not in self.existing_thread_ids:
             self.threads_data.append(thread_info)
             self.existing_thread_ids.add(thread.id)
-            # logger.info(f"Thread info added: {thread_info}")
+            logger.info(f"Thread info added: {thread_info}")
         else:
             for existing_thread in self.threads_data:
                 if existing_thread["id"] == thread.id:
                     existing_thread.update(thread_info)
-                    # logger.info(f"Thread info updated: {thread_info}")
+                    logger.info(f"Thread info updated: {thread_info}")
                     break
         self.save_threads_data()
 
@@ -262,13 +264,16 @@ class ThreadManager(commands.Cog):
                             async for msg in thread.history(limit=100):
                                 if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
                                     return
-                            first_message_content = (await self.get_first_message(thread)).content
+                            first_message = await self.get_first_message(thread)
+                            first_message_content = first_message.content if first_message else "No valid content found"
                             similar_threads = self.find_similar_threads(thread.name, first_message_content, thread.id)
                             if similar_threads:
                                 await self.send_paginated_similar_threads(thread, similar_threads)
-                                return
+                            else:
+                                logger.warning(f"Could not find first message for thread {thread.id}")
+                            return
             except DiscordServerError as e:
-                # logger.error(f"DiscordServerError on message: {e}")
+                logger.error(f"DiscordServerError on message: {e}")
                 await asyncio.sleep(5)  # wait before retrying
                 await self.on_message(message)
 
