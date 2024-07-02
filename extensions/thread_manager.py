@@ -150,12 +150,16 @@ class ThreadManager(commands.Cog):
                 continue
             clean_existing_name = self.clean_title(thread["name"])
             clean_existing_content = self.clean_title(thread.get("first_message_content", ""))
-            
-            title_similarity = SequenceMatcher(None, clean_thread_name, clean_existing_name).ratio()
-            content_similarity = SequenceMatcher(None, clean_thread_content, clean_existing_content).ratio()
-            
+
+            if len(clean_existing_content) < 20:
+                title_similarity = SequenceMatcher(None, clean_thread_name, clean_existing_name).ratio()
+                content_similarity = 0
+            else:
+                title_similarity = SequenceMatcher(None, clean_thread_name, clean_existing_name).ratio()
+                content_similarity = SequenceMatcher(None, clean_thread_content, clean_existing_content).ratio()
+
             keyword_similarity = 1.0 if self.is_nostale_related(thread_name) or self.is_nostale_related(thread_content) else 0.0
-            
+
             combined_similarity = (title_similarity + content_similarity + keyword_similarity) / 3
             if combined_similarity > 0.5:
                 thread_with_similarity = thread.copy()
@@ -167,7 +171,7 @@ class ThreadManager(commands.Cog):
     async def get_first_message(self, thread):
         try:
             async for message in thread.history(limit=100, oldest_first=True):
-                if len(message.content) >= 20:  # Change the condition to allow shorter messages if needed
+                if len(message.content) >= 20 and not message.mentions and not message.embeds:
                     return message
         except DiscordServerError as e:
             await asyncio.sleep(5)
@@ -265,16 +269,21 @@ class ThreadManager(commands.Cog):
                                 if msg.author == self.bot.user and any(embed.title == "Questions similaires triées par pertinence :" for embed in msg.embeds):
                                     return
                             first_message = await self.get_first_message(thread)
-                            first_message_content = first_message.content if first_message else "No valid content found"
+                            if first_message and len(first_message.content) >= 20:
+                                first_message_content = first_message.content
+                            else:
+                                first_message_content = ""
+
+                            # Trouver des threads similaires en utilisant le nom du thread et le contenu du premier message (si disponible)
                             similar_threads = self.find_similar_threads(thread.name, first_message_content, thread.id)
                             if similar_threads:
                                 await self.send_paginated_similar_threads(thread, similar_threads)
                             else:
-                                logger.warning(f"Could not find first message for thread {thread.id}")
+                                logger.warning(f"Could not find a valid first message for thread {thread.id}")
                             return
             except DiscordServerError as e:
                 logger.error(f"DiscordServerError on message: {e}")
-                await asyncio.sleep(5)  # wait before retrying
+                await asyncio.sleep(5)  # Attendre avant de réessayer
                 await self.on_message(message)
 
     @commands.Cog.listener()
