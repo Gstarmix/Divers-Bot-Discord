@@ -397,13 +397,15 @@ class QuestionDetectedView(discord.ui.View):
         if new_thread:
             self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
-            await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
-
             special_message = await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
-            async for msg in new_thread.history(limit=10):
-                if msg.author == self.bot.user and not msg.is_system() and msg.id != thread_message.id:
-                    await msg.delete()
+            # Supprimer le message de base de l'auteur
+            try:
+                await self.message.delete()
+            except discord.errors.NotFound:
+                pass
+
+            await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id], special_message_ids=[special_message.id])
 
             error_types = self.bot.get_cog('Question').get_question_error(new_thread.name, new_thread.applied_tags)
             if error_types:
@@ -413,12 +415,7 @@ class QuestionDetectedView(discord.ui.View):
             else:
                 success_embed = send_success_message(new_thread.name)
                 await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, thread=new_thread)
-            
-            try:
-                await self.message.delete()
-            except discord.errors.NotFound:
-                pass
-            
+
             self.confirmed_or_cancelled = True
         else:
             await interaction.response.send_message("Il y a eu une erreur lors de la création du fil.", ephemeral=True)

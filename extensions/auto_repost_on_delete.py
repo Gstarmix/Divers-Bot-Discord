@@ -86,36 +86,30 @@ class AutoRepostOnDelete(commands.Cog):
         webhooks = await thread.parent.webhooks()
         webhook = discord.utils.find(lambda wh: wh.user == thread.guild.me, webhooks)
         if webhook is None:
-            webhook = await thread.parent.create_webhook(name="AutoReposter", reason="Repost deleted first messages")
-            logger.debug(f"Created new webhook for {thread.parent.id}")
+            webhook = await thread.parent.create_webhook(name="AutoReposter")
 
+        files = [discord.File(path, filename=os.path.basename(path)) for path in attachment_paths]
+        
         if attachment_paths:
             image_urls = [f"attachment://{os.path.basename(path)}" for path in attachment_paths]
-            view = ImageNavigator(image_urls, "Le premier message de ce fil a été supprimé", content, discord.Color.red())
+            view = ImageNavigator(image_urls, "The first message of this thread was deleted", content, discord.Color.red())
             embed = view.update_embed(0)
         else:
             embed = discord.Embed(
-                title="Le premier message de ce fil a été supprimé",
+                title="The first message of this thread was deleted",
                 description=f"{content}",
                 color=discord.Color.red()
             )
             view = None
 
-        # Files are passed separately from the embed
-        files = [discord.File(path) for path in attachment_paths]
-
-        logger.debug(f"Sending webhook with embed and view")
         await webhook.send(
-            content=None,
             username=user.display_name,
             avatar_url=user.display_avatar.url,
-            wait=True,
             thread=thread,
             embed=embed,
             view=view,
             files=files
         )
-        logger.debug(f"Message reposted in thread {thread_id}")
 
 class ImageNavigator(discord.ui.View):
     def __init__(self, images: list, title: str, description: str, color: discord.Color):
@@ -132,13 +126,13 @@ class ImageNavigator(discord.ui.View):
         embed.set_footer(text=f"{image_index + 1} / {len(self.images)}")
         return embed
 
-    @discord.ui.button(label="◀️ Précédent", style=discord.ButtonStyle.grey, custom_id="previous_image")
+    @discord.ui.button(label="◀️ Previous", style=discord.ButtonStyle.grey, custom_id="previous_image")
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image - 1) % len(self.images)
         embed = self.update_embed(self.current_image)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Suivant ▶️", style=discord.ButtonStyle.grey, custom_id="next_image")
+    @discord.ui.button(label="Next ▶️", style=discord.ButtonStyle.grey, custom_id="next_image")
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image + 1) % len(self.images)
         embed = self.update_embed(self.current_image)
