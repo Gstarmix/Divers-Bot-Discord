@@ -82,10 +82,6 @@ class AutoRepostOnDelete(commands.Cog):
         content = message.content or "*No content*"
         attachment_paths = self.saved_attachments.get(message.id, [])
 
-        files = [discord.File(path) for path in attachment_paths]
-
-        logger.debug(f"Files to repost: {files}")
-
         thread = await self.bot.fetch_channel(thread_id)
         webhooks = await thread.parent.webhooks()
         webhook = discord.utils.find(lambda wh: wh.user == thread.guild.me, webhooks)
@@ -93,18 +89,60 @@ class AutoRepostOnDelete(commands.Cog):
             webhook = await thread.parent.create_webhook(name="AutoReposter", reason="Repost deleted first messages")
             logger.debug(f"Created new webhook for {thread.parent.id}")
 
-        kwargs = {
-            "content": f"{user.mention} a supprimé ce message : {content}",
-            "username": user.display_name,
-            "avatar_url": user.display_avatar.url,
-            "wait": True,
-            "thread": thread,
-            "files": files,
-        }
+        if attachment_paths:
+            image_urls = [f"attachment://{os.path.basename(path)}" for path in attachment_paths]
+            view = ImageNavigator(image_urls, "Le premier message de ce fil a été supprimé", content, discord.Color.red())
+            embed = view.update_embed(0)
+        else:
+            embed = discord.Embed(
+                title="Le premier message de ce fil a été supprimé",
+                description=f"{content}",
+                color=discord.Color.red()
+            )
+            view = None
 
-        logger.debug(f"Sending webhook with kwargs: {kwargs}")
-        await webhook.send(**kwargs)
+        # Files are passed separately from the embed
+        files = [discord.File(path) for path in attachment_paths]
+
+        logger.debug(f"Sending webhook with embed and view")
+        await webhook.send(
+            content=None,
+            username=user.display_name,
+            avatar_url=user.display_avatar.url,
+            wait=True,
+            thread=thread,
+            embed=embed,
+            view=view,
+            files=files
+        )
         logger.debug(f"Message reposted in thread {thread_id}")
+
+class ImageNavigator(discord.ui.View):
+    def __init__(self, images: list, title: str, description: str, color: discord.Color):
+        super().__init__(timeout=None)
+        self.images = images
+        self.current_image = 0
+        self.title = title
+        self.description = description
+        self.color = color
+
+    def update_embed(self, image_index):
+        embed = discord.Embed(title=self.title, description=self.description, color=self.color)
+        embed.set_image(url=self.images[image_index])
+        embed.set_footer(text=f"{image_index + 1} / {len(self.images)}")
+        return embed
+
+    @discord.ui.button(label="◀️ Précédent", style=discord.ButtonStyle.grey, custom_id="previous_image")
+    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_image = (self.current_image - 1) % len(self.images)
+        embed = self.update_embed(self.current_image)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Suivant ▶️", style=discord.ButtonStyle.grey, custom_id="next_image")
+    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_image = (self.current_image + 1) % len(self.images)
+        embed = self.update_embed(self.current_image)
+        await interaction.response.edit_message(embed=embed, view=self)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(AutoRepostOnDelete(bot))
