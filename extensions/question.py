@@ -35,13 +35,13 @@ INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous"
 def naive_datetime(dt):
     return dt.replace(tzinfo=None)
 
-async def delete_recent_bot_messages(bot, channel, exclude_message_ids):
+async def delete_recent_bot_messages(bot, channel, exclude_message_ids, special_message_ids=[]):
     now = datetime.utcnow().replace(tzinfo=timezone.utc)
     time_limit = now - timedelta(seconds=65)
     
     try:
         async for message in channel.history(limit=100):
-            if message.author == bot.user and naive_datetime(message.created_at) > naive_datetime(time_limit) and message.id not in exclude_message_ids:
+            if message.author == bot.user and naive_datetime(message.created_at) > naive_datetime(time_limit) and message.id not in exclude_message_ids and message.id not in special_message_ids:
                 try:
                     await message.delete()
                     # logger.info(f"Message supprimé ID: {message.id}")
@@ -302,10 +302,10 @@ class StopConfirmView(discord.ui.View):
             return
 
         await self.record_stop_user(interaction.user.id)
-        await self.message.channel.send(f"{self.message.author.mention} Vous ne recevrez plus de notifications pour les questions détectées.")
+        special_message = await self.message.channel.send(f"{self.message.author.mention} Vous ne recevrez plus de notifications pour les questions détectées.")
         self.confirmed_or_cancelled = True
         self.disable_buttons()
-        await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
+        await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id], special_message_ids=[special_message.id])
         # Suppression de l'embed après le clic sur "Confirmer"
         if self.confirmation_message:
             try:
@@ -402,13 +402,15 @@ class QuestionDetectedView(discord.ui.View):
                 pass
             error_embed = discord.Embed(title="Erreur", description=f"Il y a eu une erreur : {e}", color=discord.Color.red())
             await question_channel.send(content=self.message.author.mention, embed=error_embed)
+            await interaction.response.send_message("Il y a eu une erreur lors de la création du fil.", ephemeral=True)
+            return
 
         if new_thread:
             self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
             await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
 
-            await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
+            special_message = await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
             async for msg in new_thread.history(limit=10):
                 if msg.author == self.bot.user and not msg.is_system() and msg.id != thread_message.id:
@@ -430,7 +432,7 @@ class QuestionDetectedView(discord.ui.View):
             
             self.confirmed_or_cancelled = True
         else:
-            pass
+            await interaction.response.send_message("Il y a eu une erreur lors de la création du fil.", ephemeral=True)
 
     @discord.ui.button(label="Non", style=discord.ButtonStyle.red)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
