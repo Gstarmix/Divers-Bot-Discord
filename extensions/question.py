@@ -44,15 +44,11 @@ async def delete_recent_bot_messages(bot, channel, exclude_message_ids, special_
             if message.author == bot.user and naive_datetime(message.created_at) > naive_datetime(time_limit) and message.id not in exclude_message_ids and message.id not in special_message_ids:
                 try:
                     await message.delete()
-                    # logger.info(f"Message supprimé ID: {message.id}")
                 except discord.NotFound:
-                    # logger.warning(f"Message ID: {message.id} non trouvé, impossible de supprimer.")
                     pass
                 except discord.Forbidden:
-                    # logger.error(f"Pas la permission de supprimer le message ID: {message.id}")
                     pass
     except Exception as e:
-        # logger.error(f"Une erreur s'est produite lors de la suppression des messages : {e}")
         pass
 
 class Question(commands.Cog):
@@ -125,7 +121,6 @@ class Question(commands.Cog):
         if thread.parent_id != QUESTION_CHANNEL_ID:
             return
 
-        # Tentative de récupération du message plusieurs fois
         message = None
         attempts = 3
         for _ in range(attempts):
@@ -136,9 +131,8 @@ class Question(commands.Cog):
                 break
             if message:
                 break
-            await asyncio.sleep(1)  # Attendre une seconde avant de réessayer
+            await asyncio.sleep(1)
 
-        # Vérifier si un message a été trouvé
         if message is None:
             logger.error(f"Aucun message trouvé dans le fil {thread.id} après {attempts} tentatives")
             return
@@ -262,12 +256,9 @@ class Question(commands.Cog):
             if isinstance(view, QuestionDetectedView) and view.confirmation_message and view.confirmation_message.id == message.id:
                 try:
                     await view.message.delete()
-                    # logger.info(f"Associated question view message deleted ID: {view.message.id}")
                 except discord.NotFound:
-                    # logger.warning(f"Associated question view message not found, could not delete ID: {view.message.id}")
                     pass
                 except discord.Forbidden:
-                    # logger.error(f"Pas la permission de supprimer le message ID: {view.message.id}")
                     pass
                 break
 
@@ -306,7 +297,6 @@ class StopConfirmView(discord.ui.View):
         self.confirmed_or_cancelled = True
         self.disable_buttons()
         await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id], special_message_ids=[special_message.id])
-        # Suppression de l'embed après le clic sur "Confirmer"
         if self.confirmation_message:
             try:
                 await self.confirmation_message.delete()
@@ -331,7 +321,6 @@ class StopConfirmView(discord.ui.View):
         self.confirmed_or_cancelled = True
         self.disable_buttons()
         await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
-        # Suppression de l'embed après le clic sur "Annuler"
         if self.confirmation_message:
             try:
                 await self.confirmation_message.delete()
@@ -426,7 +415,7 @@ class QuestionDetectedView(discord.ui.View):
                 await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, thread=new_thread)
             
             try:
-                await interaction.message.delete()
+                await self.message.delete()
             except discord.errors.NotFound:
                 pass
             
