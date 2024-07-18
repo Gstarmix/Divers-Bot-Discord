@@ -24,6 +24,9 @@ async def on_ready():
     await bot.load_extension("extensions.image_forwarder")
     print("Image Forwarder extension loaded")
 
+    await bot.load_extension("extensions.test_embed")
+    print("test_embed extension loaded")
+
     await bot.load_extension("extensions.thread_manager")
     print("thread_manager extension loaded")
 

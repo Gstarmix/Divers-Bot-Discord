@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 import asyncio
-import traceback
+import re
 from discord.ext import commands
 import discord
 from constants import *
@@ -29,8 +29,75 @@ TAG_OPTIONS = [
 DATA_PATH = "extensions/threads.json"
 KEYWORDS_PATH = "extensions/nostale_keywords.json"
 
-INTERROGATIVE_WORDS = ["qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles"]
-INTERROGATIVE_EXPRESSIONS = ["-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"]
+INTERROGATIVE_WORDS = [
+    "qui", "que", "quoi", "qu'", "où", "quand", "pourquoi", "comment", "est-ce", "combien", 
+    "quel", "quelle", "quels", "quelles", "lequel", "laquelle", "lesquels", "lesquelles", 
+    "à qui", "à quoi", "de qui", "de quoi", "avec qui", "avec quoi", "pour qui", "pour quoi", 
+    "chez qui", "chez quoi", "contre qui", "contre quoi", "vers qui", "vers quoi", "par qui", 
+    "par quoi", "sur qui", "sur quoi", "en qui", "en quoi", "sous qui", "sous quoi", "jusqu'à quand", 
+    "jusqu'où", "depuis quand", "depuis où", "d'où", "pour combien de temps", "à quel point", 
+    "à quelle heure", "à quel endroit", "dans quel cas", "dans quelle mesure", "en quel sens", 
+    "en quelle année", "en quel mois", "en quel jour", "à quel moment", "pour quelle raison", 
+    "pour quelle cause", "à quel but", "dans quel but",
+    "est-ce que", "est-ce qu'il", "est-ce qu'elle", "est-ce qu'ils", "est-ce qu'elles",
+    "qu'il", "qu'elle", "qu'ils", "qu'elles",
+    "quand est-ce que", "où est-ce que", "pourquoi est-ce que", "comment est-ce que", "combien est-ce que", 
+    "à quel moment est-ce que", "dans quel endroit est-ce que", "pour quelle raison est-ce que", 
+    "à quelle heure est-ce que", "à quel point est-ce que", "dans quelle mesure est-ce que", 
+    "pour combien de temps est-ce que", "jusqu'à quand est-ce que", "depuis quand est-ce que", 
+    "d'où est-ce que", "jusqu'où est-ce que", "depuis où est-ce que",
+    "est-ce que je", "est-ce que tu", "est-ce qu'il", "est-ce qu'elle", "est-ce que nous", "est-ce que vous", 
+    "est-ce qu'ils", "est-ce qu'elles", "est-ce qu'on", "est-ce qu'", "qu'est-ce que je", "qu'est-ce que tu", 
+    "qu'est-ce qu'il", "qu'est-ce qu'elle", "qu'est-ce que nous", "qu'est-ce que vous", "qu'est-ce qu'ils", 
+    "qu'est-ce qu'elles", "qu'est-ce qu'on", "qu'est-ce qu'", "quand est-ce que je", "quand est-ce que tu", 
+    "quand est-ce qu'il", "quand est-ce qu'elle", "quand est-ce que nous", "quand est-ce que vous", 
+    "quand est-ce qu'ils", "quand est-ce qu'elles", "quand est-ce qu'on", "quand est-ce qu'", 
+    "où est-ce que je", "où est-ce que tu", "où est-ce qu'il", "où est-ce qu'elle", "où est-ce que nous", 
+    "où est-ce que vous", "où est-ce qu'ils", "où est-ce qu'elles", "où est-ce qu'on", "où est-ce qu'", 
+    "comment est-ce que je", "comment est-ce que tu", "comment est-ce qu'il", "comment est-ce qu'elle", 
+    "comment est-ce que nous", "comment est-ce que vous", "comment est-ce qu'ils", "comment est-ce qu'elles", 
+    "comment est-ce qu'on", "comment est-ce qu'", "pourquoi est-ce que je", "pourquoi est-ce que tu", 
+    "pourquoi est-ce qu'il", "pourquoi est-ce qu'elle", "pourquoi est-ce que nous", "pourquoi est-ce que vous", 
+    "pourquoi est-ce qu'ils", "pourquoi est-ce qu'elles", "pourquoi est-ce qu'on", "pourquoi est-ce qu'", 
+    "combien est-ce que je", "combien est-ce que tu", "combien est-ce qu'il", "combien est-ce qu'elle", 
+    "combien est-ce que nous", "combien est-ce que vous", "combien est-ce qu'ils", "combien est-ce qu'elles", 
+    "combien est-ce qu'on", "combien est-ce qu'", "à quel point est-ce que je", "à quel point est-ce que tu", 
+    "à quel point est-ce qu'il", "à quel point est-ce qu'elle", "à quel point est-ce que nous", 
+    "à quel point est-ce que vous", "à quel point est-ce qu'ils", "à quel point est-ce qu'elles", 
+    "à quel point est-ce qu'on", "à quel point est-ce qu'", "dans quelle mesure est-ce que je", 
+    "dans quelle mesure est-ce que tu", "dans quelle mesure est-ce qu'il", "dans quelle mesure est-ce qu'elle", 
+    "dans quelle mesure est-ce que nous", "dans quelle mesure est-ce que vous", "dans quelle mesure est-ce qu'ils", 
+    "dans quelle mesure est-ce qu'elles", "dans quelle mesure est-ce qu'on", "dans quelle mesure est-ce qu'", 
+    "à quel moment est-ce que je", "à quel moment est-ce que tu", "à quel moment est-ce qu'il", 
+    "à quel moment est-ce qu'elle", "à quel moment est-ce que nous", "à quel moment est-ce que vous", 
+    "à quel moment est-ce qu'ils", "à quel moment est-ce qu'elles", "à quel moment est-ce qu'on", 
+    "à quel moment est-ce qu'", "pour combien de temps est-ce que je", "pour combien de temps est-ce que tu", 
+    "pour combien de temps est-ce qu'il", "pour combien de temps est-ce qu'elle", "pour combien de temps est-ce que nous", 
+    "pour combien de temps est-ce que vous", "pour combien de temps est-ce qu'ils", "pour combien de temps est-ce qu'elles", 
+    "pour combien de temps est-ce qu'on", "pour combien de temps est-ce qu'", "jusqu'à quand est-ce que je", 
+    "jusqu'à quand est-ce que tu", "jusqu'à quand est-ce qu'il", "jusqu'à quand est-ce qu'elle", 
+    "jusqu'à quand est-ce que nous", "jusqu'à quand est-ce que vous", "jusqu'à quand est-ce qu'ils", 
+    "jusqu'à quand est-ce qu'elles", "jusqu'à quand est-ce qu'on", "jusqu'à quand est-ce qu'", 
+    "depuis quand est-ce que je", "depuis quand est-ce que tu", "depuis quand est-ce qu'il", 
+    "depuis quand est-ce qu'elle", "depuis quand est-ce que nous", "depuis quand est-ce que vous", 
+    "depuis quand est-ce qu'ils", "depuis quand est-ce qu'elles", "depuis quand est-ce qu'on", 
+    "depuis quand est-ce qu'", "d'où est-ce que je", "d'où est-ce que tu", "d'où est-ce qu'il", 
+    "d'où est-ce qu'elle", "d'où est-ce que nous", "d'où est-ce que vous", "d'où est-ce qu'ils", 
+    "d'où est-ce qu'elles", "d'où est-ce qu'on", "d'où est-ce qu'", "jusqu'où est-ce que je", 
+    "jusqu'où est-ce que tu", "jusqu'où est-ce qu'il", "jusqu'où est-ce qu'elle", "jusqu'où est-ce que nous", 
+    "jusqu'où est-ce que vous", "jusqu'où est-ce qu'ils", "jusqu'où est-ce qu'elles", "jusqu'où est-ce qu'on", 
+    "jusqu'où est-ce qu'", "depuis où est-ce que je", "depuis où est-ce que tu", "depuis où est-ce qu'il", 
+    "depuis où est-ce qu'elle", "depuis où est-ce que nous", "depuis où est-ce que vous", "depuis où est-ce qu'ils", 
+    "depuis où est-ce qu'elles", "depuis où est-ce qu'on", "depuis où est-ce qu'"
+]
+INTERROGATIVE_EXPRESSIONS = [
+    "-t-", "-on", "-je", "-tu", "-il", "-elle", "-nous", "-vous", "-ils", "-elles"
+]
+
+def is_question(sentence):
+    start_pattern = re.compile(rf"^({'|'.join(re.escape(word) for word in INTERROGATIVE_WORDS)})", re.IGNORECASE)
+    end_pattern = re.compile(r".*\?$")
+    return bool(start_pattern.match(sentence)) or bool(end_pattern.match(sentence))
 
 def naive_datetime(dt):
     return dt.replace(tzinfo=None)
@@ -38,7 +105,6 @@ def naive_datetime(dt):
 async def delete_recent_bot_messages(bot, channel, exclude_message_ids, special_message_ids=[]):
     now = datetime.utcnow().replace(tzinfo=timezone.utc)
     time_limit = now - timedelta(seconds=65)
-    
     try:
         async for message in channel.history(limit=100):
             if message.author == bot.user and naive_datetime(message.created_at) > naive_datetime(time_limit) and message.id not in exclude_message_ids and message.id not in special_message_ids:
@@ -58,27 +124,24 @@ class Question(commands.Cog):
         self.embed_messages = {}
         self.delete_messages = {}
         self.last_asked = {}
-        self.interrogative_words = INTERROGATIVE_WORDS
 
     def get_question_error(self, title, selected_tags=None):
         errors = []
-        first_word_original = title.split(" ")[0]
+        words = title.split()
+        first_word_original = words[0] if words else ""
         first_word = first_word_original.lower()
         lower_title = title.lower()
 
         if not first_word_original[0].isupper():
             errors.append("Le premier mot de votre titre doit commencer par une majuscule.")
         
-        if not any(first_word.startswith(word) for word in self.interrogative_words):
-            if not any(ending in first_word for ending in INTERROGATIVE_EXPRESSIONS):
-                errors.append("Votre titre ne commence pas par un mot interrogatif ou une expression interrogative.")
+        if not is_question(title):
+            errors.append("Votre titre ne commence pas par un mot interrogatif ou une expression interrogative ou ne se termine pas par un ?.")
         
         if len(lower_title) < 20:
             errors.append("Votre titre est trop court. Il doit contenir au moins 20 caractères.")
         if len(lower_title) > 100:
             errors.append("Votre titre est trop long. Il doit être de 100 caractères ou moins.")
-        if not lower_title.endswith('?'):
-            errors.append("Votre titre ne se termine pas par un ?.")
         
         if not selected_tags and not self.thread_has_tags(selected_tags):
             errors.append("Vous devez sélectionner un tag.")
@@ -103,8 +166,8 @@ class Question(commands.Cog):
         else:
             await thread.send("Le temps est écoulé, mais votre question n'a pas été déplacée.")
 
-    def create_answer_view(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
-        return AnswerView(thread, message_id, get_question_error, bot, original_message, author, webhook)
+    def create_answer_view(self, thread, message_id, bot, original_message, author):
+        return AnswerView(thread, message_id, self.get_question_error, bot, original_message, author)
 
     async def monitor_thread(self, thread):
         await asyncio.sleep(600)
@@ -144,7 +207,7 @@ class Question(commands.Cog):
         
         if not error_types:
             success_embed = send_success_message(thread.name)
-            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, message.author, await get_webhook(thread.parent))
+            view = self.create_answer_view(thread, message_id, self.bot, None, message.author)
             view.remove_tag_select()
             embed_message = await thread.send(content=message.author.mention if message.author else "", embed=success_embed, view=view)
             self.embed_messages[thread.id] = embed_message.id
@@ -155,7 +218,7 @@ class Question(commands.Cog):
                 await message.author.add_roles(role)
 
             error_embed = send_error_message(thread.name, error_types)
-            view = AnswerView(thread, message_id, self.get_question_error, self.bot, None, message.author, await get_webhook(thread.parent))
+            view = self.create_answer_view(thread, message_id, self.bot, None, message.author)
             embed_message = await thread.send(content=message.author.mention if message.author else "", embed=error_embed, view=view)
             self.embed_messages[thread.id] = embed_message.id
             view.message_id = embed_message.id
@@ -190,8 +253,8 @@ class Question(commands.Cog):
             if self.user_has_stopped(message.author.id):
                 return
             
-            content = message.content.lower()
-            if (any(word in content for word in self.interrogative_words) or content.endswith('?')) and len(content) > 10:
+            content = message.content.strip()
+            if (is_question(content) and len(content) >= 10):
                 last_asked_time = self.last_asked.get(message.author.id)
                 if last_asked_time and (datetime.now() - last_asked_time).total_seconds() < 259200:
                     return
@@ -232,7 +295,7 @@ class Question(commands.Cog):
 
         if error_types:
             error_embed = send_error_message(after.name, error_types)
-            view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
+            view = self.create_answer_view(after, message_id, self.bot, None, after.owner)
             await embed_message.edit(content=after.owner.mention, embed=error_embed, view=view)
             self.delete_messages[after.id] = True
 
@@ -241,7 +304,7 @@ class Question(commands.Cog):
                 await after.owner.add_roles(role)
         else:
             success_embed = send_success_message(after.name)
-            view = AnswerView(after, message_id, self.get_question_error, self.bot, None, after.owner, await get_webhook(after.parent))
+            view = self.create_answer_view(after, message_id, self.bot, None, after.owner)
             view.remove_tag_select()
             await embed_message.edit(content=after.owner.mention, embed=success_embed, view=view)
             self.delete_messages[after.id] = False
@@ -380,7 +443,7 @@ class QuestionDetectedView(discord.ui.View):
             new_thread = await self.bot.fetch_channel(thread_message.id)
             
             await new_thread.add_user(self.message.author)
-            view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+            view = self.bot.get_cog('Question').create_answer_view(new_thread, thread_message.id, self.bot, self.message, self.message.author)
 
             success_embed = discord.Embed(title="Succès", description="Le message a été déplacé avec succès.", color=discord.Color.green())
             await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, view=view, thread=new_thread)
@@ -397,25 +460,28 @@ class QuestionDetectedView(discord.ui.View):
         if new_thread:
             self.bot.get_cog('Question').threads[new_thread.id] = self.message.author.id
 
+            await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id])
+
             special_message = await self.bot.get_channel(DISCUSSION_CHANNEL_ID).send(f"{self.message.author.mention} Votre question a été déplacée dans le fil <#{new_thread.id}>.")
 
-            # Supprimer le message de base de l'auteur
-            try:
-                await self.message.delete()
-            except discord.errors.NotFound:
-                pass
-
-            await delete_recent_bot_messages(self.bot, self.message.channel, [self.confirmation_message.id], special_message_ids=[special_message.id])
+            async for msg in new_thread.history(limit=10):
+                if msg.author == self.bot.user and not msg.is_system() and msg.id != thread_message.id:
+                    await msg.delete()
 
             error_types = self.bot.get_cog('Question').get_question_error(new_thread.name, new_thread.applied_tags)
             if error_types:
                 error_embed = send_error_message(new_thread.name, error_types)
-                view = AnswerView(new_thread, thread_message.id, self.bot.get_cog('Question').get_question_error, self.bot, self.message, self.message.author, webhook)
+                view = self.bot.get_cog('Question').create_answer_view(new_thread, thread_message.id, self.bot, self.message, self.message.author)
                 await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=error_embed, view=view, thread=new_thread)
             else:
                 success_embed = send_success_message(new_thread.name)
                 await webhook.edit_message(thread_message.id, content=self.message.author.mention, embed=success_embed, thread=new_thread)
-
+            
+            try:
+                await self.message.delete()
+            except discord.errors.NotFound:
+                pass
+            
             self.confirmed_or_cancelled = True
         else:
             await interaction.response.send_message("Il y a eu une erreur lors de la création du fil.", ephemeral=True)
@@ -532,7 +598,7 @@ class TitleModal(discord.ui.Modal):
             await self.thread.edit(name=new_title, applied_tags=forum_tags)
             
             success_embed = send_success_message(new_title)
-            view = self.bot.get_cog('Question').create_answer_view(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author, self.webhook)
+            view = self.bot.get_cog('Question').create_answer_view(self.thread, self.message_id, self.bot, self.original_message, self.author)
             view.remove_tag_select()
             
             if message.author.id == self.bot.user.id:
@@ -602,7 +668,7 @@ class TagSelectView(discord.ui.View):
                 break
 
 class AnswerView(discord.ui.View):
-    def __init__(self, thread, message_id, get_question_error, bot, original_message, author, webhook):
+    def __init__(self, thread, message_id, get_question_error, bot, original_message, author):
         super().__init__(timeout=None)
         self.thread = thread
         self.message_id = message_id
@@ -610,7 +676,6 @@ class AnswerView(discord.ui.View):
         self.bot = bot
         self.original_message = original_message
         self.author = author
-        self.webhook = webhook
         self.selected_tags = [tag.name for tag in thread.applied_tags]
         if not self.selected_tags:
             self.add_item(TagSelect(author.id, self.selected_tags, message_id, get_question_error, thread, bot))
@@ -625,7 +690,7 @@ class AnswerView(discord.ui.View):
         if interaction.user != self.author:
             await interaction.response.send_message("Seul l'auteur du fil peut modifier le titre.", ephemeral=True)
             return
-        modal = TitleModal(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author, self.webhook, self.selected_tags)
+        modal = TitleModal(self.thread, self.message_id, self.get_question_error, self.bot, self.original_message, self.author, await get_webhook(self.thread.parent), self.selected_tags)
         await interaction.response.send_modal(modal)
 
 async def get_webhook(channel):
