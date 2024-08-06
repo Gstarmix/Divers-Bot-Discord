@@ -15,23 +15,30 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
     
-    await bot.load_extension("extensions.thread_creator")
-    print("Thread Creator extension loaded")
+    await bot.load_extension("extensions.embed_logger")
+    print("embed_logger extension loaded")
     
-    await bot.load_extension("extensions.question")
-    print("Question extension loaded")
+    
+    # await bot.load_extension("extensions.mudae_listener")
+    # print("mudae_listener extension loaded")
+    
+    # await bot.load_extension("extensions.thread_creator")
+    # print("Thread Creator extension loaded")
+    
+    # await bot.load_extension("extensions.question")
+    # print("Question extension loaded")
 
-    await bot.load_extension("extensions.image_forwarder")
-    print("Image Forwarder extension loaded")
+    # await bot.load_extension("extensions.image_forwarder")
+    # print("Image Forwarder extension loaded")
 
-    await bot.load_extension("extensions.test_embed")
-    print("test_embed extension loaded")
+    # await bot.load_extension("extensions.test_embed")
+    # print("test_embed extension loaded")
 
-    await bot.load_extension("extensions.thread_manager")
-    print("thread_manager extension loaded")
+    # await bot.load_extension("extensions.thread_manager")
+    # print("thread_manager extension loaded")
 
-    await bot.load_extension("extensions.auto_repost_on_delete")
-    print("auto_repost_on_delete extension loaded")
+    # await bot.load_extension("extensions.auto_repost_on_delete")
+    # print("auto_repost_on_delete extension loaded")
 
     # await bot.load_extension("extensions.rules")
     # print("Rules extension loaded")

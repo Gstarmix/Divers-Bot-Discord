@@ -77,104 +77,31 @@ class AutoRepostOnDelete(commands.Cog):
 
     async def repost_message(self, message: discord.Message, thread_id: int):
         user = message.author
-        content = message.content or "*No content*"
+        content = message.content or "*Aucun contenu*"
         attachment_paths = self.saved_attachments.get(message.id, [])
-
         thread = await self.bot.fetch_channel(thread_id)
-        webhooks = await thread.parent.webhooks()
-        webhook = discord.utils.find(lambda wh: wh.user == thread.guild.me, webhooks)
-        if webhook is None:
-            webhook = await thread.parent.create_webhook(name="AutoReposter")
-
-        files = [(f"attachment://{os.path.basename(path)}", discord.File(path, filename=os.path.basename(path))) for path in attachment_paths]
         
-        if files:
-            image_urls, discord_files = zip(*files)
-            view = ImageNavigator(list(image_urls), "Le premier message de ce fil a été supprimé", content, discord.Color.red(), list(discord_files))
-            embed = view.update_embed(view.current_image)
-            await webhook.send(
-                username=user.display_name,
-                avatar_url=user.display_avatar.url,
-                thread=thread,
-                embed=embed,
-                view=view,
-                file=discord_files[0]
+        if attachment_paths:
+            files = [discord.File(path, filename=os.path.basename(path)) for path in attachment_paths]
+            await thread.send(
+                content=f"Le message initial de ce fil posté par {user.mention} a été supprimé. Voici le contenu du message et les fichiers joints :\n\n{content}",
+                files=files
             )
         else:
-            embed = discord.Embed(
-                title="Le premier message de ce fil a été supprimé",
-                description=f"{content}",
-                color=discord.Color.red()
-            )
-            await webhook.send(
-                username=user.display_name,
-                avatar_url=user.display_avatar.url,
-                thread=thread,
-                embed=embed
-            )
+            await thread.send(content=f"Le message initial de ce fil posté par {user.mention} a été supprimé. Voici le contenu du message :\n\n{content}")
 
     async def repost_message_from_data(self, thread_id: int, message_id: int):
         attachment_paths = self.saved_attachments.get(message_id, [])
         thread = await self.bot.fetch_channel(thread_id)
-        webhooks = await thread.parent.webhooks()
-        webhook = discord.utils.find(lambda wh: wh.user == thread.guild.me, webhooks)
-        if webhook is None:
-            webhook = await thread.parent.create_webhook(name="AutoReposter")
-
-        files = [(f"attachment://{os.path.basename(path)}", discord.File(path, filename=os.path.basename(path))) for path in attachment_paths]
         
-        if files:
-            image_urls, discord_files = zip(*files)
-            view = ImageNavigator(list(image_urls), "Le premier message de ce fil a été supprimé", "*Contenu non disponible*", discord.Color.red(), list(discord_files))
-            embed = view.update_embed(view.current_image)
-            await webhook.send(
-                username="Deleted User",
-                avatar_url="",
-                thread=thread,
-                embed=embed,
-                view=view,
-                file=discord_files[0]
+        if attachment_paths:
+            files = [discord.File(path, filename=os.path.basename(path)) for path in attachment_paths]
+            await thread.send(
+                content="Le message initial de ce fil a été supprimé. Voici les fichiers joints :",
+                files=files
             )
         else:
-            embed = discord.Embed(
-                title="Le premier message de ce fil a été supprimé",
-                description="*Contenu non disponible*",
-                color=discord.Color.red()
-            )
-            await webhook.send(
-                username="Deleted User",
-                avatar_url="",
-                thread=thread,
-                embed=embed
-            )
-
-class ImageNavigator(discord.ui.View):
-    def __init__(self, images: list, title: str, description: str, color: discord.Color, files: list = None):
-        super().__init__(timeout=None)
-        self.images = images
-        self.files = files
-        self.current_image = 0
-        self.title = title
-        self.description = description
-        self.color = color
-
-    def update_embed(self, image_index):
-        embed = discord.Embed(title=self.title, description=self.description, color=self.color)
-        embed.set_image(url=self.images[image_index])
-        embed.set_footer(text=f"{image_index + 1} / {len(self.images)}")
-        return embed
-
-    @discord.ui.button(label="◀️ Précédent", style=discord.ButtonStyle.grey, custom_id="previous_image")
-    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_image = (self.current_image - 1) % len(self.images)
-        embed = self.update_embed(self.current_image)
-        await interaction.response.edit_message(embed=embed, view=self, attachments=[self.files[self.current_image]] if self.files else None)
-
-    @discord.ui.button(label="Suivant ▶️", style=discord.ButtonStyle.grey, custom_id="next_image")
-    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.current_image = (self.current_image + 1) % len(self.images)
-        embed = self.update_embed(self.current_image)
-        await interaction.response.edit_message(embed=embed, view=self, attachments=[self.files[self.current_image]] if self.files else None)
+            await thread.send(content="Le message initial de ce fil a été supprimé. Aucun fichier n'était associé.")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(AutoRepostOnDelete(bot))

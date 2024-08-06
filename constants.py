@@ -3,6 +3,19 @@
 INSCRIPTION_CHANNEL_ID = 1131690975190855680
 INSCRIPTION_INVALIDATION_CHANNEL_ID = 1132405464190165053
 INSCRIPTION_VALIDATION_CHANNEL_ID = 1131725984253616230
+LOG_CHANNEL_ID = 1134215338347737219
+
+# Channel and role IDs
+MUDAE_ROLLS_CHANNEL_ID = 1122922261180071976
+MUDAE_SETTINGS_CHANNEL_IDS = [1134516617317978133, 1170378717978169376]
+MUDAE_ROLLS_2_ID = 1146542491290579094
+MUDAE_SETTINGS_CHANNEL_2_IDS = [1146892017402662912, 1170380459767771351]
+
+# Channels
+
+INSCRIPTION_CHANNEL_ID = 1131690975190855680
+INSCRIPTION_INVALIDATION_CHANNEL_ID = 1132405464190165053
+INSCRIPTION_VALIDATION_CHANNEL_ID = 1131725984253616230
 
 LOG_CHANNEL_ID = 1134215338347737219
 MEMES_CHANNEL_ID = 724265897794994186
@@ -17,57 +30,56 @@ MUDAE_WAIFUS_CHANNEL_2_ID = 1152565875958890516
 MUDAE_WAIFUS_CHANNEL_ID = 1133868580342087761
 
 PRESENTATION_CHANNEL_ID = 1183375149131628574
-QUESTION_CHANNEL_ID = 1248296732865855519
-ESTIMATION_CHANNEL_ID = 1248296732865855519
-DISCUSSION_CHANNEL_ID = 1248397181698965524
+QUESTION_CHANNEL_ID = 1055993732505284690
+DISCUSSION_CHANNEL_ID = 684734349106479107
 RECHERCHE_KELKIN_CHANNEL_ID = 995990482167545856
-SIGNALEMENT_VENTES_ID = 1217616850993680464
+SIGNALEMENT_VENTES_ID = 1217666437921898537
 SUGGESTION_FAFA_CHANNEL_ID = 1126957845485735996
 SUGGESTION_GSTAR_CHANNEL_ID = 809772368473882646
 VIDEO_CHANNEL_ID = 709653621393850438
 VDO_VDM_CHANNEL_ID = 775071451606155274
 
-COMMERCES_ID = 1219314731022684171
+ESTIMATION_CHANNEL_ID = 1028316725457981440
 
-VENTES_COSMOS_ID = 1217579779327397939
-ACHATS_COSMOS_ID = 1219026259351437465
+COMMERCES_ID = 1107401292655120435
 
-VENTES_NOSFIRE_ID = 1219026299637465234
-ACHATS_NOSFIRE_ID = 1219026360672981165
+VENTES_COSMOS_ID = 1217662604546277417
+ACHATS_COSMOS_ID = 707188849822007376
 
-ACTIVITES_ID = 1219320695578820758
+VENTES_NOSFIRE_ID = 1221638211802103970
+ACHATS_NOSFIRE_ID = 1221638285814796369
 
-FAMILLES_COSMOS_ID = 1219321701809127505
-RAIDS_COSMOS_ID = 1219331804436238406
-LEVELING_COSMOS_ID = 1219332516578594886
-GROUPE_XP_COSMOS_ID = 1219332856942432400
+ACTIVITES_ID = 1034240207219855402
 
-FAMILLES_NOSFIRE_ID = 1219321732771610694
-RAIDS_NOSFIRE_ID = 1219331769287966760
-LEVELING_NOSFIRE_ID = 1219332588318228622
-GROUPE_XP_NOSFIRE_ID = 1219333053139386389
+FAMILLES_COSMOS_ID = 739078436336959489
+RAIDS_COSMOS_ID = 719104975665496115
+LEVELING_COSMOS_ID = 703034600624226424
+GROUPE_XP_COSMOS_ID = 702234987818123617
+
+FAMILLES_NOSFIRE_ID = 1221641458931728394
+RAIDS_NOSFIRE_ID = 1221641491546636358
+LEVELING_NOSFIRE_ID = 1221641533858779256
+GROUPE_XP_NOSFIRE_ID = 1221641563956838540
 
 
 ACTIVITY_CHANNELS = {
-    "Présentation-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
-    "Recherche-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 0.01},
-    "Recherche-raid_cosmos": {"id": RAIDS_COSMOS_ID, "timer_hours": 0.01},
-    "Recherche-leveling_cosmos": {"id": LEVELING_COSMOS_ID, "timer_hours": 0.01},
-    "Recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 0.01},
-    "Présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
-    "Recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 0.01},
-    "Recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 0.01},
-    "Recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 0.01},
-    "Recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 0.01},
+    "Présentation-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 96},
+    "Recherche-famille_cosmos": {"id": FAMILLES_COSMOS_ID, "timer_hours": 12},
+    "Recherche-raid_cosmos": {"id": RAIDS_COSMOS_ID, "timer_hours": 1},
+    "Recherche-leveling_cosmos": {"id": LEVELING_COSMOS_ID, "timer_hours": 1},
+    "Recherche-groupe-xp_cosmos": {"id": GROUPE_XP_COSMOS_ID, "timer_hours": 1},
+    "Présentation-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 96},
+    "Recherche-famille_nosfire": {"id": FAMILLES_NOSFIRE_ID, "timer_hours": 12},
+    "Recherche-raid_nosfire": {"id": RAIDS_NOSFIRE_ID, "timer_hours": 1},
+    "Recherche-leveling_nosfire": {"id": LEVELING_NOSFIRE_ID, "timer_hours": 1},
+    "Recherche-groupe-xp_nosfire": {"id": GROUPE_XP_NOSFIRE_ID, "timer_hours": 1},
 }
 
-ACTIVITY_TYPES = {"Présentation-famille", "Recherche-famille", "Recherche-raid", "Recherche-leveling", "Recherche-groupe-xp"}
-
 TRADE_CHANNELS = {
-    "Achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 0.01},
-    "Vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 0.01},
-    "Achat_nosfire": {"id": ACHATS_NOSFIRE_ID, "timer_hours": 0.01},
-    "Vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 0.01},
+    "Achat_cosmos": {"id": ACHATS_COSMOS_ID, "timer_hours": 48},
+    "Vente_cosmos": {"id": VENTES_COSMOS_ID, "timer_hours": 48},
+    "Achat_nosfire": {"id": ACHATS_NOSFIRE_ID, "timer_hours": 24},
+    "Vente_nosfire": {"id": VENTES_NOSFIRE_ID, "timer_hours": 24},
 }
 
 LOCKED_CHANNELS_1 = {COMMERCES_ID, VENTES_COSMOS_ID, ACHATS_COSMOS_ID, VENTES_NOSFIRE_ID, ACHATS_NOSFIRE_ID}
@@ -93,7 +105,7 @@ RAID_ROLE_MAPPING = {
         "Ibrahim": "718959615613599967",
         "Kertos": "718959447208230963",
         "Valakus": "718959581706977341",
-        "Grenigas": "718959448491819058",
+        "Greniga": "718959448491819058",
         "Zénas": "718959445496955010",
         "Erenia": "718958893950042134",
         "Fernon": "718959447048847460",
@@ -106,7 +118,8 @@ RAID_ROLE_MAPPING = {
         "Alzanor": "920365332605071371",
         "Asgobas": "1052818238850994227",
         "Pollutus": "1184041291747696640",
-        "Arma": "1184041296797650944"
+        "Arma": "1184041296797650944",
+        "Arma absolu": "1255805332584792144",
     },
     "nosfire": {
         "Evènement": "1219914896783839253",
@@ -125,7 +138,7 @@ RAID_ROLE_MAPPING = {
         "Ibrahim": "1219915751012438016",
         "Kertos": "1219915750035427390",
         "Valakus": "1219915749200498718",
-        "Grenigas": "1219915748038672425",
+        "Greniga": "1219915748038672425",
         "Zénas": "1219915747522908160",
         "Erenia": "1219915746851815517",
         "Fernon": "1219915745853440000",
@@ -143,10 +156,11 @@ RAID_ROLE_MAPPING = {
 }
 
 
-RAIDS_LIST = ["Evènement", "Arma", "Pollutus", "Asgobas", "Alzanor", "Valehir", "Paimon ressuscité", "Paimon", "Bélial", "Carno", "Kirollas", "Fernon", "Erenia", "Zénas", "Grenigas", "Valakus", "Kertos", "Ibrahim", "Laurena", "Glacerus", "Draco", "Yertirand", "Fafnir", "Slade", "Araignée", "Castra", "Ginseng", "Cuby", "Poule", "Namaju"]
+RAIDS_LIST = ["Evènement", "Arma absolu", "Arma", "Pollutus", "Asgobas", "Alzanor", "Valehir", "Paimon ressuscité", "Paimon", "Bélial", "Carno", "Kirollas", "Fernon", "Erenia", "Zénas", "Greniga", "Valakus", "Kertos", "Ibrahim", "Laurena", "Glacerus", "Draco", "Yertirand", "Fafnir", "Slade", "Araignée", "Castra", "Ginseng", "Cuby", "Poule", "Namaju"]
 
 RAIDS_EMOTES = {
     "Evènement": "<:iconeevent:1225984383098294272>",
+    "Arma absolu": "<:armageantabsolu:1255808116315000862>",
     "Arma": "<:arma:1225981400339976303>",
     "Pollutus": "<:pollutus:1225981401367707669>",
     "Asgobas": "<:raidasgobas:1052817952585568316>",
@@ -178,6 +192,7 @@ RAIDS_EMOTES = {
     "Namaju": "<:Namaju:739077098307715154>"
 }
 
+
 CHANNELS_NAME_TO_ID = {
     "LOG_CHANNEL_ID": LOG_CHANNEL_ID,
     "MUDAE_CONTROL_CHANNEL_ID": MUDAE_CONTROL_CHANNEL_ID,
@@ -191,6 +206,8 @@ CHANNELS_NAME_TO_ID = {
     "MUDAE_WAIFUS_CHANNEL_ID": MUDAE_WAIFUS_CHANNEL_ID,
 }
 
+ACTIVITY_TYPES = {"Présentation-famille", "Recherche-famille", "Recherche-raid", "Recherche-leveling", "Recherche-groupe-xp"}
+
 # Roles
 
 CHEF_SINGE_ROLE_ID = 684742675726991436
@@ -199,19 +216,20 @@ GARDIEN_YERTI_ROLE_ID = 1036402538620129351
 INSCRIPTION_ROLE_ID = 1132681566213111818
 MUDAE_MODO_ROLE_ID = 1138210604977508422
 PRESENTATION_ROLE_ID = 1132655709268475905
-QUESTION_ROLE_ID = 1132434330933792828
+QUESTION_ROLE_ID = 1131336486101467176
 ROLE1_ID_FAFA = 923002565602467840
 ROLE2_ID_FAFA = 1056284304801550396
 ROLE3_ID_FAFA = 1056284337261256764
 ROLE4_ID_FAFA = 1056284371885248573
 ROLE5_ID_FAFA = 1056284345633095771
 
+OTAKU_SPAM_ROLE_ID = 1267471046710399051
+MUDAE_BOT_ID = 432610292342587392
 
 # Guilds
 
 GUILD_ID_FAFA = 922991241443041300
 GUILD_ID_GSTAR = 684734347177230451
-GUILD_ID_TEST = 871965787420782642
 
 # Users
 
@@ -220,3 +238,23 @@ GSTAR_USER_ID = 200750717437345792
 # Cooldown
 
 DELETE_COOLDOWN_HOURS = 48
+
+# Définir les commandes et les chemins relatifs des fichiers JSON
+TEXT_COMMANDS = sorted({"$us", "$rt", "$date", "$ku", "$mu", "$ru", "$dk", "$dku", "$rolls", "$mk", "$vote", "$daily", "$tu", "$usestack", "$bku"})
+SLASH_COMMANDS = {"wa", "ha", "ma", "wg", "hg", "mg", "wx", "hx", "mx"}
+TOPU_COMMANDS_HG_MINUS = {"$topuhg-x-", "$topux-hg-"}
+TOPU_COMMANDS_WG_MINUS = {"$topuwg-x-", "$topux-wg-"}
+TOPU_COMMANDS_MG_MINUS = {"$topumg-x-", "$topux-mg-"}
+TOPU_COMMANDS_HG = {"$topuhgx-", "$topux-hg"}
+TOPU_COMMANDS_WG = {"$topuwgx-", "$topux-wg"}
+TOPU_COMMANDS_MG = {"$topumgx-", "$topux-mg"}
+TOPU_COMMANDS_TOPUX = {"$topux-"}
+
+TOPU_COMMANDS = (TOPU_COMMANDS_HG_MINUS | TOPU_COMMANDS_WG_MINUS | TOPU_COMMANDS_MG_MINUS |
+                 TOPU_COMMANDS_HG | TOPU_COMMANDS_WG | TOPU_COMMANDS_MG | TOPU_COMMANDS_TOPUX)
+
+ALL_TOPU_COMMANDS = {cmd.replace("-", "") for cmd in TOPU_COMMANDS} | TOPU_COMMANDS
+
+# Paths for JSON files
+THREADS_STATE_PATH = "extensions/fils_state.json"
+PENDING_RESPONSES_PATH = "extensions/pending_responses.json"
