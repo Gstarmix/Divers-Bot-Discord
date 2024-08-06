@@ -632,5 +632,89 @@
             "buttons": [],
             "url": null
         }
+    },
+    {
+        "user_id": 200750717437345792,
+        "username": "gstar",
+        "command": "$ha",
+        "timestamp": "2024-08-06T17:52:13.851948",
+        "embed": {
+            "title": null,
+            "description": "Rick and Morty\n<:chaoskey:690110264166842421> (**32**) +5% valeur en kakera\nClaims: #14562\nLikes: #22867\n**1389**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd1132)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/1352192/aHk4E1-~EPA1lGc.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Birdperson",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
+    },
+    {
+        "user_id": 200750717437345792,
+        "username": "gstar",
+        "command": "$ha",
+        "timestamp": "2024-08-06T17:56:46.205382",
+        "embed": {
+            "title": null,
+            "description": "Pok\u00e9dex\n<:chaoskey:690110264166842421> (**138**) +5% valeur en kakera\nClaims: #11461\nLikes: #21669\n**7060**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd11138)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/8563985/repDUli~BLrUVte.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Wingull",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
+    },
+    {
+        "user_id": 200750717437345792,
+        "username": "gstar",
+        "command": "$ha",
+        "timestamp": "2024-08-06T17:57:46.112817",
+        "embed": {
+            "title": null,
+            "description": "Pok\u00e9dex\n<:chaoskey:690110264166842421> (**425**) +5% valeur en kakera\nClaims: #421\nLikes: #1127\n**47611**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd11425)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/1825057/ftomC2m~s5QcPYH.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Vaporeon",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
+    },
+    {
+        "user_id": 200750717437345792,
+        "username": "gstar",
+        "command": "$ha",
+        "timestamp": "2024-08-06T18:02:48.040398",
+        "embed": {
+            "title": null,
+            "description": "Pok\u00e9mon: Indigo League\n<:chaoskey:690110264166842421> (**767**) +5% valeur en kakera\nClaims: #749\nLikes: #182\n**98145**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd11767)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/6205697/-baIjXG~ptTejWj.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Pikachu",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
     }
 ]
