@@ -716,5 +716,89 @@
             "buttons": [],
             "url": null
         }
+    },
+    {
+        "user_id": 200750717437345792,
+        "username": "gstar",
+        "command": "$ha",
+        "timestamp": "2024-08-06T18:09:57.868000",
+        "embed": {
+            "title": null,
+            "description": "Black Clover\n**+9678**<:kakera:469835869059153940>\n<:chaoskey:690110264166842421> (**718**) +5% valeur en kakera\nClaims: #777\nLikes: #372\n**86167**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd11718)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/7571047/znlWkTp~DBNlQ52.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Yami Sukehiro",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
+    },
+    {
+        "user_id": 200750717437345792,
+        "username": "gstar",
+        "command": "$ha",
+        "timestamp": "2024-08-06T18:13:04.423576",
+        "embed": {
+            "title": null,
+            "description": "Avatar: The Last Airbender\n<:chaoskey:690110264166842421> (**884**) +5% valeur en kakera\n<:chaoskey:690110264166842421> (**885**) +5% valeur en kakera\nClaims: #434\nLikes: #216\n**127017**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd11885)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/3574364/PFpiw2y~Z8auZhk.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Zuko",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
+    },
+    {
+        "user_id": 432610292342587392,
+        "username": "Mudae",
+        "command": "ha",
+        "timestamp": "2024-08-06T18:23:00.132473",
+        "embed": {
+            "title": null,
+            "description": "Ouran High School Host Club\n<:chaoskey:690110264166842421> (**192**) +5% valeur en kakera\nClaims: #1029\nLikes: #547\n**19415**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\ud83d\udd11192)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/8541619/J83sYAq~V5Gd5jG.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Tamaki Suoh",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
+    },
+    {
+        "user_id": 432610292342587392,
+        "username": "Mudae",
+        "command": null,
+        "timestamp": "2024-08-06T18:23:41.505152",
+        "embed": {
+            "title": null,
+            "description": "One Piece <:sw:1163913219782492220>\n<:bku:1163913181920497755> $bku compl\u00e9t\u00e9 et r\u00e9initialis\u00e9 !\nSi vous faites appara\u00eetre un autre starwish avant le prochain\nreset de $bku, ceci a **344%** de chance de se reproduire.\n**+18700**<:kakera:469835869059153940>\n<:chaoskey:690110264166842421> (**1415**) +5% valeur en kakera\n<:chaoskey:690110264166842421> (**1416**) +5% valeur en kakera\nClaims: #28\nLikes: #7\n**434390**<:kakera:469835869059153940>\n*# \ud83e\udef8\ud83d\udd35\ud83d\udd34\ud83e\udef7\ud83e\udd1e\ud83e\udef4\ud83d\udfe3\nMange ton violet*",
+            "fields": [],
+            "footer": "(\u2b501416)  \u00b7 Appartient \u00e0 gstar",
+            "image": "https://mudae.net/uploads/7762218/k9KWq37~p7bwc98xzb7.png",
+            "thumbnail": null,
+            "author": {
+                "name": "Monkey D. Luffy",
+                "url": null,
+                "icon_url": null
+            },
+            "buttons": [],
+            "url": null
+        }
     }
 ]

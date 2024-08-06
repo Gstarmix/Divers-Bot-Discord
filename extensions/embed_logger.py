@@ -9,7 +9,7 @@ MUDAE_BOT_ID = 432610292342587392
 CHANNEL_ID = 1191348379406577704
 LOG_FILE_PATH = "embed_logs.json"
 
-SLASH_COMMANDS = {"/ha"}
+SLASH_COMMANDS = {"ha"}
 TEXT_COMMANDS = {"$ha"}
 
 class EmbedLogger(commands.Cog):
@@ -58,6 +58,7 @@ class EmbedLogger(commands.Cog):
 
     def extract_buttons_info(self, components):
         buttons_info = []
+        print(f"Components: {components}")
         for component in components:
             if isinstance(component, discord.ActionRow):
                 for item in component.children:
@@ -77,33 +78,20 @@ class EmbedLogger(commands.Cog):
         if message.channel.id != CHANNEL_ID:
             return
 
-        author = message.author
-        command_name = None
+        if message.author.id == MUDAE_BOT_ID:
+            print(f"Message de Mudae capturé : {message.content}")
+            command_name = None
+            if message.interaction:
+                command_name = message.interaction.name
+            print(f"Command name: {command_name}")
 
-        if message.content:
-            command_name = message.content.split()[0]
-
-        print(f"Message reçu : {message.content}")
-
-        if author.id == USER_ID and (command_name in TEXT_COMMANDS or command_name in SLASH_COMMANDS):
-            print(f"Commande reçue de l'utilisateur spécifique : {command_name}")
-
-            def check(m):
-                return m.author.id == MUDAE_BOT_ID and m.channel.id == message.channel.id
-
-            try:
-                mudae_message = await self.bot.wait_for('message', check=check, timeout=10.0)
-                print(f"Message de Mudae capturé : {mudae_message.content}")
-                if mudae_message.embeds:
-                    for embed in mudae_message.embeds:
-                        buttons_info = self.extract_buttons_info(mudae_message.components)
-                        self.log_embed(embed, author, command_name, buttons_info)
-                else:
-                    await message.channel.send(f"{author.mention}, aucun embed trouvé dans la réponse du bot.")
-                    print("Aucun embed trouvé dans la réponse du bot.")
-            except asyncio.TimeoutError:
-                await message.channel.send(f"{author.mention}, aucune réponse du bot Mudae trouvée.")
-                print("Aucune réponse du bot Mudae trouvée.")
+            if message.embeds:
+                for embed in message.embeds:
+                    buttons_info = self.extract_buttons_info(message.components)
+                    self.log_embed(embed, message.author, command_name, buttons_info)
+            else:
+                await message.channel.send(f"{message.author.mention}, aucun embed trouvé dans la réponse du bot.")
+                print("Aucun embed trouvé dans la réponse du bot.")
 
 async def setup(bot):
     await bot.add_cog(EmbedLogger(bot))
